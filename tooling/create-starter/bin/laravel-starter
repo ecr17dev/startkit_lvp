@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+<?php
+
+// Autoloader: standalone (vendor/ next to the package), installed as a
+// dependency (composer global require) or inside the starter monorepo.
+foreach ([
+    __DIR__.'/../vendor/autoload.php',
+    __DIR__.'/../../../autoload.php',
+    __DIR__.'/../../../apps/platform/vendor/autoload.php',
+] as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+if (! class_exists(Starter\Installer\Console\Application::class)) {
+    fwrite(STDERR, "laravel-starter: run composer install first.\n");
+    exit(1);
+}
+
+exit((new Starter\Installer\Console\Application)->run());

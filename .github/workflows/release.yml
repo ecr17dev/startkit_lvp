@@ -1,0 +1,64 @@
+name: release
+
+# Publishes a verifiable release when a tag vX.Y.Z is pushed: the project
+# template (git archive of the tag) and the installer package, each with
+# its SHA-256. `laravel-starter new` downloads the template and refuses it
+# when the checksum does not match.
+
+on:
+    push:
+        tags: ['v*.*.*']
+
+permissions:
+    contents: read
+
+jobs:
+    release:
+        name: Template and installer
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+              with:
+                  php-version: '8.4'
+                  extensions: pdo_pgsql, intl, zip, phar
+                  tools: composer:v2
+                  coverage: none
+
+            - name: Versions match the tag
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  test "$(jq -r .version tooling/create-starter/composer.json)" = "$VERSION"
+                  grep -q "VERSION = '$VERSION'" tooling/create-starter/src/Console/Application.php
+                  test "$(jq -r .starter.version starter.manifest.json)" = "$VERSION"
+
+            - name: Build the template and the installer package
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  mkdir dist
+                  git archive --format=tar.gz --prefix=laravel-starter/ -o "dist/laravel-starter-template-$VERSION.tar.gz" "$GITHUB_REF_NAME"
+                  (cd tooling/create-starter && zip -qr "../../dist/laravel-starter-installer-$VERSION.zip" . -x 'vendor/*')
+                  cd dist && for file in *; do sha256sum "$file" > "$file.sha256"; done && cat ./*.sha256
+
+            - name: The installer creates a project from the published archive
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  composer validate --working-dir=tooling/create-starter --no-check-publish
+                  composer install --working-dir=tooling/create-starter --no-interaction --prefer-dist
+                  php tooling/create-starter/bin/laravel-starter new "$RUNNER_TEMP/demo" \
+                    --archive="dist/laravel-starter-template-$VERSION.tar.gz" \
+                    --config=starter.config.example.json --skip-install --no-interaction --json
+                  test -f "$RUNNER_TEMP/demo/apps/platform/artisan"
+                  test -f "$RUNNER_TEMP/demo/apps/platform/.env"
+
+            - name: Publish the release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
