@@ -64,9 +64,16 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   `node packages/js/ui/scripts/add.mjs <componente>`. Las tablas del servidor ordenan solo
   con `App\Support\TableSort`; los gráficos usan `--chart-1..8` en orden fijo.
 
+## Instalación
+
+Para instalar o reinstalar sigue [INSTALL.md](INSTALL.md): `./setup.sh --owner=correo` (Docker o
+local, no interactivo, repetible, `--json`, códigos de salida documentados). No edites
+`apps/platform/.env` a mano salvo para agregar claves; nunca lo subas ni muestres sus secretos.
+
 ## Comandos
 
 ```bash
+./setup.sh --owner=tu@correo.com                 # instalación completa (INSTALL.md)
 pnpm install && pnpm build                       # dependencias y assets
 cd apps/platform
 composer install

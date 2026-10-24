@@ -57,8 +57,10 @@ services:
         <<: *app
         profiles: ['ops']
         restart: 'no'
-        # Migrations, then the permission catalog and system roles...
-        command: ['sh', '-c', 'php artisan migrate --force --isolated && php artisan starter:permissions']
+        # Migrations, then the permission catalog and system roles. The cache
+        # tables go first: --isolated takes its lock in cache_locks, which a
+        # new database does not have yet...
+        command: ['sh', '-c', 'php artisan migrate --force --path=database/migrations/0001_01_01_000001_create_cache_table.php && php artisan migrate --force --isolated && php artisan starter:permissions']
         healthcheck:
             disable: true
 

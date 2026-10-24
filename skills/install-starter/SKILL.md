@@ -1,12 +1,16 @@
 ---
 name: install-starter
-description: Instala un proyecto nuevo del Laravel Starter (Laravel 13 + Laravel AI SDK + Vue/Inertia + PostgreSQL/pgvector) desde una release verificada o una copia local, con starter.config.json, Docker opcional y diagnóstico. Úsala para crear o reinstalar un proyecto y para diagnosticar una instalación.
+description: Instala y configura el Laravel Starter (Laravel 13 + Laravel AI SDK + Vue/Inertia + PostgreSQL/pgvector) con ./setup.sh (Docker o local, un comando) o crea un proyecto nuevo con laravel-starter new desde una release verificada o una copia local, con starter.config.json y diagnóstico. Úsala para instalar, reinstalar o diagnosticar.
 ---
 
 # install-starter
 
-Crea un proyecto con `laravel-starter new`, aplica la configuración y verifica que quede
-sano. No inventa credenciales: solo usa referencias `env:NOMBRE` o `file:/ruta`.
+**Camino corto (clon del repositorio):** `./setup.sh --owner=correo` instala todo y verifica
+(Docker si está disponible; si no, local). Ver [INSTALL.md](../../INSTALL.md): opciones,
+códigos de salida 0/2–7 y problemas frecuentes. Usa `--json` y actúa según el código.
+
+**Proyecto propio desde la plantilla:** `laravel-starter new` (resto de esta skill). No inventa
+credenciales: solo usa referencias `env:NOMBRE` o `file:/ruta`.
 
 ## Entradas
 

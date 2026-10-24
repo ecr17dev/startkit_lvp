@@ -5,6 +5,19 @@
 compilados. Composer instala dependencias sin `dev`; los assets se compilan con
 pnpm en una etapa que también tiene PHP (Wayfinder genera rutas TypeScript).
 
+## Probar en una máquina
+
+`./setup.sh --docker` construye las imágenes y levanta todo con
+`compose.yaml` + `compose.local.yaml` (código de la imagen, `APP_ENV=local`, correo a Mailpit,
+PostgreSQL interno sin puerto publicado). Ver [INSTALL.md](../INSTALL.md).
+
+| Archivo | Uso |
+| --- | --- |
+| `compose.yaml` | servicios base y perfiles |
+| `compose.local.yaml` | probar o usar en una máquina sin PHP/Node en el host |
+| `compose.dev.yaml` | desarrollo con el código montado (necesita `vendor/` y assets en el host) |
+| `compose.production.yaml` | producción |
+
 ## Servicios y perfiles
 
 | Servicio | Función | Activación |
@@ -13,7 +26,7 @@ pnpm en una etapa que también tiene PHP (Wayfinder genera rutas TypeScript).
 | app | Laravel 13 sobre PHP-FPM | Siempre |
 | queue | `queue:work database` con colas mail, default, ingest, sync, maintenance | Siempre |
 | scheduler | `schedule:work` | Siempre |
-| migrate | `migrate --force --isolated` (una ejecución) | `docker compose run --rm migrate` |
+| migrate | tablas de caché, `migrate --force --isolated` y `starter:permissions` (una ejecución) | `docker compose run --rm migrate` |
 | postgres | PostgreSQL + pgvector (datos, sesiones, caché, cola) | `--profile local-db` |
 | rag-postgres | Base vectorial separada | `--profile rag-db` |
 | postgrest | API de esquema `api` permitido | `--profile postgrest` |

@@ -119,6 +119,7 @@ jobs:
               run: |
                   for profiles in "" "--profile local-db --profile dev-mail" "--profile rag-db" "--profile postgrest" "--profile inertia-ssr"; do
                     docker compose -f docker/compose.yaml -f docker/compose.dev.yaml $profiles config --quiet
+                    docker compose -f docker/compose.yaml -f docker/compose.local.yaml $profiles config --quiet
                     docker compose -f docker/compose.yaml -f docker/compose.production.yaml $profiles config --quiet
                   done
 
@@ -184,8 +185,51 @@ jobs:
                   php artisan starter:verify --skip-contracts
                   php artisan starter:config-apply ../../starter.config.json --dry-run
 
+    setup-local:
+        name: One-command setup (local)
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: pgvector/pgvector:0.8.1-pg17
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: secret
+                ports: ['5432:5432']
+                options: >-
+                    --health-cmd "pg_isready -U postgres"
+                    --health-interval 5s --health-timeout 5s --health-retries 20
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+              with:
+                  php-version: '8.4'
+                  extensions: pdo_pgsql, intl, zip, bcmath
+                  tools: composer:v2
+                  coverage: none
+
+            - name: Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: '22'
+
+            - name: ./setup.sh --local (creates the database, owner, build, doctor)
+              run: |
+                  ./setup.sh --local --owner=ci@example.com --name="CI" \
+                      --db-url=postgresql://postgres:secret@127.0.0.1:5432/setup_ci --json | tee "$RUNNER_TEMP/setup.json"
+                  test "$(tail -n 1 "$RUNNER_TEMP/setup.json" | jq -r .status)" = "ready"
+
+            - name: Re-running is safe
+              run: ./setup.sh --local --skip-build --json | tail -n 1 | jq -e '.status == "ready"'
+
     docker:
-        name: Docker image
+        name: Docker image and one-command setup
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
@@ -198,3 +242,18 @@ jobs:
 
             - name: Build web image
               run: docker build -f docker/app.Dockerfile --target web -t starter-web:ci .
+
+            - name: ./setup.sh --docker (PostgreSQL, Mailpit, migrations, owner, doctor)
+              run: |
+                  ./setup.sh --docker --owner=ci@example.com --json | tee "$RUNNER_TEMP/setup.json"
+                  test "$(tail -n 1 "$RUNNER_TEMP/setup.json" | jq -r .status)" = "ready"
+
+            - name: The login page, the assets and Mailpit answer
+              run: |
+                  curl -fsS -o /dev/null http://localhost:8080/login
+                  curl -fsS -o /dev/null "http://localhost:8080/build/manifest.json"
+                  curl -fsS http://localhost:8025/api/v1/info | jq -e '.Version'
+
+            - name: Service logs
+              if: failure()
+              run: docker compose -f docker/compose.yaml -f docker/compose.local.yaml --profile local-db --profile dev-mail logs --tail=200

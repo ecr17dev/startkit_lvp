@@ -1,0 +1,21 @@
+# Run the starter on one machine from the built images: no PHP, Composer or
+# Node on the host, PostgreSQL + Mailpit included, code taken from the image.
+# ./setup.sh --docker uses it:
+#
+#   docker compose -f docker/compose.yaml -f docker/compose.local.yaml \
+#       --profile local-db --profile dev-mail up -d --build --wait
+#
+# To edit the code with live reload use compose.dev.yaml (mounts the source;
+# needs vendor/ and the built assets on the host) or the local mode.
+services:
+    app: &local
+        environment:
+            APP_ENV: local
+            APP_DEBUG: 'true'
+            DB_HOST: ${DB_HOST:-postgres}
+            MAIL_MAILER: smtp
+            MAIL_HOST: mailpit
+            MAIL_PORT: '1025'
+    queue: *local
+    scheduler: *local
+    migrate: *local

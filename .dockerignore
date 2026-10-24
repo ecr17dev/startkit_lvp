@@ -1,0 +1,32 @@
+# Build context of docker/app.Dockerfile (the repository root). Keep local
+# dependencies, builds, secrets and runtime data out of the images.
+.git
+.github
+**/node_modules
+**/.DS_Store
+**/.env
+**/.env.*
+!**/.env.example
+apps/platform/vendor
+apps/platform/public/build
+apps/platform/public/hot
+apps/platform/public/storage
+apps/platform/bootstrap/cache/*.php
+apps/platform/bootstrap/ssr
+apps/platform/storage/app/*
+apps/platform/storage/framework/cache/*
+apps/platform/storage/framework/sessions/*
+apps/platform/storage/framework/testing/*
+apps/platform/storage/framework/views/*
+apps/platform/storage/inertia-devtools
+apps/platform/storage/logs/*
+apps/platform/resources/js/actions
+apps/platform/resources/js/routes
+apps/platform/resources/js/wayfinder
+tooling/create-starter/vendor
+test-results
+playwright-report
+blob-report
+tests/e2e/.auth
+docker/.env
+starter.config.json

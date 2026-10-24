@@ -2,6 +2,12 @@
 
 > Starter kit para nuevos proyectos: login por código de un solo uso, roles y permisos, panel shadcn-vue, IA con Laravel AI SDK (conexiones, modelos, tarifas, costos, agentes), RAG opcional con pgvector, API REST con Sanctum y OpenAPI, Docker.
 
+## Instalar (empieza aquí)
+
+- [INSTALL.md](INSTALL.md): un comando, `./setup.sh --owner=tu@correo.com` (Docker si está disponible; si no, PHP 8.3+, Composer, Node 22 y PostgreSQL). No interactivo, repetible, `--json` para agentes, códigos de salida 0/2–7 con la acción a seguir.
+- Tras instalar: URL <http://localhost:8080> (Docker) o <http://localhost:8000> (local, `composer dev`); códigos de acceso en Mailpit <http://localhost:8025> o en `apps/platform/storage/logs/laravel.log`.
+- Configurar IA, correo y RAG: `--config=starter.config.json` ([ejemplo](starter.config.example.json)) o el panel.
+
 ## Documentación
 
 - [Especificación](docs/especificacion.md): alcance y criterios de aceptación.

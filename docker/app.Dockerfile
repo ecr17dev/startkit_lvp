@@ -40,6 +40,8 @@ WORKDIR /srv
 FROM php-base AS vendor
 
 COPY packages/php packages/php
+# Path repository of starter-console (validator of starter.config.json)...
+COPY tooling/create-starter tooling/create-starter
 COPY apps/platform/composer.json apps/platform/composer.lock apps/platform/
 RUN composer install --working-dir=apps/platform --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
 
@@ -77,6 +79,7 @@ ENV APP_ENV=production \
     LOG_CHANNEL=stderr
 
 COPY --from=vendor --chown=www-data:www-data /srv/packages/php /srv/packages/php
+COPY --from=vendor --chown=www-data:www-data /srv/tooling/create-starter /srv/tooling/create-starter
 COPY --from=vendor --chown=www-data:www-data /srv/apps/platform /srv/apps/platform
 COPY --from=assets --chown=www-data:www-data /srv/apps/platform/public/build /srv/apps/platform/public/build
 COPY docker/entrypoint.sh /usr/local/bin/starter-entrypoint

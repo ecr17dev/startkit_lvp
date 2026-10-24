@@ -24,7 +24,7 @@ class DocumentationTest extends TestCase
             $files[$file->getRealPath()] = $file->getContents();
         }
 
-        foreach (['README.md', 'AGENTS.md', 'llms.txt'] as $name) {
+        foreach (['README.md', 'INSTALL.md', 'AGENTS.md', 'llms.txt'] as $name) {
             $files[realpath("{$root}/{$name}")] = (string) file_get_contents("{$root}/{$name}");
         }
 

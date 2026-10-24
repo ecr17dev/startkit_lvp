@@ -17,23 +17,31 @@ opcional, listos para usar.
 La especificación completa (visión, alcance y criterios de aceptación) está en
 [`docs/especificacion.md`](docs/especificacion.md).
 
-## Inicio rápido
+## Instalación en un comando
 
 ```bash
-corepack enable && pnpm install
-cd apps/platform
-cp .env.example .env              # PostgreSQL en DB_*; Mailpit en :1025
-composer install
-php artisan key:generate
-php artisan migrate --seed
-cd ../.. && pnpm build
-cd apps/platform && composer dev  # http://localhost:8000
+git clone https://github.com/bluesmilecl/startkit_laravel.git
+cd startkit_laravel
+./setup.sh --owner=tu@correo.com
 ```
 
-Con Docker: ver [`docs/installation.md`](docs/installation.md) y
-[`docs/docker.md`](docs/docker.md). Para crear un proyecto nuevo con el instalador
-(`laravel-starter new mi-proyecto --config=starter.config.json`), ver
-[`docs/installer.md`](docs/installer.md).
+Usa **Docker** si está disponible (no necesitas PHP ni Node: incluye PostgreSQL, Mailpit,
+cola y scheduler → <http://localhost:8080>) o tu PHP 8.3+, Composer, Node 22 y PostgreSQL
+(→ `cd apps/platform && composer dev`, <http://localhost:8000>). Es no interactivo, se puede
+repetir y con `--json` deja un resumen para agentes. Entra con el correo del propietario: el
+código llega a Mailpit (<http://localhost:8025>) o al log. Todo el detalle, códigos de salida y
+problemas frecuentes en **[INSTALL.md](INSTALL.md)**.
+
+**¿Con un agente de IA?** Dale este mensaje:
+
+```text
+Instala y configura https://github.com/bluesmilecl/startkit_laravel siguiendo su INSTALL.md.
+Propietario: tu@correo.com. Usa Docker si está disponible.
+Al terminar dime la URL, dónde llegan los códigos de acceso y qué quedó pendiente.
+```
+
+Para empezar un proyecto propio desde la plantilla (historial limpio y configuración
+aplicada) usa el instalador `laravel-starter new` ([docs/installer.md](docs/installer.md)).
 
 ## Estructura
 
@@ -88,8 +96,8 @@ pnpm test:e2e                         # Playwright
 
 ## Documentación
 
+- [**Instalación rápida (personas y agentes de IA)**](INSTALL.md) · [detalle por modo](docs/installation.md)
 - [Arquitectura](docs/architecture.md)
-- [Instalación](docs/installation.md)
 - [Identidad, acceso y auditoría](docs/identity.md)
 - [IA: conexiones, catálogo, tarifas, consumo y presupuestos](docs/ai.md)
 - [Conocimiento (RAG)](docs/knowledge.md), [externo](docs/rag-external.md) y [PostgREST](docs/postgrest.md)
@@ -102,4 +110,4 @@ pnpm test:e2e                         # Playwright
 
 ## Licencia
 
-MIT.
+[MIT](LICENSE).
