@@ -49,6 +49,9 @@ class SimulatedCatalog
             $transcriber = $this->model($connection, 'simulated-transcriber', 'Simulated transcriber', ['transcription'], false);
             $this->prices->set($transcriber, PriceComponent::AudioSeconds, '0', PriceSource::simulated(), PriceUnit::PerMinute);
 
+            $embedding = $this->model($connection, 'simulated-embedding', 'Simulated embeddings (lexical, 256 dims)', ['embeddings'], false);
+            $this->prices->set($embedding, PriceComponent::Input, '0', PriceSource::simulated());
+
             return $connection;
         });
     }

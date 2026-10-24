@@ -20,7 +20,7 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   registrados en `apps/platform/bootstrap/providers.php`.
 - `packages/js/*`: `@starter/ui` (shadcn-vue), `@starter/chat`, `@starter/api-client`.
 - Casos de uso compartidos por panel, API y herramientas del chat: `app/Actions`
-  (`Users`, `Roles`, `Invitations`, `Ai`). Cada Action autoriza (Policies), valida (sus
+  (`Users`, `Roles`, `Invitations`, `Ai`, `Knowledge`). Cada Action autoriza (Policies), valida (sus
   `rules()` las reutilizan los Form Requests), aplica la delegación
   (`Starter\Identity\Authorization\Delegation`) y audita con `audit()`.
   Nunca dupliques reglas en un controlador o en una herramienta IA.
@@ -48,6 +48,11 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   presupuesto y cierra la solicitud); las llamadas directas al SDK quedan
   registradas por `Listeners\RecordSdkUsage`. Montos con `brick/math` como
   cadenas decimales. Ver `docs/ai.md`.
+- **Conocimiento (RAG)**: opcional (`STARTER_FEATURE_RAG`). Nunca filtres por acceso en
+  la interfaz: las listas de acceso (`Starter\Knowledge\Support\Principals`) se aplican
+  dentro de la consulta. Las URLs se leen solo con `SafeFetcher` (anti-SSRF). Todo trabajo
+  pesado va por `RagJobs` (registro `rag_jobs` + cola) y es idempotente. Embeddings con
+  `Starter\Knowledge\Embeddings\Embedder` (pasa por `AiGateway`). Ver `docs/knowledge.md`.
 - **Migraciones**: idempotentes, con claves foráneas e índices; fechas en UTC;
   dinero en `decimal` (nunca floats para acumular).
 - **Textos**: escribe las cadenas en inglés y tradúcelas en `apps/platform/lang/es.json`

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpenText,
     Bot,
@@ -7,6 +7,7 @@ import {
     ChartColumn,
     FlaskConical,
     History,
+    Library,
     LayoutGrid,
     MessageSquareText,
     MonitorSmartphone,
@@ -44,6 +45,7 @@ import { index as models } from '@/routes/admin/ai/models';
 import { index as prices } from '@/routes/admin/ai/prices';
 import { index as agents } from '@/routes/admin/ai/agents';
 import { index as labIndex } from '@/routes/admin/ai/lab';
+import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
@@ -53,6 +55,7 @@ import { ui as apiDocs } from '@/routes/scramble/docs';
 import type { NavItem } from '@/types';
 
 const { can } = usePermissions();
+const page = usePage();
 const { currentUrl } = useCurrentUrl();
 
 type NavSection = {
@@ -173,6 +176,27 @@ const sections = computed<NavSection[]>(() => {
                     can: 'ai.budgets.manage',
                 },
             ]),
+        },
+        {
+            label: t('Knowledge'),
+            items: (page.props.features as { rag?: boolean } | undefined)?.rag
+                ? filter([
+                      {
+                          title: t('Collections'),
+                          href: knowledgeIndex(),
+                          icon: Library,
+                          can: 'rag.collections.read',
+                          isActive:
+                              currentUrl.value.startsWith('/admin/knowledge') &&
+                              !currentUrl.value.startsWith(
+                                  '/admin/knowledge/lab',
+                              ) &&
+                              !currentUrl.value.startsWith(
+                                  '/admin/knowledge/dashboard',
+                              ),
+                      },
+                  ])
+                : [],
         },
     ].filter((section) => section.items.length > 0);
 });

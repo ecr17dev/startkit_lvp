@@ -106,6 +106,58 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Knowledge (RAG)
+    |--------------------------------------------------------------------------
+    |
+    | Requires features.rag. The mode (disabled, internal, ...) is chosen in
+    | Admin → Knowledge and only becomes active after the diagnostics pass.
+    | retrieval: default strategy (vector, text, hybrid) and top-k of new
+    | collections. indexing.concurrency: embedding calls in flight per AI
+    | connection; confirm_above_*: larger ingestions wait for a confirmed
+    | budget. automatic: run the scheduled source syncs. exact_search_below:
+    | collections with fewer chunks are searched exactly (no ANN index).
+    | fetch: limits of the SSRF protected reader of URLs and sitemaps.
+    | disks: filesystem disks allowed as sources (e.g. an S3 bucket).
+    |
+    */
+
+    'rag' => [
+        'retrieval' => [
+            'strategy' => env('STARTER_RAG_STRATEGY', 'hybrid'),
+            'top_k' => (int) env('STARTER_RAG_TOP_K', 6),
+        ],
+        'indexing' => [
+            'automatic' => (bool) env('STARTER_RAG_AUTOMATIC', false),
+            'concurrency' => (int) env('STARTER_RAG_CONCURRENCY', 2),
+            'confirm_above_tokens' => (int) env('STARTER_RAG_CONFIRM_ABOVE_TOKENS', 250000),
+            'confirm_above_cost' => (string) env('STARTER_RAG_CONFIRM_ABOVE_COST', '0.25'),
+            'queue' => env('STARTER_RAG_QUEUE'),
+            'stale_after_minutes' => (int) env('STARTER_RAG_STALE_AFTER_MINUTES', 10),
+        ],
+        'storage_disk' => env('STARTER_RAG_DISK', 'local'),
+        'limits' => [
+            'max_file_mb' => (int) env('STARTER_RAG_MAX_FILE_MB', 20),
+            'max_files' => 20,
+            'max_document_chars' => 2000000,
+        ],
+        'exact_search_below' => (int) env('STARTER_RAG_EXACT_SEARCH_BELOW', 20000),
+        'fetch' => [
+            'connect_timeout' => 5,
+            'timeout' => (int) env('STARTER_RAG_FETCH_TIMEOUT', 15),
+            'max_bytes' => (int) env('STARTER_RAG_FETCH_MAX_MB', 10) * 1024 * 1024,
+            'max_redirects' => 3,
+            'max_pages' => (int) env('STARTER_RAG_MAX_PAGES', 200),
+            'max_depth' => 3,
+            'allowed_ports' => [80, 443],
+            'allowed_hosts' => array_filter(explode(',', (string) env('STARTER_RAG_ALLOWED_HOSTS', ''))),
+            'blocked_hosts' => ['localhost', 'metadata.google.internal', 'metadata'],
+            'user_agent' => env('STARTER_RAG_USER_AGENT', 'StarterKnowledgeBot/1.0'),
+        ],
+        'disks' => array_filter(explode(',', (string) env('STARTER_RAG_DISKS', ''))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Audit trail
     |--------------------------------------------------------------------------
     |
@@ -173,6 +225,11 @@ return [
             'ai' => [
                 'dashboard' => true,
                 'display_currency' => 'USD',
+            ],
+
+            'rag' => [
+                'mode' => 'disabled',
+                'connection_id' => null,
             ],
 
             'onboarding' => [

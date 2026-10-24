@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Starter\Ai\Agents\AgentConfig;
 use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Agents\ToolRegistry;
+use Starter\Ai\Enums\Driver;
 use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\Connection;
 use Starter\Ai\Simulated\SimulatedCatalog;
@@ -19,7 +20,9 @@ class AiSeeder extends Seeder
      */
     public function run(AgentManager $agents, ToolRegistry $tools, SimulatedCatalog $simulated): void
     {
-        if (config('starter.ai.simulated') && ! Connection::query()->exists()) {
+        // Installed on an empty catalog, and updated (new simulated models)
+        // when it is already there; idempotent...
+        if (config('starter.ai.simulated') && (! Connection::query()->exists() || Connection::query()->where('driver', Driver::Simulated->value)->exists())) {
             $simulated->install();
         }
 

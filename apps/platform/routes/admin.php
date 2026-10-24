@@ -10,6 +10,11 @@ use App\Http\Controllers\Admin\Ai\RecommenderController;
 use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\InvitationController;
+use App\Http\Controllers\Admin\Knowledge\CollectionController as KnowledgeCollectionController;
+use App\Http\Controllers\Admin\Knowledge\DocumentController as KnowledgeDocumentController;
+use App\Http\Controllers\Admin\Knowledge\JobController as KnowledgeJobController;
+use App\Http\Controllers\Admin\Knowledge\KnowledgeController;
+use App\Http\Controllers\Admin\Knowledge\SourceController as KnowledgeSourceController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
@@ -119,5 +124,38 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
             Route::put('budgets/{budget}', [BudgetController::class, 'update'])->name('budgets.update');
             Route::delete('budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
         });
+    });
+
+    // Knowledge (RAG): activation, profiles, collections, sources, documents and jobs...
+    Route::prefix('knowledge')->name('knowledge.')->group(function () {
+        Route::get('/', [KnowledgeController::class, 'index'])->name('index');
+        Route::post('diagnose', [KnowledgeController::class, 'diagnose'])->middleware('throttle:10,1')->name('diagnose');
+        Route::post('activate', [KnowledgeController::class, 'activate'])->middleware('throttle:10,1')->name('activate');
+        Route::post('deactivate', [KnowledgeController::class, 'deactivate'])->name('deactivate');
+
+        Route::post('profiles', [KnowledgeController::class, 'storeProfile'])->name('profiles.store');
+        Route::put('profiles/{profile}', [KnowledgeController::class, 'updateProfile'])->name('profiles.update');
+        Route::delete('profiles/{profile}', [KnowledgeController::class, 'destroyProfile'])->name('profiles.destroy');
+
+        Route::post('collections', [KnowledgeCollectionController::class, 'store'])->name('collections.store');
+        Route::get('collections/{collection}', [KnowledgeCollectionController::class, 'show'])->name('collections.show');
+        Route::put('collections/{collection}', [KnowledgeCollectionController::class, 'update'])->name('collections.update');
+        Route::delete('collections/{collection}', [KnowledgeCollectionController::class, 'destroy'])->name('collections.destroy');
+        Route::post('collections/{collection}/reindex', [KnowledgeCollectionController::class, 'reindex'])->name('collections.reindex');
+        Route::post('collections/{collection}/sources', [KnowledgeSourceController::class, 'store'])->middleware('throttle:30,1')->name('sources.store');
+
+        Route::put('sources/{source}', [KnowledgeSourceController::class, 'update'])->name('sources.update');
+        Route::post('sources/{source}/files', [KnowledgeSourceController::class, 'files'])->middleware('throttle:30,1')->name('sources.files');
+        Route::post('sources/{source}/sync', [KnowledgeSourceController::class, 'sync'])->middleware('throttle:30,1')->name('sources.sync');
+        Route::patch('sources/{source}/status', [KnowledgeSourceController::class, 'status'])->name('sources.status');
+        Route::delete('sources/{source}', [KnowledgeSourceController::class, 'destroy'])->name('sources.destroy');
+
+        Route::get('documents/{document}', [KnowledgeDocumentController::class, 'show'])->name('documents.show');
+        Route::get('documents/{document}/original', [KnowledgeDocumentController::class, 'original'])->name('documents.original');
+        Route::delete('documents/{document}', [KnowledgeDocumentController::class, 'destroy'])->name('documents.destroy');
+
+        Route::post('jobs/{job}/cancel', [KnowledgeJobController::class, 'cancel'])->name('jobs.cancel');
+        Route::post('jobs/{job}/retry', [KnowledgeJobController::class, 'retry'])->name('jobs.retry');
+        Route::post('jobs/{job}/resume', [KnowledgeJobController::class, 'resume'])->name('jobs.resume');
     });
 });

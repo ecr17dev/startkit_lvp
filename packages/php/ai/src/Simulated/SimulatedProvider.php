@@ -2,6 +2,7 @@
 
 namespace Starter\Ai\Simulated;
 
+use Laravel\Ai\Contracts\Gateway\EmbeddingGateway;
 use Laravel\Ai\Contracts\Gateway\StepTextGateway;
 use Laravel\Ai\Contracts\Gateway\TranscriptionGateway;
 use Laravel\Ai\Providers\OpenAiCompatibleProvider;
@@ -23,6 +24,21 @@ class SimulatedProvider extends OpenAiCompatibleProvider
     public function transcriptionGateway(): TranscriptionGateway
     {
         return $this->transcriptionGateway ??= new SimulatedTranscriptionGateway;
+    }
+
+    public function embeddingGateway(): EmbeddingGateway
+    {
+        return $this->embeddingGateway ??= new SimulatedEmbeddingGateway;
+    }
+
+    public function defaultEmbeddingsModel(): string
+    {
+        return 'simulated-embedding';
+    }
+
+    public function defaultEmbeddingsDimensions(): int
+    {
+        return 256;
     }
 
     public function defaultTextModel(): string

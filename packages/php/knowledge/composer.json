@@ -7,7 +7,11 @@
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.17",
-        "starter/ai": "^0.1"
+        "starter/administration": "^0.1",
+        "starter/identity": "^0.1",
+        "starter/ai": "^0.1",
+        "smalot/pdfparser": "^2.13",
+        "ext-dom": "*"
     },
     "autoload": {
         "psr-4": {

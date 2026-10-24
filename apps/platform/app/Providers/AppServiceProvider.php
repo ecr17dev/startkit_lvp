@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Ai\OperatorTools;
+use App\Knowledge\ProjectDocsAdapter;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
@@ -23,6 +24,7 @@ use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 use Starter\Ai\Agents\ToolRegistry;
 use Starter\Identity\Models\Invitation;
+use Starter\Knowledge\Ingestion\Sources\AdapterRegistry;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Operator tools that agents may be allowed to use...
         $this->callAfterResolving(ToolRegistry::class, fn (ToolRegistry $registry) => OperatorTools::register($registry));
+
+        // Internal content adapters offered as knowledge sources...
+        $this->callAfterResolving(AdapterRegistry::class, fn (AdapterRegistry $adapters) => $adapters->register(new ProjectDocsAdapter));
     }
 
     /**
