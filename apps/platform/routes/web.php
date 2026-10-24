@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\UiKitController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -59,6 +60,11 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    // UI kit catalog (STARTER_FEATURE_UI_KIT; the controller answers 404 when off)...
+    Route::get('ui-kit', [UiKitController::class, 'index'])->name('ui-kit.index');
+    Route::post('ui-kit/wizard', [UiKitController::class, 'wizard'])->name('ui-kit.wizard');
+    Route::get('ui-kit/{section}', [UiKitController::class, 'show'])->name('ui-kit.show');
 
     Route::middleware('can:ai.chat')->prefix('ai')->name('ai.')->group(function () {
         Route::get('chat/bootstrap', [ChatController::class, 'bootstrap'])->name('chat.bootstrap');

@@ -81,6 +81,7 @@ jobs:
                     echo "APP_URL=http://127.0.0.1:8000"
                     echo "MAIL_MAILER=log"
                     echo "STARTER_FEATURE_RAG=true"
+                    echo "STARTER_FEATURE_UI_KIT=true"
                     echo "STARTER_AI_SIMULATED=true"
                     echo "STARTER_OTP_RESEND_COOLDOWN=0"
                     echo "STARTER_OTP_REQUESTS_PER_MINUTE=120"

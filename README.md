@@ -8,7 +8,7 @@ opcional, listos para usar.
 | --- | --- |
 | Backend | Laravel 13 (PHP 8.3+), Fortify, Sanctum, spatie/laravel-permission |
 | IA | `laravel/ai` (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Amazon Bedrock, Azure, Groq, Mistral, xAI, Ollama y APIs compatibles con OpenAI) |
-| Frontend | Vue 3 + Inertia v3 + TypeScript estricto, shadcn-vue (reka-ui), Tailwind CSS 4, Vite |
+| Frontend | Vue 3 + Inertia v3 + TypeScript estricto, shadcn-vue (reka-ui), Tailwind CSS 4, Vite y un kit de UI con catálogo en vivo (`/ui-kit`) |
 | Datos | PostgreSQL (datos, sesiones, caché y cola) + pgvector para RAG |
 | API | REST `/api/v1` con Sanctum, OpenAPI autogenerado con Scramble y cliente TypeScript |
 | Operación | Docker Compose con perfiles, cola y scheduler sobre PostgreSQL |
@@ -63,6 +63,7 @@ implementado y verificado de lo pendiente.
 | 5–6. RAG interno y operación | Implementadas: activación, fuentes, pipeline durable, recuperación híbrida con ACL, citas validadas, laboratorio con juicios, API, panel de conocimiento, conjuntos de evaluación (recall@k, MRR), feedback de respuestas y retención de versiones |
 | 7. PostgreSQL externo, retrieval API y PostgREST | Implementada: conexiones PostgreSQL externas (TLS, esquema dedicado, solo lectura), API de recuperación con contrato v1 y servidor de referencia, PostgREST opcional con esquema `api` filtrado por JWT. El proceso PostgREST real no se ejecutó en este entorno (ver docs/postgrest.md) |
 | 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Implementada: comandos `starter:*` (config, contratos, verify, modelos, tarifas, RAG), generador `starter:make-module` con el módulo Proyectos, instalador `laravel-starter` con plantilla verificada y releases, referencia de API generada, skills y Playwright E2E en CI. `composer install` del instalador y Firefox/WebKit se verifican en CI (no en este entorno) |
+| Kit de UI | Implementado: primitivas shadcn-vue ampliadas (stepper, carrusel, calendario, combobox, comando, drawer, campos, etc.), compuestos reutilizables (formularios, wizard con errores del servidor, `DataTable` con modo tarjetas y modo servidor, gráficos accesibles, KPI, modales responsivos, menús, alertas, toasts, íconos por nombre), catálogo `/ui-kit` y generador de módulos usando la tabla del kit |
 
 ## Comandos útiles
 
@@ -93,6 +94,7 @@ pnpm test:e2e                         # Playwright
 - [IA: conexiones, catálogo, tarifas, consumo y presupuestos](docs/ai.md)
 - [Conocimiento (RAG)](docs/knowledge.md), [externo](docs/rag-external.md) y [PostgREST](docs/postgrest.md)
 - [Módulos y generador](docs/modules.md) · [Instalador](docs/installer.md) · [Referencia de la API](docs/api-reference.md)
+- [Kit de UI](docs/ui-kit.md): formularios, wizard, tablas con modo tarjetas, gráficos, carruseles, menús, alertas, toasts, modales e íconos
 - [Pruebas E2E](docs/e2e.md) · [Skills](docs/skills.md)
 - [Docker](docs/docker.md)
 - [Actualizaciones](docs/upgrades.md)

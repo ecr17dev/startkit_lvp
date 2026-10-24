@@ -1,22 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { watchDebounced } from '@vueuse/core';
-import { Pencil, Plus, Search, Trash2 } from '@lucide/vue';
-import { reactive } from 'vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import type { MenuAction } from '@/components/kit/ActionsMenu.vue';
+import ActionsMenu from '@/components/kit/ActionsMenu.vue';
+import type { DataTableColumn } from '@/components/kit/data-table';
+import DataTable from '@/components/kit/DataTable.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import Pagination from '@/components/Pagination.vue';
 %%badgeImport%%import { Button } from '@starter/ui/components/button';
-import { Input } from '@starter/ui/components/input';
-%%selectImport%%import {
-    Table,
-    TableBody,
-    TableCell,
-    TableEmpty,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@starter/ui/components/table';
+%%selectImport%%import { useTableQuery } from '@/composables/useTableQuery';
 import { formatDate, t } from '@/lib/i18n';
 import type { %%Model%%, %%Model%%Options } from '@/modules/%%slug%%/types';
 import { create, destroy, edit, index } from '@/routes/%%slug%%';
@@ -30,31 +21,57 @@ defineOptions({
 
 const props = defineProps<{
     %%models%%: Paginated<%%Model%%>;
-    filters: { search?: string%%filterProp%% };
+    filters: { search?: string; sort?: string; direction?: string%%filterProp%% };
     options: %%Model%%Options;
     can: { create: boolean; update: boolean; delete: boolean };
 }>();
 
-const filters = reactive({
-    search: props.filters.search ?? '',
+// Search, sort and filters travel in the query string; the server applies
+// them and paginates (DataTable in server mode)...
+const query = useTableQuery(index().url, {
+    search: props.filters.search,
+    sort: props.filters.sort,
+    direction: props.filters.direction,
 %%filterState%%});
 
-watchDebounced(
-    filters,
-    () => {
-        router.get(
-            index().url,
-            {
-                search: filters.search || undefined,
-%%filterQuery%%            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
+%%optionLabelFn%%const columns: DataTableColumn<%%Model%%>[] = [
+    { key: '%%titleField%%', label: t('%%titleLabel%%'), sortable: true, card: 'title' },
+%%columnDefs%%
+    {
+        key: 'updated_at',
+        label: t('Last updated'),
+        sortable: true,
+        hideBelow: 'lg',
+        format: (value) => formatDate(value as string | null),
     },
-    { debounce: 300, deep: true },
-);
+];
 
-%%optionLabelFn%%const remove = (%%model%%: %%Model%%) =>
-    router.delete(destroy(%%model%%.id).url, { preserveScroll: true });
+const actions = (%%model%%: %%Model%%): MenuAction[] => [
+    ...(props.can.update
+        ? [{ label: t('Edit'), icon: Pencil, href: edit(%%model%%.id) }]
+        : []),
+    ...(props.can.delete
+        ? [
+              {
+                  label: t('Delete'),
+                  icon: Trash2,
+                  destructive: true,
+                  separated: props.can.update,
+                  confirm: {
+                      title: t('Delete %%label%%'),
+                      description: t(
+                          'The %%label%% will be deleted. This cannot be undone.',
+                      ),
+                      action: t('Delete'),
+                  },
+                  onSelect: () =>
+                      router.delete(destroy(%%model%%.id).url, {
+                          preserveScroll: true,
+                      }),
+              },
+          ]
+        : []),
+];
 </script>
 
 <template>
@@ -73,95 +90,29 @@ watchDebounced(
             </Button>
         </PageHeader>
 
-        <div class="flex flex-col gap-3 sm:flex-row">
-            <div class="relative flex-1">
-                <Search
-                    class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                />
-                <Input
-                    v-model="filters.search"
-                    class="pl-9"
-                    :placeholder="t('Search %%labels%%')"
-                    :aria-label="t('Search %%labels%%')"
-                />
-            </div>
-%%filterControl%%        </div>
-
-        <div class="rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>{{ t('%%titleLabel%%') }}</TableHead>
-%%headers%%                        <TableHead class="hidden lg:table-cell">{{
-                            t('Last updated')
-                        }}</TableHead>
-                        <TableHead class="w-24 text-right">{{
-                            t('Actions')
-                        }}</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow v-for="%%model%% in %%models%%.data" :key="%%model%%.id">
-                        <TableCell class="font-medium">
-                            <Link
-                                v-if="can.update"
-                                :href="edit(%%model%%.id)"
-                                class="hover:underline"
-                                >{{ %%model%%.%%titleField%% || '—' }}</Link
-                            >
-                            <template v-else>{{
-                                %%model%%.%%titleField%% || '—'
-                            }}</template>
-                        </TableCell>
-%%cells%%                        <TableCell
-                            class="hidden text-sm text-muted-foreground lg:table-cell"
-                            >{{ formatDate(%%model%%.updated_at) }}</TableCell
-                        >
-                        <TableCell class="text-right">
-                            <div class="flex justify-end gap-1">
-                                <Button
-                                    v-if="can.update"
-                                    variant="ghost"
-                                    size="icon"
-                                    as-child
-                                >
-                                    <Link
-                                        :href="edit(%%model%%.id)"
-                                        :aria-label="t('Edit')"
-                                    >
-                                        <Pencil class="size-4" />
-                                    </Link>
-                                </Button>
-                                <ConfirmDialog
-                                    v-if="can.delete"
-                                    :title="t('Delete %%label%%')"
-                                    :description="
-                                        t(
-                                            'The %%label%% will be deleted. This cannot be undone.',
-                                        )
-                                    "
-                                    :confirm-text="t('Delete')"
-                                    @confirm="remove(%%model%%)"
-                                >
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="text-destructive"
-                                        :aria-label="t('Delete')"
-                                    >
-                                        <Trash2 class="size-4" />
-                                    </Button>
-                                </ConfirmDialog>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    <TableEmpty v-if="!%%models%%.data.length" :colspan="%%colspan%%">
-                        {{ t('No %%labels%% found.') }}
-                    </TableEmpty>
-                </TableBody>
-            </Table>
-        </div>
-
-        <Pagination :meta="%%models%%.meta" />
+        <DataTable
+            v-model:search="query.search"
+            v-model:sort="query.sort"
+            :rows="%%models%%.data"
+            :columns="columns"
+            :meta="%%models%%.meta"
+            :label="t('%%Labels%%')"
+            :search-placeholder="t('Search %%labels%%')"
+            :empty-text="t('No %%labels%% found.')"
+            server
+        >
+%%filterControl%%            <template #cell-%%titleField%%="{ row }">
+                <Link
+                    v-if="can.update"
+                    :href="edit(row.id)"
+                    class="font-medium hover:underline"
+                    >{{ row.%%titleField%% || '—' }}</Link
+                >
+                <span v-else class="font-medium">{{ row.%%titleField%% || '—' }}</span>
+            </template>
+%%cellSlots%%            <template v-if="can.update || can.delete" #actions="{ row }">
+                <ActionsMenu :items="actions(row)" />
+            </template>
+        </DataTable>
     </div>
 </template>

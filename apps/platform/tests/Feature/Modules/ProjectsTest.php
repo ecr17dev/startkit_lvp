@@ -86,6 +86,11 @@ class ProjectsTest extends TestCase
         $this->actingAs($editor)->get(route('projects.index', ['search' => 'no such project']))
             ->assertInertia(fn (AssertableInertia $page) => $page->has('projects.data', 0));
 
+        // Sorting only accepts the listed columns...
+        $this->actingAs($editor)->get(route('projects.index', ['sort' => 'name', 'direction' => 'desc']))
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('projects.data', 1)->where('filters.direction', 'desc'));
+        $this->actingAs($editor)->get(route('projects.index', ['sort' => 'password']))->assertSessionHasErrors('sort');
+
         $this->actingAs($editor)->delete(route('projects.destroy', $project))->assertRedirect(route('projects.index'));
         $this->assertModelMissing($project);
         $this->assertDatabaseHas('audit_events', ['action' => 'projects.deleted', 'actor_id' => $editor->id]);

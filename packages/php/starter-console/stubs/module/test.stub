@@ -76,6 +76,11 @@ class {{ Models }}Test extends TestCase
         $this->actingAs($editor)->get(route('{{ slug }}.index', ['search' => 'no such {{ label }}']))
             ->assertInertia(fn (AssertableInertia $page) => $page->has('{{ models }}.data', 0));
 
+        // Sorting only accepts the listed columns...
+        $this->actingAs($editor)->get(route('{{ slug }}.index', ['sort' => '{{ titleField }}', 'direction' => 'desc']))
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('{{ models }}.data', 1)->where('filters.direction', 'desc'));
+        $this->actingAs($editor)->get(route('{{ slug }}.index', ['sort' => 'password']))->assertSessionHasErrors('sort');
+
         $this->actingAs($editor)->delete(route('{{ slug }}.destroy', ${{ model }}))->assertRedirect(route('{{ slug }}.index'));
         $this->assertModelMissing(${{ model }});
         $this->assertDatabaseHas('audit_events', ['action' => '{{ permission }}.deleted', 'actor_id' => $editor->id]);

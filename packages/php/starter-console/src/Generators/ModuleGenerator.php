@@ -181,16 +181,15 @@ class ModuleGenerator
             'actionRuleImport' => array_filter($spec->fields, fn (Field $field) => $field->type === 'enum' || $field->unique) === [] ? '' : "use Illuminate\\Validation\\Rule;\n",
 
             // Frontend...
-            'badgeImport' => array_filter($spec->columns(), fn (Field $field) => in_array($field->type, ['enum', 'boolean'], true)) === [] ? '' : "import { Badge } from '@starter/ui/components/badge';\n",
+            'badgeImport' => $enums === [] ? '' : "import { Badge } from '@starter/ui/components/badge';\n",
             'optionLabelFn' => $enums === [] ? '' : "const optionLabel = (field: keyof {$Model}Options, value: string) =>\n    props.options[field]?.find((option) => option.value === value)?.label ??\n    value;\n\n",
             'selectImport' => $filter === null ? '' : "import {\n    Select,\n    SelectContent,\n    SelectItem,\n    SelectTrigger,\n    SelectValue,\n} from '@starter/ui/components/select';\n",
             'filterProp' => $filter === null ? '' : "; {$filter->name}?: string",
             'filterState' => $filter === null ? '' : "    {$filter->name}: props.filters.{$filter->name} ?? 'all',\n",
-            'filterQuery' => $filter === null ? '' : "                {$filter->name}:\n                    filters.{$filter->name} === 'all' ? undefined : filters.{$filter->name},\n",
             'filterControl' => $filter === null ? '' : $this->filterControl($filter),
-            'headers' => implode('', array_map(fn (Field $field) => "                        <TableHead class=\"hidden md:table-cell\">{{ t('".addslashes($field->label())."') }}</TableHead>\n", $spec->columns())),
-            'cells' => implode('', array_map(fn (Field $field) => "                        <TableCell class=\"hidden md:table-cell\">\n                            {$field->cell($model)}\n                        </TableCell>\n", $spec->columns())),
-            'colspan' => (string) (count($spec->columns()) + 3),
+            'columnDefs' => implode("\n", array_map(fn (Field $field) => $field->tableColumn($field === $filter), $spec->columns())),
+            'cellSlots' => implode('', array_filter(array_map(fn (Field $field) => $field->cellSlot(), $spec->columns()))),
+            'sortColumns' => implode(', ', array_map(fn (string $name) => "'{$name}'", [$title->name, ...array_map(fn (Field $field) => $field->name, $spec->columns()), 'updated_at'])),
             'formDefaults' => implode('', array_map(fn (Field $field) => "    {$field->name}: {$field->formDefault()},\n", $spec->fields)),
             'formValues' => implode('', array_map(fn (Field $field) => "    {$field->name}: {$field->formValue('props.'.$model)},\n", $spec->fields)),
             'formImports' => $this->formImports(),
@@ -242,23 +241,23 @@ class ModuleGenerator
 
     protected function filterControl(Field $filter): string
     {
-        $model = $this->spec->variable();
-
         return <<<VUE
-                    <Select v-model="filters.{$filter->name}">
-                        <SelectTrigger class="sm:w-48" :aria-label="t('{$filter->label()}')">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{{ t('All') }}</SelectItem>
-                            <SelectItem
-                                v-for="option in options.{$filter->name}"
-                                :key="option.value"
-                                :value="option.value"
-                                >{{ option.label }}</SelectItem
-                            >
-                        </SelectContent>
-                    </Select>
+                    <template #toolbar>
+                        <Select v-model="query.filters.{$filter->name}">
+                            <SelectTrigger class="sm:w-48" :aria-label="t('{$filter->label()}')">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{{ t('All') }}</SelectItem>
+                                <SelectItem
+                                    v-for="option in options.{$filter->name}"
+                                    :key="option.value"
+                                    :value="option.value"
+                                    >{{ option.label }}</SelectItem
+                                >
+                            </SelectContent>
+                        </Select>
+                    </template>
 
         VUE;
     }

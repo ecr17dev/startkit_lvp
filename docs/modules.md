@@ -65,10 +65,10 @@ reservados (`id`, `created_by`, marcas de tiempo) se rechazan.
 | `app/Providers/Modules/{Modelos}ServiceProvider.php` | `Permissions::register()` (editor: todos; reader: lectura) y herramientas IA; se agrega a `bootstrap/providers.php` |
 | `app/Actions/{Modelos}/{Create,Update,Delete}{Modelo}.php` | autorización, validación y `audit()` |
 | `app/Http/Requests`, `app/Http/Resources` | Form Request (mismas reglas) y API Resource |
-| `app/Http/Controllers/{Modelo}Controller.php`, `routes/modules/{slug}.web.php` | panel Inertia con búsqueda, filtro y paginación |
+| `app/Http/Controllers/{Modelo}Controller.php`, `routes/modules/{slug}.web.php` | panel Inertia con búsqueda, filtro, orden (`TableSort`, columnas en `SORTABLE`) y paginación |
 | `app/Http/Controllers/Api/V1/...`, `routes/modules/{slug}.api.php` | API con habilidades `read`/`write` (documentada en OpenAPI) |
 | `app/Ai/Tools/{Modelos}{List,Create,Update,Delete}.php` | herramientas del operador (las escrituras pueden pedir confirmación; borrar es sensible) |
-| `resources/js/pages/{slug}/{Index,Create,Edit}.vue` | páginas con componentes de `@starter/ui` |
+| `resources/js/pages/{slug}/{Index,Create,Edit}.vue` | índice con el `DataTable` del kit en modo servidor (búsqueda y orden en la URL, tarjetas en teléfonos, acciones en `ActionsMenu`) y formularios con `@starter/ui` ([kit de UI](ui-kit.md)) |
 | `resources/js/modules/{slug}/` | formulario compartido, tipos TypeScript y entrada del menú (`navigation.ts`) |
 | `tests/Feature/Modules/{Modelos}Test.php` | permisos, validación, auditoría, API y herramientas |
 | `docs/modules/{slug}.md` y `.json` | documentación y especificación (permite regenerar) |

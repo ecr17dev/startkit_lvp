@@ -15,6 +15,7 @@
 - [Módulos](docs/modules.md): generador `starter:make-module` (migración, Policy, permisos, Actions, Inertia, API, herramientas IA, pruebas) y el módulo de referencia [Proyectos](docs/modules/projects.md).
 - [Instalador](docs/installer.md): `laravel-starter new` con plantilla verificada (SHA-256), `starter.config.json`, secretos por referencia, códigos de salida y `starter:config-apply`.
 - [Referencia de la API](docs/api-reference.md): generada desde el OpenAPI (`starter:api-docs`).
+- [Kit de UI](docs/ui-kit.md): formularios, wizard, tablas con modo tarjetas, gráficos, carruseles, botones, menús, barra lateral, alertas, toasts, modales e íconos sobre shadcn-vue; catálogo en vivo en `/ui-kit`.
 - [Pruebas E2E](docs/e2e.md): Playwright contra Laravel + PostgreSQL + worker, recorridos y CI.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
@@ -22,7 +23,7 @@
 ## Para agentes
 
 - [AGENTS.md](AGENTS.md): stack fijo, límites entre paquetes, comandos y reglas.
-- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`) y cómo instalarlas.
+- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `build-ui`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`) y cómo instalarlas.
 - [Manifiesto de versiones](starter.manifest.json)
 - [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
 - [OpenAPI](tooling/contracts/openapi.json)

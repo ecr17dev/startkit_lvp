@@ -13,7 +13,7 @@ packages/php/
   knowledge/              RAG: colecciones, fuentes, indexación, pgvector, citas (Starter\Knowledge)
   starter-console/        Comandos starter:* (doctor, verify, contratos, api-docs) y generador make-module (Starter\Console)
 packages/js/
-  ui/                     Componentes shadcn-vue (@starter/ui)
+  ui/                     Primitivas shadcn-vue (@starter/ui) y scripts/add.mjs para agregar más del registro
   chat/                   Composable de streaming del chat (@starter/chat)
   api-client/             Cliente TypeScript generado desde OpenAPI (@starter/api-client)
 tooling/create-starter/   Instalador laravel-starter y validador de starter.config.json (Starter\Installer)

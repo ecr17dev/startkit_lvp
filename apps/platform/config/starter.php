@@ -34,6 +34,8 @@ return [
         'ai' => (bool) env('STARTER_FEATURE_AI', true),
         'rag' => (bool) env('STARTER_FEATURE_RAG', false),
         'postgrest' => (bool) env('STARTER_FEATURE_POSTGREST', false),
+        // UI kit catalog (/ui-kit): live examples of the reusable components.
+        'ui_kit' => (bool) env('STARTER_FEATURE_UI_KIT', env('APP_ENV', 'production') === 'local'),
     ],
 
     /*

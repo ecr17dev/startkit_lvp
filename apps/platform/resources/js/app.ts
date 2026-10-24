@@ -4,6 +4,7 @@ import AdminSettingsLayout from '@/layouts/admin/SettingsLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import UiKitLayout from '@/layouts/UiKitLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { t } from '@/lib/i18n';
 
@@ -24,6 +25,8 @@ void createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('admin/settings/'):
                 return [AppLayout, AdminSettingsLayout];
+            case name.startsWith('ui-kit/'):
+                return [AppLayout, UiKitLayout];
             default:
                 return AppLayout;
         }

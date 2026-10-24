@@ -39,14 +39,15 @@ compilados y, para la ingesta de conocimiento, un worker (`php artisan queue:wor
 | `rag.spec.ts` | laboratorio de recuperación sobre la colección sembrada (se omite si RAG está apagado) |
 | `postgrest.spec.ts` | PostgREST apagado por defecto y sin prueba disponible |
 | `contracts.spec.ts` | el OpenAPI servido coincide con `tooling/contracts/openapi.json`; el visor lo incluye |
-| `projects.spec.ts` | módulo generado Proyectos: crear, buscar, editar y eliminar |
+| `projects.spec.ts` | módulo generado Proyectos: crear, buscar, ordenar en el servidor, editar y eliminar desde el menú de acciones |
+| `ui-kit.spec.ts` | catálogo `/ui-kit`: wizard con validación por paso y error del servidor, tabla (búsqueda, orden, selección, tarjetas), modal y paleta de comandos |
 | `mobile.spec.ts` | menú lateral en teléfono (se cierra al navegar), tema oscuro persistente, formulario de acceso solo con teclado |
 
 ## CI
 
 `.github/workflows/e2e.yml` corre Chromium (y el proyecto móvil) en cada push y pull request,
 y Firefox/WebKit cada semana, a demanda y en etiquetas de release. Prepara `.env` (IA
-simulada, RAG interno, códigos en el log, límites altos), migra y siembra, procesa la
+simulada, RAG interno, kit de UI, códigos en el log, límites altos), migra y siembra, procesa la
 ingesta inicial, compila, instala navegadores, arranca un worker y ejecuta las pruebas con un
 reintento acotado. Si algo falla, guarda el reporte HTML, trazas, capturas, videos y el log
 del worker durante 7 días (solo valores de prueba, sin secretos).

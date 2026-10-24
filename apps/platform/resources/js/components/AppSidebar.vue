@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Blocks,
     BookOpenText,
     Bot,
     Cable,
@@ -63,6 +64,7 @@ import integrations from '@/routes/admin/integrations';
 import general from '@/routes/admin/settings/general';
 import { index as users } from '@/routes/admin/users';
 import { ui as apiDocs } from '@/routes/scramble/docs';
+import { index as uiKit } from '@/routes/ui-kit';
 import type { ModuleNavItem, NavItem } from '@/types';
 
 // Entries of the modules generated with starter:make-module...
@@ -259,6 +261,20 @@ const sections = computed<NavSection[]>(() => {
                           can: 'rag.playground.use',
                       },
                   ])
+                : [],
+        },
+        {
+            label: t('Development'),
+            items: (page.props.features as { uiKit?: boolean } | undefined)
+                ?.uiKit
+                ? [
+                      {
+                          title: t('UI kit'),
+                          href: uiKit(),
+                          icon: Blocks,
+                          isActive: currentUrl.value.startsWith('/ui-kit'),
+                      },
+                  ]
                 : [],
         },
     ].filter((section) => section.items.length > 0);

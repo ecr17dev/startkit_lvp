@@ -64,6 +64,7 @@ class HandleInertiaRequests extends Middleware
                 'ai' => (bool) config('starter.features.ai'),
                 'rag' => (bool) config('starter.features.rag'),
                 'postgrest' => (bool) config('starter.features.postgrest'),
+                'uiKit' => (bool) config('starter.features.ui_kit'),
             ],
             'locale' => $locale,
             'locales' => config('starter.locales'),

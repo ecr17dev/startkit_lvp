@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { watchDebounced } from '@vueuse/core';
-import { Pencil, Plus, Search, Trash2 } from '@lucide/vue';
-import { reactive } from 'vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import type { MenuAction } from '@/components/kit/ActionsMenu.vue';
+import ActionsMenu from '@/components/kit/ActionsMenu.vue';
+import type { DataTableColumn } from '@/components/kit/data-table';
+import DataTable from '@/components/kit/DataTable.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@starter/ui/components/badge';
 import { Button } from '@starter/ui/components/button';
-import { Input } from '@starter/ui/components/input';
 import {
     Select,
     SelectContent,
@@ -16,15 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@starter/ui/components/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableEmpty,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@starter/ui/components/table';
+import { useTableQuery } from '@/composables/useTableQuery';
 import { formatDate, t } from '@/lib/i18n';
 import type { Project, ProjectOptions } from '@/modules/projects/types';
 import { create, destroy, edit, index } from '@/routes/projects';
@@ -38,37 +29,96 @@ defineOptions({
 
 const props = defineProps<{
     projects: Paginated<Project>;
-    filters: { search?: string; status?: string };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+        status?: string;
+    };
     options: ProjectOptions;
     can: { create: boolean; update: boolean; delete: boolean };
 }>();
 
-const filters = reactive({
-    search: props.filters.search ?? '',
+// Search, sort and filters travel in the query string; the server applies
+// them and paginates (DataTable in server mode)...
+const query = useTableQuery(index().url, {
+    search: props.filters.search,
+    sort: props.filters.sort,
+    direction: props.filters.direction,
     status: props.filters.status ?? 'all',
 });
-
-watchDebounced(
-    filters,
-    () => {
-        router.get(
-            index().url,
-            {
-                search: filters.search || undefined,
-                status: filters.status === 'all' ? undefined : filters.status,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    },
-    { debounce: 300, deep: true },
-);
 
 const optionLabel = (field: keyof ProjectOptions, value: string) =>
     props.options[field]?.find((option) => option.value === value)?.label ??
     value;
 
-const remove = (project: Project) =>
-    router.delete(destroy(project.id).url, { preserveScroll: true });
+const columns: DataTableColumn<Project>[] = [
+    { key: 'name', label: t('Name'), sortable: true, card: 'title' },
+    { key: 'code', label: t('Code'), sortable: true, hideBelow: 'md' },
+    {
+        key: 'status',
+        label: t('Status'),
+        sortable: true,
+        hideBelow: 'md',
+        card: 'badge',
+    },
+    {
+        key: 'starts_on',
+        label: t('Start date'),
+        sortable: true,
+        hideBelow: 'md',
+        format: (value) =>
+            formatDate(value as string | null, {
+                dateStyle: 'medium',
+                timeZone: 'UTC',
+            }),
+    },
+    {
+        key: 'due_on',
+        label: t('Due date'),
+        sortable: true,
+        hideBelow: 'md',
+        format: (value) =>
+            formatDate(value as string | null, {
+                dateStyle: 'medium',
+                timeZone: 'UTC',
+            }),
+    },
+    {
+        key: 'updated_at',
+        label: t('Last updated'),
+        sortable: true,
+        hideBelow: 'lg',
+        format: (value) => formatDate(value as string | null),
+    },
+];
+
+const actions = (project: Project): MenuAction[] => [
+    ...(props.can.update
+        ? [{ label: t('Edit'), icon: Pencil, href: edit(project.id) }]
+        : []),
+    ...(props.can.delete
+        ? [
+              {
+                  label: t('Delete'),
+                  icon: Trash2,
+                  destructive: true,
+                  separated: props.can.update,
+                  confirm: {
+                      title: t('Delete project'),
+                      description: t(
+                          'The project will be deleted. This cannot be undone.',
+                      ),
+                      action: t('Delete'),
+                  },
+                  onSelect: () =>
+                      router.delete(destroy(project.id).url, {
+                          preserveScroll: true,
+                      }),
+              },
+          ]
+        : []),
+];
 </script>
 
 <template>
@@ -87,148 +137,50 @@ const remove = (project: Project) =>
             </Button>
         </PageHeader>
 
-        <div class="flex flex-col gap-3 sm:flex-row">
-            <div class="relative flex-1">
-                <Search
-                    class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                />
-                <Input
-                    v-model="filters.search"
-                    class="pl-9"
-                    :placeholder="t('Search projects')"
-                    :aria-label="t('Search projects')"
-                />
-            </div>
-            <Select v-model="filters.status">
-                <SelectTrigger class="sm:w-48" :aria-label="t('Status')">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">{{ t('All') }}</SelectItem>
-                    <SelectItem
-                        v-for="option in options.status"
-                        :key="option.value"
-                        :value="option.value"
-                        >{{ option.label }}</SelectItem
-                    >
-                </SelectContent>
-            </Select>
-        </div>
-
-        <div class="rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>{{ t('Name') }}</TableHead>
-                        <TableHead class="hidden md:table-cell">{{
-                            t('Code')
-                        }}</TableHead>
-                        <TableHead class="hidden md:table-cell">{{
-                            t('Status')
-                        }}</TableHead>
-                        <TableHead class="hidden md:table-cell">{{
-                            t('Start date')
-                        }}</TableHead>
-                        <TableHead class="hidden md:table-cell">{{
-                            t('Due date')
-                        }}</TableHead>
-                        <TableHead class="hidden lg:table-cell">{{
-                            t('Last updated')
-                        }}</TableHead>
-                        <TableHead class="w-24 text-right">{{
-                            t('Actions')
-                        }}</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow
-                        v-for="project in projects.data"
-                        :key="project.id"
-                    >
-                        <TableCell class="font-medium">
-                            <Link
-                                v-if="can.update"
-                                :href="edit(project.id)"
-                                class="hover:underline"
-                                >{{ project.name || '—' }}</Link
-                            >
-                            <template v-else>{{
-                                project.name || '—'
-                            }}</template>
-                        </TableCell>
-                        <TableCell class="hidden md:table-cell">
-                            {{ project.code || '—' }}
-                        </TableCell>
-                        <TableCell class="hidden md:table-cell">
-                            <Badge v-if="project.status" variant="secondary">{{
-                                optionLabel('status', project.status)
-                            }}</Badge>
-                        </TableCell>
-                        <TableCell class="hidden md:table-cell">
-                            {{
-                                formatDate(project.starts_on, {
-                                    dateStyle: 'medium',
-                                    timeZone: 'UTC',
-                                })
-                            }}
-                        </TableCell>
-                        <TableCell class="hidden md:table-cell">
-                            {{
-                                formatDate(project.due_on, {
-                                    dateStyle: 'medium',
-                                    timeZone: 'UTC',
-                                })
-                            }}
-                        </TableCell>
-                        <TableCell
-                            class="hidden text-sm text-muted-foreground lg:table-cell"
-                            >{{ formatDate(project.updated_at) }}</TableCell
+        <DataTable
+            v-model:search="query.search"
+            v-model:sort="query.sort"
+            :rows="projects.data"
+            :columns="columns"
+            :meta="projects.meta"
+            :label="t('Projects')"
+            :search-placeholder="t('Search projects')"
+            :empty-text="t('No projects found.')"
+            server
+        >
+            <template #toolbar>
+                <Select v-model="query.filters.status">
+                    <SelectTrigger class="sm:w-48" :aria-label="t('Status')">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">{{ t('All') }}</SelectItem>
+                        <SelectItem
+                            v-for="option in options.status"
+                            :key="option.value"
+                            :value="option.value"
+                            >{{ option.label }}</SelectItem
                         >
-                        <TableCell class="text-right">
-                            <div class="flex justify-end gap-1">
-                                <Button
-                                    v-if="can.update"
-                                    variant="ghost"
-                                    size="icon"
-                                    as-child
-                                >
-                                    <Link
-                                        :href="edit(project.id)"
-                                        :aria-label="t('Edit')"
-                                    >
-                                        <Pencil class="size-4" />
-                                    </Link>
-                                </Button>
-                                <ConfirmDialog
-                                    v-if="can.delete"
-                                    :title="t('Delete project')"
-                                    :description="
-                                        t(
-                                            'The project will be deleted. This cannot be undone.',
-                                        )
-                                    "
-                                    :confirm-text="t('Delete')"
-                                    @confirm="remove(project)"
-                                >
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="text-destructive"
-                                        :aria-label="t('Delete')"
-                                    >
-                                        <Trash2 class="size-4" />
-                                    </Button>
-                                </ConfirmDialog>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    <TableEmpty v-if="!projects.data.length" :colspan="7">
-                        {{ t('No projects found.') }}
-                    </TableEmpty>
-                </TableBody>
-            </Table>
-        </div>
-
-        <Pagination :meta="projects.meta" />
+                    </SelectContent>
+                </Select>
+            </template>
+            <template #cell-name="{ row }">
+                <Link
+                    v-if="can.update"
+                    :href="edit(row.id)"
+                    class="font-medium hover:underline"
+                    >{{ row.name || '—' }}</Link
+                >
+                <span v-else class="font-medium">{{ row.name || '—' }}</span>
+            </template>
+            <template #cell-status="{ row }">
+                <Badge v-if="row.status" variant="secondary">{{
+                    optionLabel('status', row.status)
+                }}</Badge>
+            </template>
+            <template v-if="can.update || can.delete" #actions="{ row }">
+                <ActionsMenu :items="actions(row)" />
+            </template>
+        </DataTable>
     </div>
 </template>

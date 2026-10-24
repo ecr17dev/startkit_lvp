@@ -14,6 +14,9 @@ export type Features = {
     organizations: boolean;
     ai: boolean;
     rag: boolean;
+    postgrest: boolean;
+    /** UI kit catalog at /ui-kit (STARTER_FEATURE_UI_KIT). */
+    uiKit: boolean;
 };
 
 export type PaginationLink = {

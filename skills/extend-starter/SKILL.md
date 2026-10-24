@@ -21,7 +21,8 @@ las Actions. El módulo **Proyectos** (`docs/modules/projects.md`) es el patrón
 
 - Proyecto instalado y verde (`php artisan starter:verify`).
 - Leer `AGENTS.md`: casos de uso en `app/Actions`, autorización con Policies y permisos del
-  catálogo, textos en inglés traducidos en `lang/es.json`, componentes de `@starter/ui`.
+  catálogo, textos en inglés traducidos en `lang/es.json`, componentes de `@starter/ui` y
+  del kit de UI (`docs/ui-kit.md`, skill `build-ui`).
 
 ## Pasos
 

@@ -9,6 +9,7 @@ use App\Http\Requests\{{ Model }}Request;
 use App\Http\Resources\{{ Model }}Resource;
 use App\Models\{{ Model }};
 use App\Models\User;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,6 +25,11 @@ use Inertia\Response;
 class {{ Model }}Controller extends Controller
 {
     /**
+     * Columns the index can be sorted by (?sort=&direction=).
+     */
+    protected const SORTABLE = [{{ sortColumns }}];
+
+    /**
      * Display the {{ labels }}.
      */
     public function index(Request $request): Response
@@ -32,14 +38,17 @@ class {{ Model }}Controller extends Controller
 
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-{{ filterRule }}        ]);
+{{ filterRule }}            ...TableSort::rules(self::SORTABLE),
+        ]);
 
-        ${{ models }} = {{ Model }}::query()
+        $query = {{ Model }}::query()
             ->with('creator:id,name')
             ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(
                 fn ($query) => $query{{ searchClauses }}
             ))
-{{ filterClause }}            ->latest('id')
+{{ filterClause }};
+
+        ${{ models }} = TableSort::apply($query, $filters, self::SORTABLE)
             ->paginate(15)
             ->withQueryString();
 

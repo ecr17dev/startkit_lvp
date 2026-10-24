@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { unique } from './support/app';
 
 /**
- * The Projects module, generated with starter:make-module.
+ * The Projects module, generated with starter:make-module (its index is
+ * the kit DataTable in server mode: search and sort in the query string).
  */
 test('creates, finds, edits and deletes a project', async ({ page }) => {
     const code = unique('P').slice(0, 20);
@@ -23,6 +24,12 @@ test('creates, finds, edits and deletes a project', async ({ page }) => {
     await expect(row).toBeVisible();
     await expect(row.getByText('Activo')).toBeVisible();
 
+    // Sorting goes to the server and stays in the URL...
+    await page.getByRole('button', { name: 'Código', exact: true }).click();
+    await expect(page).toHaveURL(/sort=code/);
+    await expect(page).toHaveURL(/direction=asc/);
+    await expect(row).toBeVisible();
+
     await row.getByRole('link', { name: 'Proyecto E2E' }).click();
     await page.locator('#name').fill('Proyecto E2E editado');
     await page.getByRole('button', { name: /guardar cambios/i }).click();
@@ -34,7 +41,9 @@ test('creates, finds, edits and deletes a project', async ({ page }) => {
         .getByRole('row')
         .filter({ hasText: 'Proyecto E2E editado' });
     await expect(edited).toBeVisible();
-    await edited.getByRole('button', { name: /eliminar/i }).click();
+    // Row actions live in the "⋯" menu (kit ActionsMenu)...
+    await edited.getByRole('button', { name: /acciones/i }).click();
+    await page.getByRole('menuitem', { name: /eliminar/i }).click();
     await page
         .getByRole('alertdialog')
         .getByRole('button', { name: /eliminar/i })

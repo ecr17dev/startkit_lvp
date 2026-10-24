@@ -5,15 +5,20 @@
     "private": true,
     "type": "module",
     "description": "shadcn-vue components shared by the starter apps (style new-york-v4).",
+    "scripts": {
+        "add:component": "node scripts/add.mjs"
+    },
     "exports": {
         "./components/*": "./src/components/*/index.ts",
         "./lib/*": "./src/lib/*.ts"
     },
     "dependencies": {
+        "@internationalized/date": "^3.12.4",
         "@lucide/vue": "^1.17.0",
         "@vueuse/core": "^12.8.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "embla-carousel-vue": "^8.6.0",
         "reka-ui": "^2.9.8",
         "tailwind-merge": "^3.2.0",
         "vue-input-otp": "^0.3.2",

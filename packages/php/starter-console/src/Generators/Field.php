@@ -433,17 +433,37 @@ final class Field
     }
 
     /**
-     * Cell of the index table (Vue).
+     * Column of the index DataTable (TypeScript object). Every column can
+     * be sorted: the controller allows the same list (TableSort).
      */
-    public function cell(string $record): string
+    public function tableColumn(bool $badge = false): string
     {
-        return match ($this->type) {
-            'boolean' => "<Badge :variant=\"{$record}.{$this->name} ? 'default' : 'outline'\">{{ {$record}.{$this->name} ? t('Yes') : t('No') }}</Badge>",
-            'enum' => "<Badge v-if=\"{$record}.{$this->name}\" variant=\"secondary\">{{ optionLabel('{$this->name}', {$record}.{$this->name}) }}</Badge>",
-            'date' => "{{ formatDate({$record}.{$this->name}, { dateStyle: 'medium', timeZone: 'UTC' }) }}",
-            'datetime' => "{{ formatDate({$record}.{$this->name}) }}",
-            'decimal', 'integer' => "<span class=\"tabular-nums\">{{ {$record}.{$this->name} ?? '—' }}</span>",
-            default => "{{ {$record}.{$this->name} || '—' }}",
+        $label = "t('".addslashes($this->label())."')";
+        $extra = match ($this->type) {
+            'enum' => $badge ? ", card: 'badge'" : '',
+            'date' => ", format: (value) =>\n            formatDate(value as string | null, { dateStyle: 'medium', timeZone: 'UTC' })",
+            'datetime' => ', format: (value) => formatDate(value as string | null)',
+            'decimal', 'integer' => ", align: 'right', class: 'tabular-nums'",
+            default => '',
         };
+
+        return "    { key: '{$this->name}', label: {$label}, sortable: true, hideBelow: 'md'{$extra} },";
+    }
+
+    /**
+     * Custom cell of the index DataTable (enum values as badges).
+     */
+    public function cellSlot(): ?string
+    {
+        if ($this->type !== 'enum') {
+            return null;
+        }
+
+        return <<<VUE
+                    <template #cell-{$this->name}="{ row }">
+                        <Badge v-if="row.{$this->name}" variant="secondary">{{ optionLabel('{$this->name}', row.{$this->name}) }}</Badge>
+                    </template>
+
+        VUE;
     }
 }

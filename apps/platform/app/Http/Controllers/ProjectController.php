@@ -9,6 +9,7 @@ use App\Http\Requests\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,6 +26,11 @@ use Inertia\Response;
 class ProjectController extends Controller
 {
     /**
+     * Columns the index can be sorted by (?sort=&direction=).
+     */
+    protected const SORTABLE = ['name', 'code', 'status', 'starts_on', 'due_on', 'updated_at'];
+
+    /**
      * Display the projects.
      */
     public function index(Request $request): Response
@@ -34,15 +40,17 @@ class ProjectController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(Project::STATUS_OPTIONS)],
+            ...TableSort::rules(self::SORTABLE),
         ]);
 
-        $projects = Project::query()
+        $query = Project::query()
             ->with('creator:id,name')
             ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(
                 fn ($query) => $query->whereLike('name', "%{$search}%")->orWhereLike('code', "%{$search}%")
             ))
-            ->when($filters['status'] ?? null, fn ($query, string $value) => $query->where('status', $value))
-            ->latest('id')
+            ->when($filters['status'] ?? null, fn ($query, string $value) => $query->where('status', $value));
+
+        $projects = TableSort::apply($query, $filters, self::SORTABLE)
             ->paginate(15)
             ->withQueryString();
 

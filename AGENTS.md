@@ -57,8 +57,12 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   dinero en `decimal` (nunca floats para acumular).
 - **Textos**: escribe las cadenas en inglés y tradúcelas en `apps/platform/lang/es.json`
   (backend `__()`, frontend `t()` de `@/lib/i18n`).
-- **UI**: usa componentes de `@starter/ui/components/*`; agrega nuevos con el
-  registro de shadcn-vue `new-york-v4` dentro de `packages/js/ui`.
+- **UI**: arma las pantallas con el kit (`@/components/kit`: `DataTable` con modo tarjetas,
+  `FormField`, `WizardForm`, gráficos, `Modal`, `ActionsMenu`, `StatusAlert`, `notify`, `Icon`)
+  y las primitivas de `@starter/ui/components/*`; catálogo en vivo en `/ui-kit` y guía en
+  `docs/ui-kit.md`. Agrega primitivas del registro de shadcn-vue `new-york-v4` con
+  `node packages/js/ui/scripts/add.mjs <componente>`. Las tablas del servidor ordenan solo
+  con `App\Support\TableSort`; los gráficos usan `--chart-1..8` en orden fijo.
 
 ## Comandos
 
