@@ -2,7 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import type {
     PromptFormData,
-    PromptProviderOption,
+    PromptModelOption,
 } from '@/components/admin/PromptForm.vue';
 import PromptForm from '@/components/admin/PromptForm.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -18,8 +18,7 @@ type PromptData = {
     slug: string;
     description: string | null;
     content: string;
-    ai_provider_id: number | null;
-    model: string | null;
+    ai_model_id: number | null;
     temperature: string | null;
     max_tokens: number | null;
     is_default: boolean;
@@ -28,7 +27,7 @@ type PromptData = {
 
 const props = defineProps<{
     prompt: PromptData;
-    providers: PromptProviderOption[];
+    models: PromptModelOption[];
     variables: string[];
 }>();
 
@@ -46,8 +45,7 @@ const form = useForm<PromptFormData>({
     slug: props.prompt.slug,
     description: props.prompt.description ?? '',
     content: props.prompt.content,
-    ai_provider_id: props.prompt.ai_provider_id ?? '',
-    model: props.prompt.model ?? '',
+    ai_model_id: props.prompt.ai_model_id ?? '',
     temperature: props.prompt.temperature ?? '',
     max_tokens: props.prompt.max_tokens ?? '',
     is_default: props.prompt.is_default,
@@ -57,12 +55,7 @@ const form = useForm<PromptFormData>({
 const submit = () =>
     form
         .transform((data) =>
-            emptyToNull(data, [
-                'ai_provider_id',
-                'model',
-                'temperature',
-                'max_tokens',
-            ]),
+            emptyToNull(data, ['ai_model_id', 'temperature', 'max_tokens']),
         )
         .put(update(props.prompt.id).url, { preserveScroll: true });
 </script>
@@ -79,11 +72,7 @@ const submit = () =>
             :description="prompt.description ?? undefined"
         />
 
-        <PromptForm
-            :form="form"
-            :providers="providers"
-            :variables="variables"
-        />
+        <PromptForm :form="form" :models="models" :variables="variables" />
 
         <div class="flex items-center gap-2">
             <Button type="submit" :disabled="form.processing">

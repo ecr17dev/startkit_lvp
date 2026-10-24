@@ -53,8 +53,8 @@ implementado y verificado de lo pendiente.
 | --- | --- |
 | 1. Fundamentos: monorepo, PostgreSQL, Docker, salud, manifiesto, CI | Implementada |
 | 2. Identidad: OTP, registro/invitaciones, roles, permisos, auditoría, sesiones | Implementada |
-| 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Pendiente (existe una primera versión: proveedores, modelos con precio, prompts, uso y chat) |
-| 4. Agentes versionados, chat flotante con herramientas, multimedia | Pendiente |
+| 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Implementada (recomendador y laboratorio pasan a la etapa 4) |
+| 4. Agentes versionados, chat flotante con herramientas, multimedia, recomendador y laboratorio | Pendiente |
 | 5–6. RAG interno y operación | Pendiente |
 | 7. PostgreSQL externo, retrieval API y PostgREST | Pendiente |
 | 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Pendiente (OpenAPI y cliente tipado ya generados) |
@@ -67,6 +67,8 @@ php artisan starter:health     # chequeos de /health/ready
 php artisan starter:manifest   # registra versiones en starter.manifest.json
 php artisan starter:owner tu@correo.com --name="Tu Nombre"  # propietario
 php artisan starter:permissions                              # catálogo y roles de sistema
+php artisan starter:ai-sync-prices                           # tarifas de OpenRouter
+php artisan starter:ai-maintain                              # interrumpe colgadas y libera reservas
 php artisan test               # tests sobre PostgreSQL
 pnpm check && pnpm types:check # lint/format y vue-tsc
 ```
@@ -76,6 +78,7 @@ pnpm check && pnpm types:check # lint/format y vue-tsc
 - [Arquitectura](docs/architecture.md)
 - [Instalación](docs/installation.md)
 - [Identidad, acceso y auditoría](docs/identity.md)
+- [IA: conexiones, catálogo, tarifas, consumo y presupuestos](docs/ai.md)
 - [Docker](docs/docker.md)
 - [Actualizaciones](docs/upgrades.md)
 - [AGENTS.md](AGENTS.md) y [llms.txt](llms.txt) para agentes de desarrollo

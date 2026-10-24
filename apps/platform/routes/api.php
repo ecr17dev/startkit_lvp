@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
+use App\Http\Controllers\Api\V1\Ai\ConnectionController as AiConnectionController;
+use App\Http\Controllers\Api\V1\Ai\ModelController as AiModelController;
+use App\Http\Controllers\Api\V1\Ai\UsageController as AiUsageController;
 use App\Http\Controllers\Api\V1\AiController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\InvitationController;
@@ -53,7 +57,36 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware(['ability:ai', 'can:ai.chat'])->prefix('ai')->name('ai.')->group(function () {
             Route::get('prompts', [AiController::class, 'prompts'])->name('prompts');
             Route::post('chat', [AiController::class, 'chat'])->middleware('throttle:ai')->name('chat');
-            Route::get('usage', [AiController::class, 'usage'])->name('usage');
+            Route::get('me/usage', [AiController::class, 'usage'])->name('me.usage');
+        });
+
+        // AI administration: same Actions and permissions as the panel...
+        Route::prefix('ai')->name('ai.')->group(function () {
+            Route::middleware('ability:read')->group(function () {
+                Route::get('connections', [AiConnectionController::class, 'index'])->name('connections.index');
+                Route::get('connections/{connection}', [AiConnectionController::class, 'show'])->name('connections.show');
+                Route::get('models', [AiModelController::class, 'index'])->name('models.index');
+                Route::get('models/{model}', [AiModelController::class, 'show'])->name('models.show');
+                Route::get('models/{model}/prices', [AiModelController::class, 'prices'])->name('models.prices.index');
+                Route::get('usage', [AiUsageController::class, 'summary'])->name('usage.summary');
+                Route::get('usage/requests', [AiUsageController::class, 'requests'])->name('usage.requests');
+                Route::get('budgets', [AiBudgetController::class, 'index'])->name('budgets.index');
+            });
+
+            Route::middleware('ability:write')->group(function () {
+                Route::post('connections', [AiConnectionController::class, 'store'])->name('connections.store');
+                Route::patch('connections/{connection}', [AiConnectionController::class, 'update'])->name('connections.update');
+                Route::delete('connections/{connection}', [AiConnectionController::class, 'destroy'])->name('connections.destroy');
+                Route::post('connections/{connection}/test', [AiConnectionController::class, 'test'])->middleware('throttle:10,1')->name('connections.test');
+                Route::post('connections/{connection}/discover', [AiConnectionController::class, 'discover'])->middleware('throttle:10,1')->name('connections.discover');
+                Route::post('models', [AiModelController::class, 'store'])->name('models.store');
+                Route::patch('models/{model}', [AiModelController::class, 'update'])->name('models.update');
+                Route::post('models/{model}/verify', [AiModelController::class, 'verify'])->middleware('throttle:20,1')->name('models.verify');
+                Route::post('models/{model}/prices', [AiModelController::class, 'setPrice'])->name('models.prices.store');
+                Route::post('budgets', [AiBudgetController::class, 'store'])->name('budgets.store');
+                Route::patch('budgets/{budget}', [AiBudgetController::class, 'update'])->name('budgets.update');
+                Route::delete('budgets/{budget}', [AiBudgetController::class, 'destroy'])->name('budgets.destroy');
+            });
         });
     });
 });

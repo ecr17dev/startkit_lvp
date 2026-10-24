@@ -8,7 +8,9 @@
         "php": "^8.3",
         "laravel/framework": "^13.17",
         "laravel/ai": "^1.3",
-        "starter/administration": "^0.1"
+        "starter/administration": "^0.1",
+        "starter/identity": "^0.1",
+        "brick/math": "^1.0"
     },
     "autoload": {
         "psr-4": {

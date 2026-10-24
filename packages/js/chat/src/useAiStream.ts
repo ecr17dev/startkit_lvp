@@ -10,8 +10,10 @@ export type StreamUsage = {
 
 export type StreamSummary = {
     conversation_id: string | null;
+    request_id: string | null;
+    /** Calculated cost in USD, or null when it is unknown (never zero by default). */
     cost: number | null;
-    priced: boolean | null;
+    cost_status: string | null;
     model: string | null;
 };
 
@@ -24,7 +26,8 @@ type StreamEvent = {
     usage?: StreamUsage | null;
     conversation_id?: string | null;
     cost?: number | null;
-    priced?: boolean | null;
+    cost_status?: string | null;
+    request_id?: string | null;
 };
 
 type Handlers = {
@@ -62,8 +65,9 @@ export function useAiStream() {
             case 'summary':
                 handlers.onSummary?.({
                     conversation_id: payload.conversation_id ?? null,
+                    request_id: payload.request_id ?? null,
                     cost: payload.cost ?? null,
-                    priced: payload.priced ?? null,
+                    cost_status: payload.cost_status ?? null,
                     model: payload.model ?? null,
                 });
                 break;

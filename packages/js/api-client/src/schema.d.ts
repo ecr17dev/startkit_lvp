@@ -282,7 +282,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ai/usage": {
+    "/v1/ai/me/usage": {
         parameters: {
             query?: never;
             header?: never;
@@ -290,7 +290,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get the AI usage of the authenticated user for the current month */
-        get: operations["v1.ai.usage"];
+        get: operations["v1.ai.me.usage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -358,6 +358,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List connections */
+        get: operations["v1.ai.connections.index"];
+        put?: never;
+        /**
+         * Create a connection
+         * @description Use `credential_mode: env` with `secret_ref: env:OPENAI_API_KEY` to read
+         *     the key from the deployment instead of storing it.
+         */
+        post: operations["v1.ai.connections.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/connections/{connection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a connection */
+        get: operations["v1.ai.connections.show"];
+        put?: never;
+        post?: never;
+        /** Delete a connection and its catalog (the usage ledger is kept) */
+        delete: operations["v1.ai.connections.destroy"];
+        options?: never;
+        head?: never;
+        /** Update a connection. Blank secrets keep the stored ones (rotation sets new values) */
+        patch: operations["v1.ai.connections.update"];
+        trace?: never;
+    };
+    "/v1/ai/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the catalog by name, function, capability or connection */
+        get: operations["v1.ai.models.index"];
+        put?: never;
+        /** Import a model manually */
+        post: operations["v1.ai.models.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/models/{model}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a model with its capabilities and current prices */
+        get: operations["v1.ai.models.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a model (enable, default, functions, limits, capabilities) */
+        patch: operations["v1.ai.models.update"];
+        trace?: never;
+    };
+    "/v1/ai/models/{model}/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Price history of a model (newest first) */
+        get: operations["v1.ai.models.prices.index"];
+        put?: never;
+        /** Set a manual price. A new version is created; recorded costs keep their price */
+        post: operations["v1.ai.models.prices.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/connections/{connection}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a connection
+         * @description Distinguishes `authentication`, `quota`, `rate_limit`, `network` and
+         *     `model_not_found` failures.
+         */
+        post: operations["v1.ai.connections.test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/connections/{connection}/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover the provider models into the catalog
+         * @description New models start disabled and with unknown availability.
+         */
+        post: operations["v1.ai.connections.discover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/models/{model}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify a model with a minimal explicit call (recorded in the ledger) */
+        post: operations["v1.ai.models.verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Usage summary of a date range
+         * @description `cost` sums calculated costs in USD; requests with unknown prices are
+         *     counted in `unknown_cost_requests` and never added as zero.
+         */
+        get: operations["v1.ai.usage.summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/usage/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ledger requests (newest first) */
+        get: operations["v1.ai.usage.requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List budgets with the status of their current period */
+        get: operations["v1.ai.budgets.index"];
+        put?: never;
+        /**
+         * Create a budget
+         * @description Hard limits block calls whose estimated cost would exceed the limit
+         *     (atomic reservation); soft limits only alert.
+         */
+        post: operations["v1.ai.budgets.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/budgets/{budget}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a budget */
+        delete: operations["v1.ai.budgets.destroy"];
+        options?: never;
+        head?: never;
+        /** Update a budget */
+        patch: operations["v1.ai.budgets.update"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -369,8 +600,7 @@ export interface components {
             slug: string;
             description: string | null;
             content: string;
-            ai_provider_id: number | null;
-            model: string | null;
+            ai_model_id: number | null;
             temperature: string | null;
             max_tokens: number | null;
             is_default: boolean;
@@ -380,6 +610,39 @@ export interface components {
             /** Format: date-time */
             updated_at: string | null;
         };
+        /**
+         * BudgetPeriod
+         * @enum {string}
+         */
+        BudgetPeriod: "daily" | "monthly";
+        /**
+         * BudgetScope
+         * @enum {string}
+         */
+        BudgetScope: "global" | "user" | "role" | "feature" | "connection";
+        /**
+         * Capability
+         * @enum {string}
+         */
+        Capability: "streaming" | "tools" | "structured_output" | "vision" | "documents" | "audio_input" | "reasoning" | "prompt_caching" | "temperature" | "web_search";
+        /**
+         * CapabilityStatus
+         * @description An unverified capability is unknown, never assumed.
+         * @enum {string}
+         */
+        CapabilityStatus: "supported" | "unsupported" | "unknown";
+        /**
+         * Driver
+         * @description Text drivers of the Laravel AI SDK offered for connections. Every driver maps to an SDK driver name; "openai-compatible" covers custom endpoints.
+         * @enum {string}
+         */
+        Driver: "openai" | "anthropic" | "gemini" | "deepseek" | "openrouter" | "bedrock" | "azure" | "groq" | "mistral" | "xai" | "ollama" | "openai-compatible";
+        /**
+         * Feature
+         * @description What an AI call was made for (ledger dimension).
+         * @enum {string}
+         */
+        Feature: "chat" | "title" | "test" | "recommendation" | "lab" | "embedding" | "rag" | "transcription" | "tool" | "other";
         /** InvitationResource */
         InvitationResource: {
             id: number;
@@ -406,6 +669,17 @@ export interface components {
             email: string;
             role: string;
         };
+        /**
+         * PriceComponent
+         * @description Billable dimension of a model price.
+         * @enum {string}
+         */
+        PriceComponent: "input" | "output" | "cache_read" | "cache_write" | "reasoning" | "audio_input" | "audio_seconds" | "request" | "image" | "web_search";
+        /**
+         * PriceUnit
+         * @enum {string}
+         */
+        PriceUnit: "per_million_tokens" | "per_thousand_tokens" | "per_token" | "per_minute" | "per_second" | "per_request" | "per_image" | "per_unit";
         /** RoleRequest */
         RoleRequest: {
             name: string;
@@ -420,6 +694,76 @@ export interface components {
             users_count?: number;
             /** Format: date-time */
             created_at: string | null;
+        };
+        /** SaveBudget */
+        SaveBudget: {
+            name: string;
+            scope: components["schemas"]["BudgetScope"];
+            scope_value?: string | null;
+            period: components["schemas"]["BudgetPeriod"];
+            /** @description Limit in USD for the period. */
+            limit_amount: number;
+            alert_thresholds?: number[] | null;
+            hard_limit?: boolean;
+            block_unknown_cost?: boolean;
+            is_active?: boolean;
+        };
+        /**
+         * SaveConnection
+         * @description Create or update a provider connection. Credentials are encrypted or
+         *     referenced from deployment secrets; blank secrets keep the stored ones.
+         */
+        SaveConnection: {
+            name: string;
+            label: string;
+            driver: components["schemas"]["Driver"];
+            /** Format: uri */
+            base_url?: string | null;
+            /** @enum {string} */
+            credential_mode?: "stored" | "env";
+            secret_ref?: string | null;
+            api_key?: string | null;
+            access_key_id?: string | null;
+            secret_access_key?: string | null;
+            session_token?: string | null;
+            region?: string | null;
+            api_version?: string | null;
+            deployment?: string | null;
+            is_active?: boolean;
+            is_default?: boolean;
+        };
+        /**
+         * SaveModel
+         * @description Import a model manually (with its source) or update a catalog entry.
+         *     Capabilities set here are recorded as manual decisions.
+         */
+        SaveModel: {
+            model: string;
+            label?: string | null;
+            functions?: ("text" | "embeddings" | "image" | "audio" | "transcription" | "reranking")[] | null;
+            input_modalities?: ("text" | "image" | "file" | "audio" | "video")[] | null;
+            context_window?: number | null;
+            max_output_tokens?: number | null;
+            /** Format: uri */
+            source_url?: string | null;
+            is_enabled?: boolean;
+            is_default?: boolean;
+            capabilities?: components["schemas"]["CapabilityStatus"][];
+        };
+        /**
+         * SetModelPrice
+         * @description Set (or stop) a manual price. A change creates a new version; costs
+         *     already recorded keep the price they were calculated with.
+         */
+        SetModelPrice: {
+            component: components["schemas"]["PriceComponent"];
+            unit?: components["schemas"]["PriceUnit"] | null;
+            /** @description Price in USD per unit (e.g. per million tokens). Empty to stop applying the price. */
+            amount?: number | null;
+            /** @enum {string|null} */
+            tier?: "standard" | "batch" | "priority" | "flex" | null;
+            /** @description Where the price comes from (URL of the price list, agreement...). */
+            notes?: string | null;
         };
         /**
          * StoreUserRequest
@@ -1118,10 +1462,8 @@ export interface operations {
                     prompt?: string | null;
                     /** @description Conversation to continue. */
                     conversation_id?: string | null;
-                    /** @description Provider name (requires the `ai.models.manage` permission). */
-                    provider?: string | null;
-                    /** @description Model identifier (requires the `ai.models.manage` permission). */
-                    model?: string | null;
+                    /** @description Catalog model id (requires the `ai.models.manage` permission). */
+                    model_id?: number | null;
                 };
             };
         };
@@ -1134,14 +1476,18 @@ export interface operations {
                     "application/json": {
                         text: string;
                         conversation_id: string;
-                        provider: string | null;
+                        /** @description Ledger request id (see the usage endpoints). */
+                        request_id: string;
+                        provider: string;
                         model: string;
                         usage: {
                             input_tokens: string;
                             output_tokens: string;
                         };
-                        /** @description Estimated cost in USD (0 when the model has no price configured). */
-                        cost: number;
+                        /** @description Calculated cost in USD, or null when a price is unknown (never zero by default). */
+                        cost: string | null;
+                        /** @enum {string} */
+                        cost_status: "calculated" | "unknown" | "pending" | "estimated" | "reconciled";
                     };
                 };
             };
@@ -1150,7 +1496,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "v1.ai.usage": {
+    "v1.ai.me.usage": {
         parameters: {
             query?: never;
             header?: never;
@@ -1168,8 +1514,10 @@ export interface operations {
                         calls: number;
                         input_tokens: number;
                         output_tokens: number;
-                        cost: number;
-                        budget: unknown;
+                        /** @description Sum of the known costs in USD. */
+                        cost: string;
+                        /** @description Requests whose cost is unknown (missing prices). */
+                        unknown_cost_calls: number;
                     };
                 };
             };
@@ -1309,6 +1657,1110 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.connections.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            label: string;
+                            driver: string;
+                            /** @enum {string} */
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            base_url: string | null;
+                            endpoint: string | null;
+                            /** @enum {string} */
+                            credential_mode: "env" | "stored";
+                            secret_ref: string | null;
+                            masked_credentials: {
+                                [key: string]: string;
+                            };
+                            has_api_key: boolean;
+                            options: string;
+                            is_active: boolean;
+                            is_default: boolean;
+                            models_count: unknown;
+                            last_tested_at: string | null;
+                            last_test_status: string | null;
+                            last_test_message: string | null;
+                            credentials_rotated_at: string | null;
+                            discovery: boolean;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "v1.ai.connections.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveConnection"] & {
+                    name: string;
+                    label: string;
+                    driver: components["schemas"]["Driver"];
+                    /** Format: uri */
+                    base_url?: string | null;
+                    /** @enum {string} */
+                    credential_mode?: "stored" | "env";
+                    secret_ref?: string | null;
+                    api_key?: string | null;
+                    access_key_id?: string | null;
+                    secret_access_key?: string | null;
+                    session_token?: string | null;
+                    region?: string | null;
+                    api_version?: string | null;
+                    deployment?: string | null;
+                    is_active?: boolean;
+                    is_default?: boolean;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            label: string;
+                            driver: string;
+                            /** @enum {string} */
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            base_url: string | null;
+                            endpoint: string | null;
+                            /** @enum {string} */
+                            credential_mode: "env" | "stored";
+                            secret_ref: string | null;
+                            masked_credentials: {
+                                [key: string]: string;
+                            };
+                            has_api_key: boolean;
+                            options: string;
+                            is_active: boolean;
+                            is_default: boolean;
+                            models_count: unknown;
+                            last_tested_at: string | null;
+                            last_test_status: string | null;
+                            last_test_message: string | null;
+                            credentials_rotated_at: string | null;
+                            discovery: boolean;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.connections.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            label: string;
+                            driver: string;
+                            /** @enum {string} */
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            base_url: string | null;
+                            endpoint: string | null;
+                            /** @enum {string} */
+                            credential_mode: "env" | "stored";
+                            secret_ref: string | null;
+                            masked_credentials: {
+                                [key: string]: string;
+                            };
+                            has_api_key: boolean;
+                            options: string;
+                            is_active: boolean;
+                            is_default: boolean;
+                            models_count: unknown;
+                            last_tested_at: string | null;
+                            last_test_status: string | null;
+                            last_test_message: string | null;
+                            credentials_rotated_at: string | null;
+                            discovery: boolean;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.connections.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        message: "Conexión eliminada.";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.connections.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveConnection"] & {
+                    name?: string;
+                    label?: string;
+                    driver?: components["schemas"]["Driver"];
+                    /** Format: uri */
+                    base_url?: string | null;
+                    /** @enum {string} */
+                    credential_mode?: "stored" | "env";
+                    secret_ref?: string | null;
+                    api_key?: string | null;
+                    access_key_id?: string | null;
+                    secret_access_key?: string | null;
+                    session_token?: string | null;
+                    region?: string | null;
+                    api_version?: string | null;
+                    deployment?: string | null;
+                    is_active?: boolean;
+                    is_default?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            label: string;
+                            driver: string;
+                            /** @enum {string} */
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            base_url: string | null;
+                            endpoint: string | null;
+                            /** @enum {string} */
+                            credential_mode: "env" | "stored";
+                            secret_ref: string | null;
+                            masked_credentials: {
+                                [key: string]: string;
+                            };
+                            has_api_key: boolean;
+                            options: string;
+                            is_active: boolean;
+                            is_default: boolean;
+                            models_count: unknown;
+                            last_tested_at: string | null;
+                            last_test_status: string | null;
+                            last_test_message: string | null;
+                            credentials_rotated_at: string | null;
+                            discovery: boolean;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.models.index": {
+        parameters: {
+            query?: {
+                search?: string | null;
+                connection_id?: number | null;
+                /** @description text, embeddings, image, audio, transcription or reranking. */
+                function?: "text" | "embeddings" | "image" | "audio" | "transcription" | "reranking" | null;
+                /** @description Only models whose capability is verified or declared as supported. */
+                capability?: components["schemas"]["Capability"] | null;
+                enabled?: boolean | null;
+                per_page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            model: string;
+                            label: string | null;
+                            name: string;
+                            provider: string | null;
+                            connection: {
+                                id: number;
+                                label: string;
+                                driver: string;
+                            } | null;
+                            functions: string[] | null;
+                            input_modalities: string[] | null;
+                            output_modalities: string[] | null;
+                            context_window: number | null;
+                            max_output_tokens: number | null;
+                            status: string;
+                            source: string;
+                            source_url: string | null;
+                            discovered_at: string | null;
+                            verified_at: string | null;
+                            last_error: string | null;
+                            is_enabled: boolean;
+                            is_default: boolean;
+                            capabilities: string;
+                            prices: {
+                                [key: string]: {
+                                    amount: string;
+                                    unit: string;
+                                    source: string | null;
+                                    effective_from: string;
+                                };
+                            } | null;
+                        }[];
+                        meta: {
+                            current_page: number;
+                            last_page: number;
+                            from: number | null;
+                            to: number | null;
+                            total: number;
+                            per_page: number;
+                            links: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.models.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveModel"] & {
+                    connection_id: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            model: string;
+                            label: string | null;
+                            name: string;
+                            provider: string | null;
+                            connection: {
+                                id: number;
+                                label: string;
+                                driver: string;
+                            } | null;
+                            functions: string[] | null;
+                            input_modalities: string[] | null;
+                            output_modalities: string[] | null;
+                            context_window: number | null;
+                            max_output_tokens: number | null;
+                            status: string;
+                            source: string;
+                            source_url: string | null;
+                            discovered_at: string | null;
+                            verified_at: string | null;
+                            last_error: string | null;
+                            is_enabled: boolean;
+                            is_default: boolean;
+                            capabilities: string;
+                            prices: {
+                                [key: string]: {
+                                    amount: string;
+                                    unit: string;
+                                    source: string | null;
+                                    effective_from: string;
+                                };
+                            } | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.models.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The model ID */
+                model: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            model: string;
+                            label: string | null;
+                            name: string;
+                            provider: string | null;
+                            connection: {
+                                id: number;
+                                label: string;
+                                driver: string;
+                            } | null;
+                            functions: string[] | null;
+                            input_modalities: string[] | null;
+                            output_modalities: string[] | null;
+                            context_window: number | null;
+                            max_output_tokens: number | null;
+                            status: string;
+                            source: string;
+                            source_url: string | null;
+                            discovered_at: string | null;
+                            verified_at: string | null;
+                            last_error: string | null;
+                            is_enabled: boolean;
+                            is_default: boolean;
+                            capabilities: string;
+                            prices: {
+                                [key: string]: {
+                                    amount: string;
+                                    unit: string;
+                                    source: string | null;
+                                    effective_from: string;
+                                };
+                            } | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.models.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The model ID */
+                model: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveModel"] & {
+                    model?: string;
+                    label?: string | null;
+                    functions?: ("text" | "embeddings" | "image" | "audio" | "transcription" | "reranking")[] | null;
+                    input_modalities?: ("text" | "image" | "file" | "audio" | "video")[] | null;
+                    context_window?: number | null;
+                    max_output_tokens?: number | null;
+                    /** Format: uri */
+                    source_url?: string | null;
+                    is_enabled?: boolean;
+                    is_default?: boolean;
+                    capabilities?: components["schemas"]["CapabilityStatus"][];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            model: string;
+                            label: string | null;
+                            name: string;
+                            provider: string | null;
+                            connection: {
+                                id: number;
+                                label: string;
+                                driver: string;
+                            } | null;
+                            functions: string[] | null;
+                            input_modalities: string[] | null;
+                            output_modalities: string[] | null;
+                            context_window: number | null;
+                            max_output_tokens: number | null;
+                            status: string;
+                            source: string;
+                            source_url: string | null;
+                            discovered_at: string | null;
+                            verified_at: string | null;
+                            last_error: string | null;
+                            is_enabled: boolean;
+                            is_default: boolean;
+                            capabilities: string;
+                            prices: {
+                                [key: string]: {
+                                    amount: string;
+                                    unit: string;
+                                    source: string | null;
+                                    effective_from: string;
+                                };
+                            } | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.models.prices.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The model ID */
+                model: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            component: string;
+                            unit: string;
+                            amount: string;
+                            currency: string;
+                            tier: string;
+                            source: {
+                                key: string;
+                                name: string;
+                                kind: string;
+                            } | null;
+                            effective_from: string;
+                            effective_to: string | null;
+                            retrieved_at: string | null;
+                            notes: string | null;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.models.prices.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The model ID */
+                model: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SetModelPrice"] & {
+                    component: components["schemas"]["PriceComponent"];
+                    unit?: components["schemas"]["PriceUnit"] | null;
+                    /** @description Price in USD per unit (e.g. per million tokens). Empty to stop applying the price. */
+                    amount?: number | null;
+                    /** @enum {string|null} */
+                    tier?: "standard" | "batch" | "priority" | "flex" | null;
+                    /** @description Where the price comes from (URL of the price list, agreement...). */
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        result: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.connections.test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        status: string;
+                        message: string;
+                        models: number | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.connections.discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        created: 0;
+                        /** @constant */
+                        updated: 0;
+                        total: number;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.models.verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The model ID */
+                model: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        error_type: null;
+                        message: null;
+                        latency_ms: number;
+                    } | {
+                        ok: boolean;
+                        error_type: string;
+                        /** @enum {string} */
+                        message: "The credential was rejected by the provider." | "The provider account has no credit or quota left." | "The provider rate limit was reached." | "The provider could not be reached." | "The model does not exist or is not available for this credential." | "The provider rejected the request." | "The provider is overloaded. Try again later." | "An AI budget limit was reached." | "The connection is not configured correctly." | "The provider returned an unexpected error.";
+                        latency_ms: null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.usage.summary": {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        range: {
+                            from: string;
+                            to: string;
+                        };
+                        /** @constant */
+                        currency: "USD";
+                        totals: {
+                            requests: number;
+                            cost: string;
+                            estimated_cost: string;
+                            unknown_cost_requests: number;
+                            errors: number;
+                            blocked: number;
+                            error_rate: number;
+                            input_tokens: number;
+                            output_tokens: number;
+                            cache_read_tokens: number;
+                            avg_latency_ms: number | null;
+                            p50_latency_ms: number | null;
+                            p95_latency_ms: number | null;
+                            avg_ttft_ms: number | null;
+                        };
+                        daily: {
+                            date: string;
+                            cost: string;
+                            requests: number;
+                            tokens: number;
+                            unknown: number;
+                        }[];
+                        by_feature: unknown[];
+                        by_model: unknown[];
+                        by_connection: unknown[];
+                        errors: unknown[];
+                        budgets: unknown[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.usage.requests": {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                feature?: components["schemas"]["Feature"] | null;
+                user_id?: number | null;
+                per_page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            created_at: string;
+                            feature: string;
+                            status: string;
+                            user: {
+                                id: unknown;
+                                name: unknown;
+                            } | null;
+                            connection: string | null;
+                            provider: string | null;
+                            model: string | null;
+                            agent: string | null;
+                            input_tokens: number;
+                            output_tokens: number;
+                            cost: string | null;
+                            estimated_cost: string | null;
+                            reconciled_cost: string | null;
+                            cost_status: string;
+                            attempts: number;
+                            latency_ms: number | null;
+                            error_type: string | null;
+                        }[];
+                        meta: {
+                            current_page: number;
+                            last_page: number;
+                            from: number | null;
+                            to: number | null;
+                            total: number;
+                            per_page: number;
+                            links: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.budgets.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            scope: string;
+                            scope_value: string | null;
+                            period: string;
+                            limit_amount: string;
+                            currency: string;
+                            alert_thresholds: unknown[];
+                            hard_limit: boolean;
+                            block_unknown_cost: boolean;
+                            is_active: boolean;
+                            status: {
+                                period_key: string;
+                                spent: string;
+                                reserved: string;
+                                limit: string;
+                                percent: number;
+                                unknown_cost_requests: number;
+                            };
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.ai.budgets.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveBudget"] & {
+                    name: string;
+                    scope: components["schemas"]["BudgetScope"];
+                    scope_value?: string | null;
+                    period: components["schemas"]["BudgetPeriod"];
+                    /** @description Limit in USD for the period. */
+                    limit_amount: number;
+                    alert_thresholds?: number[] | null;
+                    hard_limit?: boolean;
+                    block_unknown_cost?: boolean;
+                    is_active?: boolean;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            scope: string;
+                            scope_value: string | null;
+                            period: string;
+                            limit_amount: string;
+                            currency: string;
+                            alert_thresholds: unknown[];
+                            hard_limit: boolean;
+                            block_unknown_cost: boolean;
+                            is_active: boolean;
+                            status: {
+                                period_key: string;
+                                spent: string;
+                                reserved: string;
+                                limit: string;
+                                percent: number;
+                                unknown_cost_requests: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.budgets.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The budget ID */
+                budget: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        message: "Presupuesto eliminado.";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.budgets.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The budget ID */
+                budget: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaveBudget"] & {
+                    name: string;
+                    scope: components["schemas"]["BudgetScope"];
+                    scope_value?: string | null;
+                    period: components["schemas"]["BudgetPeriod"];
+                    /** @description Limit in USD for the period. */
+                    limit_amount: number;
+                    alert_thresholds?: number[] | null;
+                    hard_limit?: boolean;
+                    block_unknown_cost?: boolean;
+                    is_active?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            scope: string;
+                            scope_value: string | null;
+                            period: string;
+                            limit_amount: string;
+                            currency: string;
+                            alert_thresholds: unknown[];
+                            hard_limit: boolean;
+                            block_unknown_cost: boolean;
+                            is_active: boolean;
+                            status: {
+                                period_key: string;
+                                spent: string;
+                                reserved: string;
+                                limit: string;
+                                percent: number;
+                                unknown_cost_requests: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
 }

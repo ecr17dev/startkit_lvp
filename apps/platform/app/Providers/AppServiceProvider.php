@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Ai\ProviderRegistry;
-use App\Ai\UsageContext;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
@@ -22,8 +20,6 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
-use Starter\Administration\Settings\RuntimeConfiguration;
-use Starter\Administration\Settings\SettingsManager;
 use Starter\Identity\Models\Invitation;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->scoped(UsageContext::class);
+        //
     }
 
     /**
@@ -46,11 +42,6 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureApiDocs();
 
-        $this->app->make(RuntimeConfiguration::class)->extend(function (SettingsManager $settings) {
-            config(['ai.conversations.generate_title' => (bool) $settings->get('ai.generate_titles', true)]);
-
-            ProviderRegistry::apply();
-        });
     }
 
     /**

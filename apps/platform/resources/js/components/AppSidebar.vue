@@ -9,7 +9,10 @@ import {
     LayoutGrid,
     MessageSquareText,
     MonitorSmartphone,
+    PiggyBank,
+    Plug,
     Settings2,
+    Tags,
     ShieldCheck,
     Users,
 } from '@lucide/vue';
@@ -33,8 +36,11 @@ import { t } from '@/lib/i18n';
 import { dashboard } from '@/routes';
 import { chat } from '@/routes/ai';
 import { usage } from '@/routes/admin/ai';
+import { index as budgets } from '@/routes/admin/ai/budgets';
+import { index as connections } from '@/routes/admin/ai/connections';
+import { index as models } from '@/routes/admin/ai/models';
+import { index as prices } from '@/routes/admin/ai/prices';
 import { index as prompts } from '@/routes/admin/ai/prompts';
-import { index as providers } from '@/routes/admin/ai/providers';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
@@ -116,10 +122,22 @@ const sections = computed<NavSection[]>(() => {
             label: t('Artificial intelligence'),
             items: filter([
                 {
-                    title: t('Providers & models'),
-                    href: providers(),
-                    icon: Brain,
+                    title: t('Connections'),
+                    href: connections(),
+                    icon: Plug,
                     can: 'ai.providers.manage',
+                },
+                {
+                    title: t('Model catalog'),
+                    href: models(),
+                    icon: Brain,
+                    can: 'ai.models.manage',
+                },
+                {
+                    title: t('Prices'),
+                    href: prices(),
+                    icon: Tags,
+                    can: 'ai.models.manage',
                 },
                 {
                     title: t('System prompts'),
@@ -132,6 +150,12 @@ const sections = computed<NavSection[]>(() => {
                     href: usage(),
                     icon: ChartColumn,
                     can: 'ai.usage.read',
+                },
+                {
+                    title: t('Budgets'),
+                    href: budgets(),
+                    icon: PiggyBank,
+                    can: 'ai.budgets.manage',
                 },
             ]),
         },

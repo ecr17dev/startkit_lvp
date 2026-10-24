@@ -25,7 +25,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import { formatDate, formatMoney, formatNumber, t } from '@/lib/i18n';
 import { dashboard } from '@/routes';
 import { chat } from '@/routes/ai';
-import { index as providers } from '@/routes/admin/ai/providers';
+import { index as providers } from '@/routes/admin/ai/connections';
 import { index as roles } from '@/routes/admin/roles';
 import branding from '@/routes/admin/settings/branding';
 import { index as users } from '@/routes/admin/users';
@@ -46,12 +46,12 @@ type Stats = {
     users?: { total: number; active: number; new_this_month: number };
     roles?: number;
     ai?: {
-        month_cost: number;
+        month_cost: string;
         month_calls: number;
+        month_unknown_cost: number;
         providers: number;
-        budget: number | string | null;
     };
-    my_ai?: { month_cost: number; month_calls: number };
+    my_ai?: { month_cost: string; month_calls: number };
 };
 
 defineProps<{
@@ -148,9 +148,12 @@ const shortcuts = computed(() =>
                 :title="t('AI cost this month')"
                 :value="formatMoney(stats.ai.month_cost)"
                 :hint="
-                    stats.ai.budget
-                        ? t('Budget: :budget', {
-                              budget: formatMoney(Number(stats.ai.budget)),
+                    stats.ai.month_unknown_cost
+                        ? t(':count calls · :unknown with unknown cost', {
+                              count: formatNumber(stats.ai.month_calls),
+                              unknown: formatNumber(
+                                  stats.ai.month_unknown_cost,
+                              ),
                           })
                         : t(':count calls', {
                               count: formatNumber(stats.ai.month_calls),

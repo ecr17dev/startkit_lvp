@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Admin\Ai;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiPrompt;
-use App\Models\AiProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Starter\Ai\Models\AiModel;
 
 class AiPromptController extends Controller
 {
@@ -18,13 +18,14 @@ class AiPromptController extends Controller
     {
         return Inertia::render('admin/ai/prompts/Index', [
             'prompts' => AiPrompt::query()
-                ->with('provider:id,label')
+                ->with('model.connection')
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (AiPrompt $prompt) => [
-                    ...$prompt->only(['id', 'name', 'slug', 'description', 'model', 'is_default', 'is_active', 'updated_at']),
-                    'provider' => $prompt->provider?->label,
+                    ...$prompt->only(['id', 'name', 'slug', 'description', 'is_default', 'is_active', 'updated_at']),
+                    'model' => $prompt->model?->displayName(),
+                    'provider' => $prompt->model?->connection->label,
                     'excerpt' => Str::limit($prompt->content, 160),
                 ]),
         ]);
@@ -40,6 +41,8 @@ class AiPromptController extends Controller
         $prompt = AiPrompt::query()->create($this->validated($request));
         $this->ensureSingleDefault($prompt);
 
+        audit('ai.prompts.created', $prompt, ['slug' => $prompt->slug]);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Prompt created.')]);
 
         return to_route('admin.ai.prompts.index');
@@ -49,7 +52,7 @@ class AiPromptController extends Controller
     {
         return Inertia::render('admin/ai/prompts/Edit', [
             ...$this->formData(),
-            'prompt' => $prompt->only(['id', 'name', 'slug', 'description', 'content', 'ai_provider_id', 'model', 'temperature', 'max_tokens', 'is_default', 'is_active']),
+            'prompt' => $prompt->only(['id', 'name', 'slug', 'description', 'content', 'ai_model_id', 'temperature', 'max_tokens', 'is_default', 'is_active']),
         ]);
     }
 
@@ -57,6 +60,8 @@ class AiPromptController extends Controller
     {
         $prompt->update($this->validated($request, $prompt));
         $this->ensureSingleDefault($prompt);
+
+        audit('ai.prompts.updated', $prompt, ['changed' => array_keys($prompt->getChanges())]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Prompt updated.')]);
 
@@ -66,6 +71,8 @@ class AiPromptController extends Controller
     public function destroy(AiPrompt $prompt): RedirectResponse
     {
         $prompt->delete();
+
+        audit('ai.prompts.deleted', $prompt, ['slug' => $prompt->slug]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Prompt deleted.')]);
 
@@ -78,12 +85,11 @@ class AiPromptController extends Controller
     protected function formData(): array
     {
         return [
-            'providers' => AiProvider::query()->with('models:id,ai_provider_id,model,label')->orderBy('label')->get()
-                ->map(fn (AiProvider $provider) => [
-                    'id' => $provider->id,
-                    'label' => $provider->label,
-                    'default_model' => $provider->default_model,
-                    'models' => $provider->models->map->only(['model', 'label'])->values(),
+            'models' => AiModel::query()->with('connection')->usable()->forFunction('text')->orderBy('connection_id')->orderBy('model')->get()
+                ->map(fn (AiModel $model) => [
+                    'id' => $model->id,
+                    'label' => $model->displayName(),
+                    'connection' => $model->connection->label,
                 ]),
             'variables' => ['app_name', 'user_name', 'user_email', 'locale', 'date', 'datetime'],
         ];
@@ -101,8 +107,7 @@ class AiPromptController extends Controller
             'slug' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('ai_prompts', 'slug')->ignore($prompt?->id)],
             'description' => ['nullable', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:50000'],
-            'ai_provider_id' => ['nullable', 'integer', Rule::exists('ai_providers', 'id')],
-            'model' => ['nullable', 'string', 'max:255'],
+            'ai_model_id' => ['nullable', 'integer', Rule::exists('ai_models', 'id')],
             'temperature' => ['nullable', 'numeric', 'between:0,2'],
             'max_tokens' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'is_default' => ['boolean'],

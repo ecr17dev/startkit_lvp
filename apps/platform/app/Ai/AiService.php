@@ -3,68 +3,88 @@
 namespace App\Ai;
 
 use App\Ai\Agents\Assistant;
-use App\Ai\Exceptions\BudgetExceededException;
 use App\Models\AiPrompt;
-use App\Models\AiProvider;
-use App\Models\AiUsageLog;
 use App\Models\User;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Support\Carbon;
-use InvalidArgumentException;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Starter\Administration\Settings\SettingsManager;
+use Starter\Ai\AiGateway;
+use Starter\Ai\Enums\Feature;
+use Starter\Ai\Enums\ModelStatus;
+use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\AiModel;
+use Starter\Ai\Models\AiRequest;
+use Starter\Ai\Pricing\CostCalculator;
 
+/**
+ * The assistant of the application. Every call goes through the AI gateway:
+ * on-demand connection, cost estimate, budget reservation and ledger.
+ */
 class AiService
 {
     public function __construct(
         protected SettingsManager $settings,
-        protected UsageContext $context,
+        protected AiGateway $gateway,
     ) {}
 
     /**
-     * Send a message to the assistant and wait for the full response.
+     * Send a message and wait for the full response.
+     *
+     * @return array{response: AgentResponse, request: AiRequest}
      */
-    public function chat(
-        User $user,
-        string $message,
-        ?AiPrompt $prompt = null,
-        ?string $provider = null,
-        ?string $model = null,
-        ?string $conversationId = null,
-        string $source = 'web',
-    ): AgentResponse {
+    public function chat(User $user, string $message, ?AiPrompt $prompt = null, ?AiModel $model = null, ?string $conversationId = null): array
+    {
         $prompt ??= AiPrompt::default();
-        [$provider, $model] = $this->resolveTarget($prompt, $provider, $model);
+        $model = $this->resolveModel($prompt, $model);
+        $assistant = $this->assistant($user, $prompt, $conversationId);
+        $ledger = null;
 
-        $this->ensureWithinBudget($user);
+        $response = $this->gateway->run(
+            $model,
+            Feature::Chat,
+            $user,
+            function (string $provider, string $name, AiRequest $request) use ($assistant, $message, &$ledger) {
+                $ledger = $request;
 
-        return $this->context->run($user, $prompt, $source, fn () => $this->assistant($user, $prompt, $conversationId)
-            ->prompt($message, provider: $provider, model: $model));
+                return $assistant->prompt($message, provider: $provider, model: $name);
+            },
+            $this->options($prompt, $message, $conversationId),
+        );
+
+        /** @var AiRequest $ledger */
+        return ['response' => $response, 'request' => $ledger->refresh()];
     }
 
     /**
-     * Send a message to the assistant and stream the response.
+     * Send a message and stream the response. The ledger request is closed
+     * when the stream completes.
+     *
+     * @return array{response: StreamableAgentResponse, request: AiRequest}
      */
-    public function stream(
-        User $user,
-        string $message,
-        ?AiPrompt $prompt = null,
-        ?string $provider = null,
-        ?string $model = null,
-        ?string $conversationId = null,
-        string $source = 'web',
-    ): StreamableAgentResponse {
+    public function stream(User $user, string $message, ?AiPrompt $prompt = null, ?AiModel $model = null, ?string $conversationId = null): array
+    {
         $prompt ??= AiPrompt::default();
-        [$provider, $model] = $this->resolveTarget($prompt, $provider, $model);
+        $model = $this->resolveModel($prompt, $model);
+        $assistant = $this->assistant($user, $prompt, $conversationId);
+        $ledger = null;
 
-        $this->ensureWithinBudget($user);
+        $response = $this->gateway->stream(
+            $model,
+            Feature::Chat,
+            $user,
+            function (string $provider, string $name, AiRequest $request) use ($assistant, $message, &$ledger) {
+                $ledger = $request;
 
-        // The stream is consumed after this method returns, so the context
-        // stays set for the remainder of the request...
-        $this->context->set($user, $prompt, $source);
+                return $assistant->stream($message, provider: $provider, model: $name);
+            },
+            $this->options($prompt, $message, $conversationId),
+        );
 
-        return $this->assistant($user, $prompt, $conversationId)
-            ->stream($message, provider: $provider, model: $model);
+        /** @var AiRequest $ledger */
+        return ['response' => $response, 'request' => $ledger];
     }
 
     /**
@@ -85,64 +105,66 @@ class AiService
     }
 
     /**
-     * Resolve the provider and model to use for the call.
+     * Model to use: the explicit choice, then the prompt's model, then the
+     * default model of the catalog.
      *
-     * Priority: explicit arguments, then the system prompt, then the default provider.
-     *
-     * @return array{0: string, 1: string|null}
+     * @throws ModelNotUsableException
      */
-    public function resolveTarget(?AiPrompt $prompt, ?string $provider, ?string $model): array
+    public function resolveModel(?AiPrompt $prompt, ?AiModel $model = null): AiModel
     {
-        if ($provider === null && $prompt?->provider?->is_active) {
-            $provider = $prompt->provider->name;
-            $model ??= $prompt->model;
+        $candidates = array_filter([$model, $prompt?->model]);
+
+        foreach ($candidates as $candidate) {
+            $candidate->loadMissing('connection');
+
+            if ($candidate->is_enabled && $candidate->connection->is_active && $candidate->status !== ModelStatus::Unavailable) {
+                return $candidate;
+            }
         }
 
-        $provider ??= ProviderRegistry::defaults()['provider'];
-
-        if ($provider === null || config("ai.providers.{$provider}") === null) {
-            throw new InvalidArgumentException(__('No AI provider is configured. Add one from Admin → AI → Providers.'));
-        }
-
-        if ($model === null) {
-            $model = AiProvider::query()->where('name', $provider)->value('default_model');
-        }
-
-        return [$provider, $model];
+        return self::defaultModel() ?? throw ModelNotUsableException::none();
     }
 
     /**
-     * Ensure the global and per user monthly budgets have not been exceeded.
-     *
-     * @throws BudgetExceededException
+     * Default text model: the one marked as default, else the first usable.
      */
-    public function ensureWithinBudget(User $user): void
+    public static function defaultModel(): ?AiModel
     {
-        if (! $this->settings->get('ai.enforce_budget')) {
-            return;
-        }
-
-        $globalBudget = $this->settings->get('ai.monthly_budget');
-
-        if (is_numeric($globalBudget) && $this->monthlySpend() >= (float) $globalBudget) {
-            throw new BudgetExceededException(__('The monthly AI budget has been reached.'));
-        }
-
-        $userBudget = $this->settings->get('ai.user_monthly_budget');
-
-        if (is_numeric($userBudget) && $this->monthlySpend($user) >= (float) $userBudget) {
-            throw new BudgetExceededException(__('You have reached your monthly AI budget.'));
-        }
+        return AiModel::query()
+            ->with('connection')
+            ->usable()
+            ->forFunction('text')
+            ->orderByDesc('is_default')
+            ->orderByRaw("CASE WHEN status = 'available' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->first();
     }
 
     /**
-     * Get the spend of the current month, optionally for a single user.
+     * Spend of the current month (calculated costs only; unknown costs are
+     * reported separately, never as zero).
      */
-    public function monthlySpend(?User $user = null): float
+    public function monthlySpend(?User $user = null): string
     {
-        return (float) AiUsageLog::query()
+        $sum = AiRequest::query()
             ->where('created_at', '>=', Carbon::now()->startOfMonth())
             ->when($user, fn ($query) => $query->where('user_id', $user->getKey()))
             ->sum('cost');
+
+        return (string) BigDecimal::of((string) $sum)->toScale(CostCalculator::SCALE, RoundingMode::HalfUp);
+    }
+
+    /**
+     * @return array{input_chars: int, max_output_tokens: int|null, agent: string, conversation_id: string|null, metadata: array<string, mixed>}
+     */
+    protected function options(?AiPrompt $prompt, string $message, ?string $conversationId): array
+    {
+        return [
+            'input_chars' => mb_strlen($message) + mb_strlen((string) $prompt?->content),
+            'max_output_tokens' => $prompt?->max_tokens,
+            'agent' => Assistant::class,
+            'conversation_id' => $conversationId,
+            'metadata' => array_filter(['prompt' => $prompt?->slug]),
+        ];
     }
 }

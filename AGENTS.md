@@ -20,7 +20,7 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   registrados en `apps/platform/bootstrap/providers.php`.
 - `packages/js/*`: `@starter/ui` (shadcn-vue), `@starter/chat`, `@starter/api-client`.
 - Casos de uso compartidos por panel, API y herramientas del chat: `app/Actions`
-  (`Users`, `Roles`, `Invitations`). Cada Action autoriza (Policies), valida (sus
+  (`Users`, `Roles`, `Invitations`, `Ai`). Cada Action autoriza (Policies), valida (sus
   `rules()` las reutilizan los Form Requests), aplica la delegación
   (`Starter\Identity\Authorization\Delegation`) y audita con `audit()`.
   Nunca dupliques reglas en un controlador o en una herramienta IA.
@@ -38,7 +38,11 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
 - **Secretos**: nunca en props Inertia, bundles Vite, logs ni JSON exportable. Las
   credenciales se guardan cifradas (`encrypted` cast) o como referencias `env:NAME`.
 - **Costos IA**: toda llamada se registra en el libro de consumo. Una tarifa
-  desconocida produce costo desconocido (`null`), nunca cero.
+  desconocida produce costo desconocido (`null`), nunca cero. En código propio usa
+  `Starter\Ai\AiGateway::run()`/`::stream()` (valida el modelo, reserva
+  presupuesto y cierra la solicitud); las llamadas directas al SDK quedan
+  registradas por `Listeners\RecordSdkUsage`. Montos con `brick/math` como
+  cadenas decimales. Ver `docs/ai.md`.
 - **Migraciones**: idempotentes, con claves foráneas e índices; fechas en UTC;
   dinero en `decimal` (nunca floats para acumular).
 - **Textos**: escribe las cadenas en inglés y tradúcelas en `apps/platform/lang/es.json`

@@ -8,6 +8,7 @@
 - [Arquitectura](docs/architecture.md): monorepo, módulos y procesos.
 - [Instalación](docs/installation.md): Docker y local.
 - [Identidad](docs/identity.md): login OTP, registro e invitaciones, roles, delegación, sesiones y auditoría.
+- [IA](docs/ai.md): conexiones, catálogo de modelos, tarifas versionadas, libro de consumo, presupuestos y API.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
 

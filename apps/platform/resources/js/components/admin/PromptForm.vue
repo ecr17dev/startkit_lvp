@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import { computed, useTemplateRef } from 'vue';
+import { useTemplateRef } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@starter/ui/components/badge';
 import { Input } from '@starter/ui/components/input';
@@ -21,32 +21,24 @@ export type PromptFormData = {
     slug: string;
     description: string;
     content: string;
-    ai_provider_id: number | string;
-    model: string;
+    ai_model_id: number | string;
     temperature: number | string;
     max_tokens: number | string;
     is_default: boolean;
     is_active: boolean;
 };
 
-export type PromptProviderOption = {
+export type PromptModelOption = {
     id: number;
     label: string;
-    default_model: string | null;
-    models: { model: string; label: string | null }[];
+    connection: string;
 };
 
 const props = defineProps<{
     form: InertiaForm<PromptFormData>;
-    providers: PromptProviderOption[];
+    models: PromptModelOption[];
     variables: string[];
 }>();
-
-const selectedProvider = computed(() =>
-    props.providers.find(
-        (provider) => String(provider.id) === String(props.form.ai_provider_id),
-    ),
-);
 
 const content = useTemplateRef<{ $el: HTMLTextAreaElement }>('content');
 
@@ -127,58 +119,39 @@ const insertVariable = (variable: string) => {
             <InputError :message="form.errors.content" />
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
-            <div class="grid gap-2">
-                <Label>{{ t('Provider') }}</Label>
-                <Select
-                    :model-value="String(form.ai_provider_id || 'default')"
-                    @update:model-value="
-                        (value) =>
-                            (form.ai_provider_id =
-                                value === 'default' ? '' : Number(value))
-                    "
-                >
-                    <SelectTrigger class="w-full">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="default">{{
-                            t('Default provider')
-                        }}</SelectItem>
-                        <SelectItem
-                            v-for="provider in providers"
-                            :key="provider.id"
-                            :value="String(provider.id)"
-                            >{{ provider.label }}</SelectItem
-                        >
-                    </SelectContent>
-                </Select>
-                <InputError :message="form.errors.ai_provider_id" />
-            </div>
-            <div class="grid gap-2">
-                <Label for="model">{{ t('Model') }}</Label>
-                <Input
-                    id="model"
-                    v-model="form.model"
-                    list="prompt-models"
-                    class="font-mono"
-                    :disabled="!form.ai_provider_id"
-                    :placeholder="
-                        selectedProvider?.default_model ??
-                        t('Default model of the provider')
-                    "
-                />
-                <datalist id="prompt-models">
-                    <option
-                        v-for="model in selectedProvider?.models ?? []"
-                        :key="model.model"
-                        :value="model.model"
+        <div class="grid gap-2">
+            <Label>{{ t('Model') }}</Label>
+            <Select
+                :model-value="String(form.ai_model_id || 'default')"
+                @update:model-value="
+                    (value) =>
+                        (form.ai_model_id =
+                            value === 'default' ? '' : Number(value))
+                "
+            >
+                <SelectTrigger class="w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="default">{{
+                        t('Default model of the catalog')
+                    }}</SelectItem>
+                    <SelectItem
+                        v-for="model in models"
+                        :key="model.id"
+                        :value="String(model.id)"
+                        >{{ model.label }} · {{ model.connection }}</SelectItem
                     >
-                        {{ model.label }}
-                    </option>
-                </datalist>
-                <InputError :message="form.errors.model" />
-            </div>
+                </SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">
+                {{
+                    t(
+                        'Only enabled models of active connections are listed (Admin → AI → Models).',
+                    )
+                }}
+            </p>
+            <InputError :message="form.errors.ai_model_id" />
         </div>
 
         <div class="grid gap-6 sm:grid-cols-2">

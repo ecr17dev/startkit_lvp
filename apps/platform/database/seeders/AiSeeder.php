@@ -10,8 +10,8 @@ class AiSeeder extends Seeder
     /**
      * Seed the default system prompts.
      *
-     * Providers are not seeded because they require API keys: add them
-     * from Admin → AI → Providers.
+     * Connections are not seeded because they require API keys: add them
+     * from Admin → AI → Connections.
      */
     public function run(): void
     {

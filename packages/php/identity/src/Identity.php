@@ -2,6 +2,8 @@
 
 namespace Starter\Identity;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Starter\Identity\Registration\RegistrationMode;
 
@@ -43,5 +45,22 @@ final class Identity
     {
         /** @var class-string<Model> */
         return config('auth.providers.users.model');
+    }
+
+    /**
+     * Get the active users holding a permission, directly or through a role.
+     *
+     * @return Collection<int, Model>
+     */
+    public static function activeUsersWithPermission(string $permission): Collection
+    {
+        $model = self::userModel();
+
+        return $model::query()
+            ->where('is_active', true)
+            ->where(fn (Builder $query) => $query
+                ->whereHas('permissions', fn (Builder $permissions) => $permissions->where('name', $permission))
+                ->orWhereHas('roles.permissions', fn (Builder $permissions) => $permissions->where('name', $permission)))
+            ->get();
     }
 }

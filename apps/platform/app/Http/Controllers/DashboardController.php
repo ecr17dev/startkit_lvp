@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Ai\AiService;
-use App\Models\AiProvider;
-use App\Models\AiUsageLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Starter\Ai\Enums\CostStatus;
+use Starter\Ai\Models\AiRequest;
+use Starter\Ai\Models\Connection;
 
 class DashboardController extends Controller
 {
@@ -38,16 +39,16 @@ class DashboardController extends Controller
         if ($user->can('ai.usage.read')) {
             $stats['ai'] = [
                 'month_cost' => $this->ai->monthlySpend(),
-                'month_calls' => AiUsageLog::query()->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),
-                'providers' => AiProvider::query()->active()->count(),
-                'budget' => settings('ai.monthly_budget'),
+                'month_calls' => AiRequest::query()->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),
+                'month_unknown_cost' => AiRequest::query()->where('created_at', '>=', Carbon::now()->startOfMonth())->where('cost_status', CostStatus::Unknown->value)->count(),
+                'providers' => Connection::query()->active()->count(),
             ];
         }
 
         if ($user->can('ai.chat')) {
             $stats['my_ai'] = [
                 'month_cost' => $this->ai->monthlySpend($user),
-                'month_calls' => AiUsageLog::query()->where('user_id', $user->getKey())->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),
+                'month_calls' => AiRequest::query()->where('user_id', $user->getKey())->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),
             ];
         }
 

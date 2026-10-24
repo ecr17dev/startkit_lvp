@@ -3,12 +3,8 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Ai\AiService;
-use App\Ai\Exceptions\BudgetExceededException;
 use App\Http\Controllers\Controller;
-use App\Models\AiModel;
 use App\Models\AiPrompt;
-use App\Models\AiProvider;
-use App\Models\AiUsageLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +15,11 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
+use Starter\Ai\Connections\ErrorClassifier;
+use Starter\Ai\Exceptions\BudgetExceededException;
+use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\AiModel;
+use Starter\Ai\Models\AiRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -51,17 +52,18 @@ class ChatController extends Controller
                 'messages' => $this->messages($current),
             ] : null,
             'prompts' => AiPrompt::query()->active()->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'description', 'is_default']),
-            'providers' => $canChooseModel
-                ? AiProvider::query()->active()->with(['models' => fn ($query) => $query->where('is_active', true)->orderBy('model')])->orderByDesc('is_default')->orderBy('label')->get()
-                    ->map(fn (AiProvider $provider) => [
-                        'name' => $provider->name,
-                        'label' => $provider->label,
-                        'default_model' => $provider->default_model,
-                        'models' => $provider->models->map(fn (AiModel $model) => ['model' => $model->model, 'label' => $model->label ?: $model->model])->values(),
+            'models' => $canChooseModel
+                ? AiModel::query()->with('connection')->usable()->forFunction('text')->orderByDesc('is_default')->orderBy('model')->get()
+                    ->map(fn (AiModel $model) => [
+                        'id' => $model->id,
+                        'label' => $model->displayName(),
+                        'connection' => $model->connection->label,
+                        'is_default' => $model->is_default,
                     ])
                 : [],
+            'defaultModelId' => AiService::defaultModel()?->id,
             'canChooseModel' => $canChooseModel,
-            'hasProviders' => AiProvider::query()->active()->exists(),
+            'hasModels' => AiService::defaultModel() !== null,
             'monthSpend' => $this->ai->monthlySpend($user),
         ]);
     }
@@ -78,8 +80,7 @@ class ChatController extends Controller
             'message' => ['required', 'string', 'max:20000'],
             'conversation_id' => ['nullable', 'string', 'max:36'],
             'prompt_id' => ['nullable', 'integer', Rule::exists('ai_prompts', 'id')->where('is_active', true)],
-            'provider' => ['nullable', 'string', Rule::exists('ai_providers', 'name')->where('is_active', true)],
-            'model' => ['nullable', 'string', 'max:255'],
+            'model_id' => ['nullable', 'integer', Rule::exists('ai_models', 'id')->where('is_enabled', true)],
         ]);
 
         if (($validated['conversation_id'] ?? null) !== null) {
@@ -90,42 +91,48 @@ class ChatController extends Controller
 
         $prompt = isset($validated['prompt_id']) ? AiPrompt::query()->whereKey($validated['prompt_id'])->first() : null;
 
+        $model = $canChooseModel && isset($validated['model_id']) ? AiModel::query()->find((int) $validated['model_id']) : null;
+
         try {
-            $stream = $this->ai->stream(
+            ['response' => $stream, 'request' => $ledger] = $this->ai->stream(
                 $user,
                 $validated['message'],
                 prompt: $prompt,
-                provider: $canChooseModel ? ($validated['provider'] ?? null) : null,
-                model: $canChooseModel ? ($validated['model'] ?? null) : null,
+                model: $model,
                 conversationId: $validated['conversation_id'] ?? null,
             );
-        } catch (BudgetExceededException $e) {
+        } catch (BudgetExceededException|ModelNotUsableException $e) {
             return $this->errorStream($e->getMessage());
         } catch (Throwable $e) {
             report($e);
 
-            return $this->errorStream($e->getMessage());
+            return $this->errorStream(__(ErrorClassifier::classify($e)->message()));
         }
 
-        return response()->stream(function () use ($stream) {
+        return response()->stream(function () use ($stream, $ledger) {
             try {
                 foreach ($stream as $event) {
                     yield 'data: '.$event."\n\n";
                 }
 
-                $log = AiUsageLog::query()->where('invocation_id', $stream->invocationId)->latest('id')->first();
+                $request = AiRequest::query()->find($ledger->id);
+
+                if ($request !== null && $request->conversation_id === null && $stream->conversationId !== null) {
+                    $request->forceFill(['conversation_id' => $stream->conversationId])->save();
+                }
 
                 yield 'data: '.json_encode([
                     'type' => 'summary',
                     'conversation_id' => $stream->conversationId,
-                    'cost' => $log !== null ? (float) $log->cost : null,
-                    'priced' => $log?->priced,
-                    'model' => $log?->model,
+                    'request_id' => $ledger->id,
+                    'cost' => $request?->cost !== null ? (float) $request->cost : null,
+                    'cost_status' => $request?->cost_status->value,
+                    'model' => $request?->model,
                 ])."\n\n";
             } catch (Throwable $e) {
                 Log::error('AI chat stream failed: '.$e->getMessage(), ['exception' => $e]);
 
-                yield 'data: '.json_encode(['type' => 'error', 'message' => $e->getMessage()])."\n\n";
+                yield 'data: '.json_encode(['type' => 'error', 'message' => __(ErrorClassifier::classify($e)->message())])."\n\n";
             }
 
             yield "data: [DONE]\n\n";

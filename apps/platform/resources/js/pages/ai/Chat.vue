@@ -31,7 +31,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { cn } from '@/lib/utils';
 import { chat } from '@/routes/ai';
 import { destroy, stream } from '@/routes/ai/chat';
-import { index as providersIndex } from '@/routes/admin/ai/providers';
+import { index as connectionsIndex } from '@/routes/admin/ai/connections';
 
 defineOptions({
     layout: {
@@ -46,17 +46,18 @@ type ChatMessage = {
     usage?: Partial<StreamUsage> | null;
     model?: string | null;
     cost?: number | null;
+    costStatus?: string | null;
     error?: string | null;
     created_at?: string;
 };
 
 type Conversation = { id: string; title: string; updated_at: string };
 
-type ProviderOption = {
-    name: string;
+type ModelOption = {
+    id: number;
     label: string;
-    default_model: string | null;
-    models: { model: string; label: string }[];
+    connection: string;
+    is_default: boolean;
 };
 
 const props = defineProps<{
@@ -68,10 +69,11 @@ const props = defineProps<{
         description: string | null;
         is_default: boolean;
     }[];
-    providers: ProviderOption[];
+    models: ModelOption[];
+    defaultModelId: number | null;
     canChooseModel: boolean;
-    hasProviders: boolean;
-    monthSpend: number;
+    hasModels: boolean;
+    monthSpend: string;
 }>();
 
 const { can } = usePermissions();
@@ -99,26 +101,9 @@ watch(
     },
 );
 
-const targetOptions = computed(() =>
-    props.providers.flatMap((provider) => {
-        const models = provider.models.length
-            ? provider.models
-            : provider.default_model
-              ? [
-                    {
-                        model: provider.default_model,
-                        label: provider.default_model,
-                    },
-                ]
-              : [];
-
-        return models.map((model) => ({
-            value: `${provider.name}::${model.model}`,
-            label: model.label,
-            provider: provider.label,
-        }));
-    }),
-);
+const connections = computed(() => [
+    ...new Set(props.models.map((model) => model.connection)),
+]);
 
 const scrollToBottom = async () => {
     await nextTick();
@@ -152,8 +137,6 @@ const submit = async () => {
     });
 
     const answer = messages.value[messages.value.length - 1];
-    const [provider, model] =
-        target.value === 'default' ? [null, null] : target.value.split('::');
     let conversationId = props.conversation?.id ?? null;
 
     await send(
@@ -162,8 +145,7 @@ const submit = async () => {
             message,
             conversation_id: conversationId,
             prompt_id: promptId.value ? Number(promptId.value) : null,
-            provider,
-            model,
+            model_id: target.value === 'default' ? null : Number(target.value),
         },
         {
             onStart: (event) => (answer.model = event.model ?? null),
@@ -174,6 +156,7 @@ const submit = async () => {
             onUsage: (usage) => (answer.usage = usage),
             onSummary: (summary) => {
                 answer.cost = summary.cost;
+                answer.costStatus = summary.cost_status;
                 answer.model = summary.model ?? answer.model;
                 conversationId = summary.conversation_id ?? conversationId;
             },
@@ -279,15 +262,15 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
         <section class="flex min-w-0 flex-1 flex-col">
             <div ref="scroller" class="min-h-0 flex-1 overflow-y-auto">
                 <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
-                    <Alert v-if="!hasProviders">
+                    <Alert v-if="!hasModels">
                         <AlertDescription>
-                            {{ t('No AI provider is configured yet.') }}
+                            {{ t('No AI model is enabled yet.') }}
                             <Link
                                 v-if="can('ai.providers.manage')"
-                                :href="providersIndex()"
+                                :href="connectionsIndex()"
                                 class="underline"
                             >
-                                {{ t('Configure a provider') }}
+                                {{ t('Configure a connection') }}
                             </Link>
                         </AlertDescription>
                     </Alert>
@@ -394,11 +377,23 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                                         }}
                                         {{ t('tokens') }}
                                     </template>
-                                    <template v-if="message.cost">
+                                    <template
+                                        v-if="
+                                            message.cost !== undefined &&
+                                            message.cost !== null
+                                        "
+                                    >
                                         ·
                                         {{
                                             formatMoney(message.cost)
                                         }}</template
+                                    >
+                                    <template
+                                        v-else-if="
+                                            message.costStatus === 'unknown'
+                                        "
+                                    >
+                                        · {{ t('cost unknown') }}</template
                                     >
                                     <template v-if="message.created_at">
                                         ·
@@ -439,7 +434,7 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                             </SelectContent>
                         </Select>
                         <Select
-                            v-if="canChooseModel && targetOptions.length"
+                            v-if="canChooseModel && models.length"
                             v-model="target"
                         >
                             <SelectTrigger size="sm" class="w-56">
@@ -450,21 +445,17 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                                     t('Default model')
                                 }}</SelectItem>
                                 <SelectGroup
-                                    v-for="provider in providers"
-                                    :key="provider.name"
+                                    v-for="connection in connections"
+                                    :key="connection"
                                 >
-                                    <SelectLabel>{{
-                                        provider.label
-                                    }}</SelectLabel>
+                                    <SelectLabel>{{ connection }}</SelectLabel>
                                     <SelectItem
-                                        v-for="option in targetOptions.filter(
+                                        v-for="option in models.filter(
                                             (item) =>
-                                                item.value.startsWith(
-                                                    `${provider.name}::`,
-                                                ),
+                                                item.connection === connection,
                                         )"
-                                        :key="option.value"
-                                        :value="option.value"
+                                        :key="option.id"
+                                        :value="String(option.id)"
                                     >
                                         {{ option.label }}
                                     </SelectItem>
@@ -482,7 +473,7 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                                     'Write a message... (Enter to send, Shift+Enter for a new line)',
                                 )
                             "
-                            :disabled="!hasProviders"
+                            :disabled="!hasModels"
                             data-test="chat-input"
                             @keydown="onKeydown"
                         />
@@ -502,7 +493,7 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                             type="submit"
                             size="icon"
                             class="absolute right-2 bottom-2"
-                            :disabled="!input.trim() || !hasProviders"
+                            :disabled="!input.trim() || !hasModels"
                             :aria-label="t('Send')"
                         >
                             <SendHorizontal class="size-4" />

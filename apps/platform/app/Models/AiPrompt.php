@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
+use Starter\Ai\Models\AiModel;
 
 /**
  * @property int $id
@@ -14,17 +15,16 @@ use Illuminate\Support\Carbon;
  * @property string $slug
  * @property string|null $description
  * @property string $content
- * @property int|null $ai_provider_id
- * @property string|null $model
+ * @property int|null $ai_model_id
  * @property string|null $temperature
  * @property int|null $max_tokens
  * @property bool $is_default
  * @property bool $is_active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property-read AiProvider|null $provider
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
+ * @property-read AiModel|null $model
  */
-#[Fillable(['name', 'slug', 'description', 'content', 'ai_provider_id', 'model', 'temperature', 'max_tokens', 'is_default', 'is_active'])]
+#[Fillable(['name', 'slug', 'description', 'content', 'ai_model_id', 'temperature', 'max_tokens', 'is_default', 'is_active'])]
 class AiPrompt extends Model
 {
     /**
@@ -43,13 +43,13 @@ class AiPrompt extends Model
     }
 
     /**
-     * Get the provider pinned to the prompt, if any.
+     * Get the catalog model pinned to the prompt, if any.
      *
-     * @return BelongsTo<AiProvider, $this>
+     * @return BelongsTo<AiModel, $this>
      */
-    public function provider(): BelongsTo
+    public function model(): BelongsTo
     {
-        return $this->belongsTo(AiProvider::class, 'ai_provider_id');
+        return $this->belongsTo(AiModel::class, 'ai_model_id');
     }
 
     /**

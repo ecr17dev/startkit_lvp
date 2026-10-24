@@ -1,5 +1,8 @@
 <?php
 
+use App\Ai\Agents\Assistant;
+use Starter\Ai\Agents\PingAgent;
+
 /*
 |--------------------------------------------------------------------------
 | Starter kit configuration
@@ -54,6 +57,33 @@ return [
             'resend_cooldown' => (int) env('STARTER_OTP_RESEND_COOLDOWN', 60),
         ],
         'invitation_ttl_days' => (int) env('STARTER_INVITATION_TTL_DAYS', 7),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Artificial intelligence
+    |--------------------------------------------------------------------------
+    |
+    | secret_refs: environment variables that connections may reference as
+    | "env:NAME" instead of storing the key (names starting with
+    | STARTER_AI_SECRET_ are also allowed). Application secrets can never be
+    | referenced. agent_features: ledger feature of agents called directly
+    | through the SDK (calls made with AiGateway declare it explicitly).
+    |
+    */
+
+    'ai' => [
+        'secret_refs' => [
+            'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'DEEPSEEK_API_KEY',
+            'OPENROUTER_API_KEY', 'GROQ_API_KEY', 'MISTRAL_API_KEY', 'XAI_API_KEY',
+            'AZURE_OPENAI_API_KEY', 'AWS_BEARER_TOKEN_BEDROCK', 'OLLAMA_API_KEY',
+            'OPENAI_COMPATIBLE_API_KEY',
+        ],
+        'agent_features' => [
+            Assistant::class => 'chat',
+            PingAgent::class => 'test',
+        ],
+        'interrupt_after_minutes' => (int) env('STARTER_AI_INTERRUPT_AFTER_MINUTES', 15),
     ],
 
     /*
@@ -123,7 +153,6 @@ return [
             ],
 
             'ai' => [
-                'generate_titles' => true,
                 'dashboard' => true,
                 'display_currency' => 'USD',
             ],

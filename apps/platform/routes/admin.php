@@ -1,9 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\Ai\AiModelController;
 use App\Http\Controllers\Admin\Ai\AiPromptController;
-use App\Http\Controllers\Admin\Ai\AiProviderController;
-use App\Http\Controllers\Admin\Ai\AiUsageController;
+use App\Http\Controllers\Admin\Ai\BudgetController;
+use App\Http\Controllers\Admin\Ai\ConnectionController;
+use App\Http\Controllers\Admin\Ai\ModelController;
+use App\Http\Controllers\Admin\Ai\PriceController;
+use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -64,14 +66,23 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
         });
     });
 
-    // Artificial intelligence...
+    // Artificial intelligence: connections, catalog, prices, usage and budgets...
     Route::prefix('ai')->name('ai.')->group(function () {
         Route::middleware('can:ai.providers.manage')->group(function () {
-            Route::resource('providers', AiProviderController::class)->except('show');
-            Route::post('providers/{provider}/test', [AiProviderController::class, 'test'])->middleware('throttle:10,1')->name('providers.test');
-            Route::post('providers/{provider}/models', [AiModelController::class, 'store'])->name('models.store');
-            Route::put('models/{model}', [AiModelController::class, 'update'])->name('models.update');
-            Route::delete('models/{model}', [AiModelController::class, 'destroy'])->name('models.destroy');
+            Route::resource('connections', ConnectionController::class)->except('show');
+            Route::post('connections/{connection}/test', [ConnectionController::class, 'test'])->middleware('throttle:10,1')->name('connections.test');
+            Route::post('connections/{connection}/discover', [ConnectionController::class, 'discover'])->middleware('throttle:10,1')->name('connections.discover');
+        });
+
+        Route::middleware('can:ai.models.manage')->group(function () {
+            Route::get('models', [ModelController::class, 'index'])->name('models.index');
+            Route::post('models', [ModelController::class, 'store'])->name('models.store');
+            Route::get('models/{model}', [ModelController::class, 'show'])->name('models.show');
+            Route::put('models/{model}', [ModelController::class, 'update'])->name('models.update');
+            Route::post('models/{model}/verify', [ModelController::class, 'verify'])->middleware('throttle:20,1')->name('models.verify');
+            Route::post('models/{model}/prices', [ModelController::class, 'price'])->name('models.prices.store');
+            Route::get('prices', [PriceController::class, 'index'])->name('prices.index');
+            Route::post('prices/sync', [PriceController::class, 'sync'])->middleware('throttle:5,1')->name('prices.sync');
         });
 
         Route::middleware('can:ai.agents.manage')->group(function () {
@@ -79,11 +90,17 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
         });
 
         Route::middleware('can:ai.usage.read')->group(function () {
-            Route::get('usage', [AiUsageController::class, 'index'])->name('usage');
+            Route::get('usage', [UsageController::class, 'index'])->name('usage');
+            Route::get('usage/export', [UsageController::class, 'export'])->middleware('throttle:10,1')->name('usage.export');
+            Route::put('usage/settings', [UsageController::class, 'updateSettings'])->name('usage.settings');
+            Route::post('usage/exchange-rate', [UsageController::class, 'exchangeRate'])->middleware('throttle:10,1')->name('usage.exchange-rate');
         });
 
-        Route::put('settings', [AiUsageController::class, 'updateSettings'])
-            ->middleware('can:ai.providers.manage')
-            ->name('settings.update');
+        Route::middleware('can:ai.budgets.manage')->group(function () {
+            Route::get('budgets', [BudgetController::class, 'index'])->name('budgets.index');
+            Route::post('budgets', [BudgetController::class, 'store'])->name('budgets.store');
+            Route::put('budgets/{budget}', [BudgetController::class, 'update'])->name('budgets.update');
+            Route::delete('budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
+        });
     });
 });

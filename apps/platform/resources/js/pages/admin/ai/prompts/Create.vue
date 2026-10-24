@@ -2,7 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import type {
     PromptFormData,
-    PromptProviderOption,
+    PromptModelOption,
 } from '@/components/admin/PromptForm.vue';
 import PromptForm from '@/components/admin/PromptForm.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -22,7 +22,7 @@ defineOptions({
 });
 
 defineProps<{
-    providers: PromptProviderOption[];
+    models: PromptModelOption[];
     variables: string[];
 }>();
 
@@ -31,8 +31,7 @@ const form = useForm<PromptFormData>({
     slug: '',
     description: '',
     content: '',
-    ai_provider_id: '',
-    model: '',
+    ai_model_id: '',
     temperature: '',
     max_tokens: '',
     is_default: false,
@@ -42,12 +41,7 @@ const form = useForm<PromptFormData>({
 const submit = () =>
     form
         .transform((data) =>
-            emptyToNull(data, [
-                'ai_provider_id',
-                'model',
-                'temperature',
-                'max_tokens',
-            ]),
+            emptyToNull(data, ['ai_model_id', 'temperature', 'max_tokens']),
         )
         .post(store().url);
 </script>
@@ -61,11 +55,7 @@ const submit = () =>
     >
         <PageHeader :title="t('New prompt')" />
 
-        <PromptForm
-            :form="form"
-            :providers="providers"
-            :variables="variables"
-        />
+        <PromptForm :form="form" :models="models" :variables="variables" />
 
         <div class="flex items-center gap-2">
             <Button type="submit" :disabled="form.processing">

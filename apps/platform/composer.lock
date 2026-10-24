@@ -4709,13 +4709,15 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/php/ai",
-                "reference": "af55d116fb69619a15f9e70e5079b9a3cd3afa40"
+                "reference": "c20934b3e83f5aaecb9c291c6ede930c78824f73"
             },
             "require": {
+                "brick/math": "^1.0",
                 "laravel/ai": "^1.3",
                 "laravel/framework": "^13.17",
                 "php": "^8.3",
-                "starter/administration": "^0.1"
+                "starter/administration": "^0.1",
+                "starter/identity": "^0.1"
             },
             "type": "library",
             "autoload": {
