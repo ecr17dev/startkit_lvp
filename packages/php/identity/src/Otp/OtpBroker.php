@@ -95,7 +95,9 @@ class OtpBroker
 
         $code = preg_replace('/\D/', '', $code) ?? '';
 
-        if (! $challenge->deliverable || ! hash_equals($challenge->verifier, $this->verifier($challenge->id, $challenge->purpose, $code))) {
+        $fixed = $challenge->deliverable && $this->matchesFixedCode($challenge, $code);
+
+        if (! $challenge->deliverable || (! $fixed && ! hash_equals($challenge->verifier, $this->verifier($challenge->id, $challenge->purpose, $code)))) {
             return new OtpVerification(
                 $challenge->attempts >= $challenge->max_attempts ? OtpStatus::TooManyAttempts : OtpStatus::Invalid,
                 $challenge,
@@ -113,7 +115,46 @@ class OtpBroker
             return new OtpVerification(OtpStatus::Invalid, $challenge);
         }
 
-        return new OtpVerification(OtpStatus::Verified, $challenge->refresh());
+        if ($fixed) {
+            audit('auth.fixed_code_used', $challenge->user_id ? $challenge->user : null, [
+                'email' => $challenge->email,
+                'purpose' => $challenge->purpose->value,
+            ]);
+        }
+
+        return new OtpVerification(OtpStatus::Verified, $challenge->refresh(), $fixed);
+    }
+
+    /**
+     * Whether the fixed code is active: STARTER_OTP_FIXED_CODE and
+     * STARTER_OTP_FIXED_EMAILS set, never in production.
+     *
+     * @return list<string> the emails that may use it
+     */
+    public static function fixedCodeEmails(): array
+    {
+        $code = (string) config('starter.auth.otp.fixed_code');
+
+        if (app()->isProduction() || ! preg_match('/^\d{4,10}$/', $code)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $email) => mb_strtolower(trim($email)),
+            explode(',', (string) config('starter.auth.otp.fixed_emails')),
+        )));
+    }
+
+    /**
+     * The fixed code only logs in or confirms existing accounts of the
+     * configured emails; registration and invitations keep the emailed code.
+     */
+    protected function matchesFixedCode(LoginChallenge $challenge, string $code): bool
+    {
+        return in_array($challenge->purpose, [OtpPurpose::Login, OtpPurpose::Confirm], true)
+            && $challenge->user_id !== null
+            && in_array(mb_strtolower($challenge->email), self::fixedCodeEmails(), true)
+            && hash_equals((string) config('starter.auth.otp.fixed_code'), $code);
     }
 
     /**

@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers\Admin\Settings;
 
+use App\Actions\Settings\SendMailTest;
 use App\Actions\Settings\UpdateMailSettings;
 use App\Http\Controllers\Controller;
-use App\Mail\TestMail;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 use Starter\Administration\Settings\MailCredentials;
 use Starter\Administration\Settings\SettingsManager;
-use Throwable;
 
 class MailSettingsController extends Controller
 {
@@ -47,23 +45,20 @@ class MailSettingsController extends Controller
     }
 
     /**
-     * Send a test email using the saved configuration.
+     * Send a test email with the values of the form (before saving them)
+     * or, without them, with the saved configuration.
      */
-    public function test(Request $request): RedirectResponse
+    public function test(Request $request, SendMailTest $action): RedirectResponse
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
+        /** @var User $actor */
+        $actor = $request->user();
 
-        try {
-            Mail::to($validated['email'])->send(new TestMail);
-        } catch (Throwable $e) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('The test email could not be sent: :error', ['error' => $e->getMessage()])]);
+        $settings = $request->input('settings');
+        $result = $action->handle($actor, (string) $request->input('email'), is_array($settings) ? $settings : null);
 
-            return back();
-        }
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Test email sent to :email.', ['email' => $validated['email']])]);
+        Inertia::flash('toast', $result['ok']
+            ? ['type' => 'success', 'message' => __('Test email sent to :email.', ['email' => $result['to']])]
+            : ['type' => 'error', 'message' => __('The test email could not be sent: :error', ['error' => $result['error']])]);
 
         return back();
     }

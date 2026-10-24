@@ -75,6 +75,32 @@ class UpdateMailSettings
             Gate::forUser($actor)->authorize('settings.update');
         }
 
+        [$values, $mail] = $this->prepare($input);
+
+        $this->settings->setGroup('mail', $values);
+
+        audit('settings.updated', null, [
+            'group' => 'mail',
+            'mailer' => $values['mailer'],
+            'keys' => array_keys($values),
+        ], $actor);
+
+        // Long running queue workers must reload the configuration (the
+        // signal of queue:restart, without nesting an Artisan call)...
+        Cache::forever('illuminate:queue:restart', now()->getTimestamp());
+
+        return Arr::except($mail, self::SECRET_FIELDS);
+    }
+
+    /**
+     * Validate the input and merge it with the stored settings without
+     * saving anything (also used to try a configuration before saving it).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>} [values to store, resulting settings]
+     */
+    public function prepare(array $input): array
+    {
         $data = Validator::make($input, self::rules())->validate();
         $current = $this->settings->group('mail');
 
@@ -96,21 +122,11 @@ class UpdateMailSettings
             }
         }
 
-        $this->ensureUsable([...$current, ...$values]);
+        $mail = [...$current, ...$values];
 
-        $this->settings->setGroup('mail', $values);
+        $this->ensureUsable($mail);
 
-        audit('settings.updated', null, [
-            'group' => 'mail',
-            'mailer' => $values['mailer'],
-            'keys' => array_keys($values),
-        ], $actor);
-
-        // Long running queue workers must reload the configuration (the
-        // signal of queue:restart, without nesting an Artisan call)...
-        Cache::forever('illuminate:queue:restart', now()->getTimestamp());
-
-        return Arr::except([...$current, ...$values], self::SECRET_FIELDS);
+        return [$values, $mail];
     }
 
     /**

@@ -76,6 +76,39 @@ final class MailCredentials
     }
 
     /**
+     * The Laravel mailer configuration (for Mail::build) of the given mail
+     * settings, so a configuration can be tried before it is saved.
+     *
+     * @param  array<string, mixed>  $mail
+     * @return array<string, mixed>
+     */
+    public static function mailerConfig(array $mail): array
+    {
+        return match ($mail['mailer'] ?? 'env') {
+            'smtp' => [
+                'transport' => 'smtp',
+                'host' => $mail['host'] ?? null,
+                'port' => (int) ($mail['port'] ?? 587),
+                'username' => $mail['username'] ?? null,
+                'password' => self::resolve($mail, 'smtp'),
+                'scheme' => ($mail['scheme'] ?? null) ?: null,
+                'timeout' => 15,
+            ],
+            'resend' => ['transport' => 'resend', 'key' => self::resolve($mail, 'resend')],
+            'postmark' => ['transport' => 'postmark', 'token' => self::resolve($mail, 'postmark')],
+            'mailgun' => [
+                'transport' => 'mailgun',
+                'secret' => self::resolve($mail, 'mailgun'),
+                'domain' => ($mail['mailgun_domain'] ?? null) ?: config('services.mailgun.domain'),
+                'endpoint' => self::MAILGUN_ENDPOINTS[$mail['mailgun_region'] ?? 'us'] ?? self::MAILGUN_ENDPOINTS['us'],
+                'scheme' => 'https',
+            ],
+            'log' => ['transport' => 'log'],
+            default => (array) config('mail.mailers.'.config('starter.env_mailer', config('mail.default'))),
+        };
+    }
+
+    /**
      * Where the credential of a mailer comes from, safe to display: never the
      * value, at most its last four characters.
      *

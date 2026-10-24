@@ -64,6 +64,11 @@ return [
             // (raise them only for automated tests)...
             'requests_per_minute' => (int) env('STARTER_OTP_REQUESTS_PER_MINUTE', 6),
             'requests_per_hour' => (int) env('STARTER_OTP_REQUESTS_PER_HOUR', 10),
+            // Pilots and development only: these existing accounts also log
+            // in with this code. Ignored when APP_ENV=production; every use
+            // is audited and starter:doctor warns while it is set...
+            'fixed_code' => env('STARTER_OTP_FIXED_CODE'),
+            'fixed_emails' => env('STARTER_OTP_FIXED_EMAILS'),
         ],
         'invitation_ttl_days' => (int) env('STARTER_INVITATION_TTL_DAYS', 7),
     ],

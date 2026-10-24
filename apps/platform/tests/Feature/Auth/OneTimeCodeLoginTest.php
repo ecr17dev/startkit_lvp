@@ -9,6 +9,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Starter\Administration\Models\AuditEvent;
 use Starter\Identity\Models\LoginChallenge;
 use Starter\Identity\Notifications\OneTimeCodeNotification;
+use Starter\Identity\Otp\OtpBroker;
+use Starter\Identity\Otp\OtpPurpose;
 use Tests\TestCase;
 
 class OneTimeCodeLoginTest extends TestCase
@@ -203,6 +205,40 @@ class OneTimeCodeLoginTest extends TestCase
             ->assertSessionHas('login.id', $user->id);
 
         $this->assertGuest();
+    }
+
+    public function test_a_fixed_code_logs_in_the_configured_accounts_outside_production(): void
+    {
+        $tester = User::factory()->create(['email' => 'pilot@example.com']);
+        $other = User::factory()->create();
+        config(['starter.auth.otp.fixed_code' => '111111', 'starter.auth.otp.fixed_emails' => 'Pilot@Example.com, nobody@example.com']);
+
+        // Another account cannot use it...
+        $this->post(route('login.code'), ['email' => $other->email]);
+        $this->post(route('login.verify.store'), ['code' => '111111'])->assertSessionHasErrors('code');
+        $this->assertGuest();
+
+        $this->post(route('login.code'), ['email' => $tester->email]);
+        $this->post(route('login.verify.store'), ['code' => '111111'])
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($tester);
+        $event = AuditEvent::query()->where('action', 'auth.fixed_code_used')->sole();
+        $this->assertSame('pilot@example.com', $event->properties['email']);
+    }
+
+    public function test_the_fixed_code_is_ignored_in_production(): void
+    {
+        $tester = User::factory()->create(['email' => 'pilot@example.com']);
+        config(['starter.auth.otp.fixed_code' => '111111', 'starter.auth.otp.fixed_emails' => 'pilot@example.com']);
+        $broker = app(OtpBroker::class);
+        $challenge = $broker->issue(OtpPurpose::Login, $tester->email);
+
+        $this->app['env'] = 'production';
+
+        $this->assertSame([], OtpBroker::fixedCodeEmails());
+        $this->assertFalse($broker->verify($challenge->id, '111111', OtpPurpose::Login)->verified());
+        $this->assertFalse(AuditEvent::query()->where('action', 'auth.fixed_code_used')->exists());
     }
 
     public function test_code_requests_are_rate_limited(): void

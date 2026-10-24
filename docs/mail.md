@@ -94,8 +94,10 @@ panel tiene prioridad sobre el `.env`.
 
 - `php artisan starter:doctor` muestra el proveedor y el remitente, y advierte si falta la clave
   o si el remitente es `onboarding@resend.dev`.
-- **Enviar prueba** en el panel usa la configuración guardada y muestra el error del proveedor
-  si falla (por ejemplo, "API key is invalid" o un dominio sin verificar).
+- **Probar esta configuración** en el panel envía un correo con los valores del formulario,
+  aunque no estén guardados (las claves en blanco usan las guardadas), y muestra el error del
+  proveedor si falla (por ejemplo, "API key is invalid" o un dominio sin verificar). El resultado
+  queda como «Última prueba» en la pantalla y en la auditoría (`settings.mail_tested`).
 
 ## Archivos
 

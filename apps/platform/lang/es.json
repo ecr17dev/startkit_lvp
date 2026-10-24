@@ -1409,7 +1409,6 @@
     "Save manual rate": "Guardar tasa manual",
     "Save price": "Guardar tarifa",
     "Save provider": "Guardar proveedor",
-    "Save the configuration first, then send a test email": "Guarda primero la configuración y luego envía un correo de prueba",
     "Saved.": "Guardado.",
     "Saving…": "Guardando…",
     "Say what is missing and offer the next step. Without results, suggest changing the filters.": "Di qué falta y ofrece el siguiente paso. Sin resultados, sugiere cambiar los filtros.",
@@ -1455,7 +1454,6 @@
     "Send me a login code": "Envíame un código de acceso",
     "Send me news": "Envíame novedades",
     "Send me product news": "Envíame novedades del producto",
-    "Send test": "Enviar prueba",
     "Sender email": "Correo del remitente",
     "Sender name": "Nombre del remitente",
     "Sensitive": "Sensible",
@@ -1988,7 +1986,6 @@
     "You have not created any token yet.": "Aún no has creado ningún token.",
     "You have reached your monthly AI budget.": "Alcanzaste tu presupuesto mensual de IA.",
     "You have to accept the terms.": "Debes aceptar los términos.",
-    "You have unsaved changes. The test uses the saved configuration.": "Tienes cambios sin guardar. La prueba usa la configuración guardada.",
     "You used 92 % of this month budget.": "Usaste el 92 % del presupuesto de este mes.",
     "You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.": "Se te pedirá un PIN seguro y aleatorio al iniciar sesión, que puedes obtener desde la aplicación compatible con TOTP de tu teléfono.",
     "You will receive a :length digit code. No password needed.": "Recibirás un código de :length dígitos. Sin contraseña.",
@@ -2329,5 +2326,10 @@
     "Only RESEND_API_KEY, POSTMARK_API_KEY, MAILGUN_SECRET, MAIL_PASSWORD or STARTER_MAIL_SECRET_* can be referenced.": "Solo se pueden referenciar RESEND_API_KEY, POSTMARK_API_KEY, MAILGUN_SECRET, MAIL_PASSWORD o STARTER_MAIL_SECRET_*.",
     "Resend API keys start with re_.": "Las claves API de Resend empiezan con re_.",
     "Paste the API key or set :variable in the .env file.": "Pega la clave API o define :variable en el archivo .env.",
-    "The sending domain verified in Mailgun is required.": "Falta el dominio de envío verificado en Mailgun."
+    "The sending domain verified in Mailgun is required.": "Falta el dominio de envío verificado en Mailgun.",
+    "The test uses the values above, even before you save them. Blank keys use the saved ones.": "La prueba usa los valores de arriba, aunque todavía no los guardes. Las claves en blanco usan las guardadas.",
+    "Last test: delivered": "Última prueba: enviada",
+    "Last test: failed": "Última prueba: falló",
+    ":mailer to :email, :date": ":mailer a :email, :date",
+    "Try this configuration": "Probar esta configuración"
 }

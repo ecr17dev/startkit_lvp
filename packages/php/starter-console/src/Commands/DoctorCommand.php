@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Starter\Administration\Health\HealthCheck;
 use Starter\Administration\Health\HealthChecker;
+use Starter\Identity\Otp\OtpBroker;
 use Throwable;
 
 class DoctorCommand extends Command
@@ -42,6 +43,12 @@ class DoctorCommand extends Command
         $rows[] = $this->row('session-driver', config('session.driver') === 'database' ? HealthCheck::OK : HealthCheck::WARNING, (string) config('session.driver'), false);
         $rows[] = $this->row('queue-driver', config('queue.default') === 'database' ? HealthCheck::OK : HealthCheck::WARNING, (string) config('queue.default'), false);
         $rows[] = $this->row('mail', ...$this->mail());
+
+        if (($fixed = count(OtpBroker::fixedCodeEmails())) > 0) {
+            $rows[] = $this->row('fixed-login-code', HealthCheck::WARNING, "{$fixed} account(s) can log in with STARTER_OTP_FIXED_CODE (pilots only, audited)", false);
+        } elseif (filled(config('starter.auth.otp.fixed_code'))) {
+            $rows[] = $this->row('fixed-login-code', HealthCheck::WARNING, 'STARTER_OTP_FIXED_CODE is ignored here (production or invalid); remove it', false);
+        }
         $rows[] = $this->row('pgvector', ...$this->pgvector());
 
         foreach ((array) config('starter.features', []) as $feature => $enabled) {

@@ -56,7 +56,13 @@ construyen en el servidor (Composer, pnpm y Vite dentro del build); el primer de
    MAIL_FROM_ADDRESS=no-reply@midominio.cl
    MAIL_FROM_NAME="Mi App"
    STARTER_AI_SIMULATED=true          # IA simulada hasta cargar claves reales
+   # Solo pilotos (APP_ENV=staging): estas cuentas también entran con el PIN fijo
+   # STARTER_OTP_FIXED_CODE=111111
+   # STARTER_OTP_FIXED_EMAILS=tu@correo.com
    ```
+
+   El PIN fijo se ignora con `APP_ENV=production`, cada uso queda en la auditoría
+   (`auth.fixed_code_used`) y `starter:doctor` avisa mientras esté definido.
 
 4. **DNS**: registro `A` del subdominio a la IP del servidor del servicio (en Cloudflare, con o
    sin proxy, como los subdominios vecinos). Sin DNS todavía, **Domains → Generate** crea un

@@ -3,10 +3,8 @@
 namespace Tests\Feature\Admin;
 
 use App\Actions\Settings\UpdateMailSettings;
-use App\Mail\TestMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 use Starter\Administration\Models\AuditEvent;
 use Starter\Administration\Settings\RuntimeConfiguration;
@@ -225,16 +223,51 @@ class MailSettingsTest extends TestCase
         $this->assertNull(settings('mail.resend_key'));
     }
 
-    public function test_a_test_email_is_sent_with_the_saved_configuration(): void
+    public function test_a_configuration_can_be_tried_before_saving_it(): void
     {
-        Mail::fake();
         $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.mail.test'), ['email' => 'qa@acme.test', 'settings' => $this->payload(['mailer' => 'log'])])
+            ->assertSessionHasNoErrors();
+
+        $last = settings('mail.last_test');
+        $this->assertTrue($last['ok']);
+        $this->assertSame('log', $last['mailer']);
+        $this->assertSame('qa@acme.test', $last['to']);
+        // Nothing was saved but the outcome...
+        $this->assertSame('env', settings('mail.mailer'));
+
+        // An unreachable server is reported, not thrown...
+        $this->actingAs($admin)
+            ->post(route('admin.settings.mail.test'), ['email' => 'qa@acme.test', 'settings' => $this->payload([
+                'mailer' => 'smtp', 'host' => '127.0.0.1', 'port' => 1, 'scheme' => 'smtp',
+            ])])
+            ->assertSessionHasNoErrors();
+
+        $last = settings('mail.last_test');
+        $this->assertFalse($last['ok']);
+        $this->assertSame('smtp', $last['mailer']);
+        $this->assertNotEmpty($last['error']);
+
+        // The same rules as saving: an API provider needs its key...
+        $this->actingAs($admin)
+            ->post(route('admin.settings.mail.test'), ['email' => 'qa@acme.test', 'settings' => $this->payload()])
+            ->assertSessionHasErrors('resend_key');
+
+        $this->assertTrue(AuditEvent::query()->where('action', 'settings.mail_tested')->exists());
+    }
+
+    public function test_the_saved_configuration_is_tested_without_form_values(): void
+    {
+        $admin = $this->userWithRole('admin');
+        settings()->set(['mail.mailer' => 'log']);
 
         $this->actingAs($admin)
             ->post(route('admin.settings.mail.test'), ['email' => 'qa@acme.test'])
             ->assertSessionHasNoErrors();
 
-        Mail::assertSent(TestMail::class, fn (TestMail $mail) => $mail->hasTo('qa@acme.test'));
+        $this->assertTrue(settings('mail.last_test')['ok']);
     }
 
     public function test_the_action_is_usable_from_the_console(): void

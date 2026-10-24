@@ -48,6 +48,13 @@ type MailSettings = {
     mailgun_region: 'us' | 'eu' | null;
     from_address: string;
     from_name: string;
+    last_test?: {
+        at: string;
+        ok: boolean;
+        mailer: string;
+        to: string;
+        error: string | null;
+    } | null;
 };
 
 type Credential = {
@@ -99,7 +106,25 @@ const submit = () => {
     });
 };
 
-const sendTest = () => testForm.post(mail.test().url, { preserveScroll: true });
+/** The test uses the values of the form, saved or not. */
+const sendTest = () =>
+    testForm
+        .transform((data) => ({
+            email: data.email,
+            settings: {
+                ...form.data(),
+                scheme: form.scheme === 'auto' ? null : form.scheme,
+            },
+        }))
+        .post(mail.test().url, { preserveScroll: true });
+
+const testErrors = computed(() =>
+    Object.entries(testForm.errors)
+        .filter(([field]) => field !== 'email')
+        .map(([, message]) => message),
+);
+
+const lastTest = computed(() => props.settings.last_test ?? null);
 
 const mailers: {
     value: Mailer;
@@ -590,15 +615,30 @@ const useResendTestSender = () => {
             variant="small"
             :title="t('Send a test email')"
             :description="
-                t('Save the configuration first, then send a test email')
+                t(
+                    'The test uses the values above, even before you save them. Blank keys use the saved ones.',
+                )
             "
         />
-        <StatusAlert v-if="form.isDirty" tone="warning">
+        <StatusAlert
+            v-if="lastTest"
+            :tone="lastTest.ok ? 'success' : 'error'"
+            :title="
+                lastTest.ok ? t('Last test: delivered') : t('Last test: failed')
+            "
+            data-test="mail-last-test"
+        >
             {{
-                t(
-                    'You have unsaved changes. The test uses the saved configuration.',
-                )
+                t(':mailer to :email, :date', {
+                    mailer: lastTest.mailer,
+                    email: lastTest.to,
+                    date: new Date(lastTest.at).toLocaleString(),
+                })
             }}
+            <template v-if="lastTest.error">
+                <br />
+                {{ lastTest.error }}
+            </template>
         </StatusAlert>
         <div class="flex flex-col gap-2 sm:flex-row">
             <Input
@@ -610,11 +650,18 @@ const useResendTestSender = () => {
             />
             <SubmitButton variant="outline" :processing="testForm.processing">
                 <Send v-if="!testForm.processing" class="size-4" />
-                {{ t('Send test') }}
+                {{ t('Try this configuration') }}
             </SubmitButton>
         </div>
         <p v-if="testForm.errors.email" class="text-sm text-destructive">
             {{ testForm.errors.email }}
+        </p>
+        <p
+            v-for="message in testErrors"
+            :key="message"
+            class="text-sm text-destructive"
+        >
+            {{ message }}
         </p>
     </form>
 </template>
