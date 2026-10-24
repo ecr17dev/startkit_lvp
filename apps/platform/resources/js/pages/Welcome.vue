@@ -27,7 +27,7 @@ const features = [
         icon: Bot,
         title: 'AI ready',
         description:
-            'OpenAI, Anthropic, DeepSeek, OpenRouter, Bedrock or custom, with prompts and cost tracking.',
+            'OpenAI, Anthropic, DeepSeek, OpenRouter, Bedrock or custom, with versioned agents and cost tracking.',
     },
     {
         icon: Palette,

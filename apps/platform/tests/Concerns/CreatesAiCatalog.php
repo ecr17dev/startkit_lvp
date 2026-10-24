@@ -5,13 +5,16 @@ namespace Tests\Concerns;
 use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\TextResponse;
+use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Enums\Driver;
 use Starter\Ai\Enums\ModelStatus;
 use Starter\Ai\Enums\PriceComponent;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\Connection;
 use Starter\Ai\Models\PriceSource;
 use Starter\Ai\Pricing\PriceBook;
+use Starter\Ai\Simulated\SimulatedCatalog;
 
 trait CreatesAiCatalog
 {
@@ -56,5 +59,29 @@ trait CreatesAiCatalog
     protected function fakeTextResponse(string $text, int $input, int $output, int $cacheRead = 0, int $reasoning = 0, string $model = 'gpt-test'): TextResponse
     {
         return new TextResponse($text, new TextUsage($input, $output, $cacheRead, 0, $reasoning), new Meta('openai', $model));
+    }
+
+    /**
+     * Create and publish an agent.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    protected function aiAgent(array $config = [], string $slug = 'assistant', bool $default = true): Agent
+    {
+        $manager = app(AgentManager::class);
+        $agent = $manager->create(['slug' => $slug, 'name' => ucfirst($slug), 'is_default' => $default], $config);
+        $manager->publish($agent);
+
+        return $agent->refresh()->load('publishedVersion');
+    }
+
+    /**
+     * Install the simulated provider (no network) and return its chat model.
+     */
+    protected function simulatedModel(): AiModel
+    {
+        app(SimulatedCatalog::class)->install();
+
+        return AiModel::query()->with('connection')->where('model', 'simulated-chat')->sole();
     }
 }

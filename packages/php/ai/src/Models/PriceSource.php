@@ -24,6 +24,8 @@ class PriceSource extends Model
 
     public const OPENROUTER = 'openrouter';
 
+    public const SIMULATED = 'simulated';
+
     protected $table = 'ai_price_sources';
 
     /**
@@ -62,6 +64,14 @@ class PriceSource extends Model
     {
         return self::query()->firstOrCreate(['key' => self::MANUAL], [
             'name' => 'Manual entry',
+            'kind' => 'manual',
+        ]);
+    }
+
+    public static function simulated(): self
+    {
+        return self::query()->firstOrCreate(['key' => self::SIMULATED], [
+            'name' => 'Simulated provider',
             'kind' => 'manual',
         ]);
     }

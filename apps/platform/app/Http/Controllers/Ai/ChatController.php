@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Ai;
 
 use App\Ai\AiService;
 use App\Http\Controllers\Controller;
-use App\Models\AiPrompt;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -15,9 +14,13 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
+use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Connections\ErrorClassifier;
+use Starter\Ai\Exceptions\AgentLimitExceededException;
+use Starter\Ai\Exceptions\AgentNotAvailableException;
 use Starter\Ai\Exceptions\BudgetExceededException;
 use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -25,7 +28,10 @@ use Throwable;
 
 class ChatController extends Controller
 {
-    public function __construct(protected AiService $ai) {}
+    public function __construct(
+        protected AiService $ai,
+        protected AgentManager $agents,
+    ) {}
 
     /**
      * Show the chat, optionally opening one of the user's conversations.
@@ -51,7 +57,14 @@ class ChatController extends Controller
                 'title' => $current->getAttribute('title'),
                 'messages' => $this->messages($current),
             ] : null,
-            'prompts' => AiPrompt::query()->active()->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'description', 'is_default']),
+            'agents' => $this->agents->availableFor($user, 'page')->map(fn (Agent $agent) => [
+                'id' => $agent->id,
+                'name' => $agent->name,
+                'description' => $agent->description,
+                'avatar' => $agent->publishedVersion?->settings()->get('identity.avatar'),
+                'greeting' => $agent->publishedVersion?->settings()->get('identity.greeting'),
+                'is_default' => $agent->is_default,
+            ])->values(),
             'models' => $canChooseModel
                 ? AiModel::query()->with('connection')->usable()->forFunction('text')->orderByDesc('is_default')->orderBy('model')->get()
                     ->map(fn (AiModel $model) => [
@@ -79,7 +92,7 @@ class ChatController extends Controller
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:20000'],
             'conversation_id' => ['nullable', 'string', 'max:36'],
-            'prompt_id' => ['nullable', 'integer', Rule::exists('ai_prompts', 'id')->where('is_active', true)],
+            'agent_id' => ['nullable', 'integer'],
             'model_id' => ['nullable', 'integer', Rule::exists('ai_models', 'id')->where('is_enabled', true)],
         ]);
 
@@ -89,19 +102,19 @@ class ChatController extends Controller
 
         $canChooseModel = $user->can('ai.models.manage');
 
-        $prompt = isset($validated['prompt_id']) ? AiPrompt::query()->whereKey($validated['prompt_id'])->first() : null;
-
         $model = $canChooseModel && isset($validated['model_id']) ? AiModel::query()->find((int) $validated['model_id']) : null;
 
         try {
-            ['response' => $stream, 'request' => $ledger] = $this->ai->stream(
+            $version = $this->agents->resolve($user, $validated['agent_id'] ?? null, 'page');
+
+            ['response' => $stream, 'request' => $ledger, 'release' => $release] = $this->ai->stream(
                 $user,
+                $version,
                 $validated['message'],
-                prompt: $prompt,
                 model: $model,
                 conversationId: $validated['conversation_id'] ?? null,
             );
-        } catch (BudgetExceededException|ModelNotUsableException $e) {
+        } catch (AgentNotAvailableException|AgentLimitExceededException|BudgetExceededException|ModelNotUsableException $e) {
             return $this->errorStream($e->getMessage());
         } catch (Throwable $e) {
             report($e);
@@ -109,7 +122,7 @@ class ChatController extends Controller
             return $this->errorStream(__(ErrorClassifier::classify($e)->message()));
         }
 
-        return response()->stream(function () use ($stream, $ledger) {
+        return response()->stream(function () use ($stream, $ledger, $release) {
             try {
                 foreach ($stream as $event) {
                     yield 'data: '.$event."\n\n";
@@ -125,7 +138,7 @@ class ChatController extends Controller
                     'type' => 'summary',
                     'conversation_id' => $stream->conversationId,
                     'request_id' => $ledger->id,
-                    'cost' => $request?->cost !== null ? (float) $request->cost : null,
+                    'cost' => $request?->cost !== null ? (string) $request->cost : null,
                     'cost_status' => $request?->cost_status->value,
                     'model' => $request?->model,
                 ])."\n\n";
@@ -133,6 +146,8 @@ class ChatController extends Controller
                 Log::error('AI chat stream failed: '.$e->getMessage(), ['exception' => $e]);
 
                 yield 'data: '.json_encode(['type' => 'error', 'message' => __(ErrorClassifier::classify($e)->message())])."\n\n";
+            } finally {
+                $release();
             }
 
             yield "data: [DONE]\n\n";

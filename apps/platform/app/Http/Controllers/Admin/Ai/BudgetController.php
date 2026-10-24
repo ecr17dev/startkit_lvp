@@ -15,6 +15,7 @@ use Starter\Ai\Budgets\BudgetManager;
 use Starter\Ai\Enums\BudgetPeriod;
 use Starter\Ai\Enums\BudgetScope;
 use Starter\Ai\Enums\Feature;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\Budget;
 use Starter\Ai\Models\BudgetAlert;
 use Starter\Ai\Models\Connection;
@@ -52,6 +53,7 @@ class BudgetController extends Controller
                 'roles' => Role::query()->orderBy('id')->pluck('name'),
                 'connections' => Connection::query()->orderBy('label')->get(['id', 'label']),
                 'users' => User::query()->orderBy('name')->limit(200)->get(['id', 'name', 'email']),
+                'agents' => Agent::query()->orderBy('name')->get(['slug', 'name']),
             ],
             'summary' => AiUsageReport::budgets(),
         ]);

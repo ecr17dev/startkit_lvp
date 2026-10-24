@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.2",
     "info": {
-        "title": "Laravel API",
+        "title": "Acme Starter API",
         "version": "1.0.0",
         "description": "API REST protegida con Laravel Sanctum. Crea un token desde Ajustes \u2192 Tokens de API o con los endpoints de c\u00f3digo de un solo uso (POST /v1/auth/otp y /v1/auth/otp/verify) y env\u00edalo como `Authorization: Bearer <token>`."
     },
@@ -28,6 +28,9 @@
         },
         {
             "name": "AI connections and models"
+        },
+        {
+            "name": "AI agents"
         },
         {
             "name": "AI usage and budgets"
@@ -1305,10 +1308,10 @@
                 }
             }
         },
-        "/v1/ai/prompts": {
+        "/v1/ai/chat/agents": {
             "get": {
-                "operationId": "v1.ai.prompts",
-                "summary": "List the available system prompts",
+                "operationId": "v1.ai.chat.agents",
+                "summary": "List the agents available to the authenticated user through the API",
                 "tags": [
                     "AI"
                 ],
@@ -1323,7 +1326,41 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/AiPrompt"
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "slug": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "version": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "slug",
+                                                    "name",
+                                                    "description",
+                                                    "is_default",
+                                                    "version"
+                                                ]
                                             }
                                         }
                                     },
@@ -1362,12 +1399,13 @@
                                         "type": "string",
                                         "maxLength": 20000
                                     },
-                                    "prompt": {
+                                    "agent": {
                                         "type": [
                                             "string",
                                             "null"
                                         ],
-                                        "description": "Slug of the system prompt to use. Defaults to the default prompt."
+                                        "description": "Slug of the agent to use. Defaults to the default agent available to you.",
+                                        "maxLength": 80
                                     },
                                     "conversation_id": {
                                         "type": [
@@ -1409,6 +1447,13 @@
                                         "request_id": {
                                             "type": "string",
                                             "description": "Ledger request id (see the usage endpoints)."
+                                        },
+                                        "agent": {
+                                            "type": "string"
+                                        },
+                                        "agent_version": {
+                                            "type": "integer",
+                                            "description": "Published agent version that answered."
                                         },
                                         "provider": {
                                             "type": "string"
@@ -1453,11 +1498,67 @@
                                         "text",
                                         "conversation_id",
                                         "request_id",
+                                        "agent",
+                                        "agent_version",
                                         "provider",
                                         "model",
                                         "usage",
                                         "cost",
                                         "cost_status"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -1850,6 +1951,1496 @@
                 }
             }
         },
+        "/v1/ai/agents": {
+            "get": {
+                "operationId": "v1.ai.agents.index",
+                "summary": "List agents with their published version and draft",
+                "tags": [
+                    "AI agents"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "slug": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "is_default": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "avatar": {},
+                                                    "published_version": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "number": {
+                                                                "type": "integer"
+                                                            },
+                                                            "published_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "number",
+                                                            "published_at"
+                                                        ]
+                                                    },
+                                                    "draft": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "number": {
+                                                                "type": "integer"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "number",
+                                                            "updated_at"
+                                                        ]
+                                                    },
+                                                    "tools": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    },
+                                                    "surfaces": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    },
+                                                    "roles": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "slug",
+                                                    "name",
+                                                    "description",
+                                                    "is_active",
+                                                    "is_default",
+                                                    "avatar",
+                                                    "published_version",
+                                                    "draft",
+                                                    "tools",
+                                                    "surfaces",
+                                                    "roles"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.ai.agents.store",
+                "summary": "Create an agent with a first draft (default settings when omitted)",
+                "tags": [
+                    "AI agents"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 120
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "description": "Lowercase letters, numbers and dashes.",
+                                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                                        "maxLength": 80
+                                    },
+                                    "description": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 500
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "slug"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean"
+                                                },
+                                                "avatar": {},
+                                                "published_version": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "published_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "published_at"
+                                                    ]
+                                                },
+                                                "draft": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "updated_at"
+                                                    ]
+                                                },
+                                                "tools": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "surfaces": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "slug",
+                                                "name",
+                                                "description",
+                                                "is_active",
+                                                "is_default",
+                                                "avatar",
+                                                "published_version",
+                                                "draft",
+                                                "tools",
+                                                "surfaces",
+                                                "roles"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/agents/{agent}": {
+            "get": {
+                "operationId": "v1.ai.agents.show",
+                "summary": "Show an agent: published settings, draft, validation and history",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean"
+                                                },
+                                                "avatar": {},
+                                                "published_version": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "published_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "published_at"
+                                                    ]
+                                                },
+                                                "draft": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "notes": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "published_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "config": {
+                                                            "type": "object",
+                                                            "additionalProperties": {}
+                                                        },
+                                                        "check": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "errors": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "warnings": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "errors",
+                                                                "warnings"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "status",
+                                                        "notes",
+                                                        "published_at",
+                                                        "config",
+                                                        "check"
+                                                    ]
+                                                },
+                                                "tools": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "surfaces": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "published": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "notes": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "published_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "config": {
+                                                            "type": "object",
+                                                            "additionalProperties": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "status",
+                                                        "notes",
+                                                        "published_at",
+                                                        "config"
+                                                    ]
+                                                },
+                                                "versions": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "slug",
+                                                "name",
+                                                "description",
+                                                "is_active",
+                                                "is_default",
+                                                "avatar",
+                                                "published_version",
+                                                "draft",
+                                                "tools",
+                                                "surfaces",
+                                                "roles",
+                                                "published",
+                                                "versions"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.ai.agents.update",
+                "summary": "Update the name, description and flags of an agent",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 120
+                                    },
+                                    "description": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 500
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "is_default": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean"
+                                                },
+                                                "avatar": {},
+                                                "published_version": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "published_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "published_at"
+                                                    ]
+                                                },
+                                                "draft": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "number": {
+                                                            "type": "integer"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "number",
+                                                        "updated_at"
+                                                    ]
+                                                },
+                                                "tools": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "surfaces": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "slug",
+                                                "name",
+                                                "description",
+                                                "is_active",
+                                                "is_default",
+                                                "avatar",
+                                                "published_version",
+                                                "draft",
+                                                "tools",
+                                                "surfaces",
+                                                "roles"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/agents/{agent}/draft": {
+            "put": {
+                "operationId": "v1.ai.agents.draft.update",
+                "summary": "Save the draft settings. The complete settings object is required\n(see the agent defaults in the published version)",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "config": {
+                                        "type": "object",
+                                        "properties": {
+                                            "identity": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "avatar": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "maxLength": 8
+                                                    },
+                                                    "greeting": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "maxLength": 500
+                                                    },
+                                                    "language": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "auto",
+                                                            "es",
+                                                            "en"
+                                                        ]
+                                                    },
+                                                    "tone": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "neutral",
+                                                            "formal",
+                                                            "friendly",
+                                                            "concise"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "language",
+                                                    "tone"
+                                                ]
+                                            },
+                                            "instructions": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "system_prompt": {
+                                                        "type": "string",
+                                                        "maxLength": 20000
+                                                    },
+                                                    "variables": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "app_name",
+                                                                "user_name",
+                                                                "user_email",
+                                                                "user_roles",
+                                                                "locale",
+                                                                "date",
+                                                                "datetime"
+                                                            ]
+                                                        },
+                                                        "uniqueItems": true
+                                                    }
+                                                },
+                                                "required": [
+                                                    "system_prompt",
+                                                    "variables"
+                                                ]
+                                            },
+                                            "execution": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "model_id": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "fallback_model_ids": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "integer"
+                                                        },
+                                                        "maxItems": 3,
+                                                        "uniqueItems": true
+                                                    },
+                                                    "timeout": {
+                                                        "type": "integer",
+                                                        "minimum": 5,
+                                                        "maximum": 600
+                                                    },
+                                                    "retries": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 3
+                                                    }
+                                                },
+                                                "required": [
+                                                    "fallback_model_ids",
+                                                    "timeout",
+                                                    "retries"
+                                                ]
+                                            },
+                                            "responses": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "max_tokens": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ],
+                                                        "minimum": 16,
+                                                        "maximum": 200000
+                                                    },
+                                                    "temperature": {
+                                                        "type": [
+                                                            "number",
+                                                            "null"
+                                                        ],
+                                                        "minimum": 0,
+                                                        "maximum": 2
+                                                    },
+                                                    "style": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "markdown",
+                                                            "plain"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "style"
+                                                ]
+                                            },
+                                            "context": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "history_messages": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 200
+                                                    },
+                                                    "retention_days": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ],
+                                                        "minimum": 1,
+                                                        "maximum": 3650
+                                                    }
+                                                },
+                                                "required": [
+                                                    "history_messages"
+                                                ]
+                                            },
+                                            "multimedia": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "images": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "documents": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "max_files": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 10
+                                                    },
+                                                    "max_file_mb": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 20
+                                                    },
+                                                    "mime_types": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "image/png",
+                                                                "image/jpeg",
+                                                                "image/webp",
+                                                                "image/gif",
+                                                                "application/pdf",
+                                                                "text/plain",
+                                                                "text/markdown",
+                                                                "text/csv"
+                                                            ]
+                                                        },
+                                                        "uniqueItems": true
+                                                    }
+                                                },
+                                                "required": [
+                                                    "images",
+                                                    "documents",
+                                                    "max_files",
+                                                    "max_file_mb",
+                                                    "mime_types"
+                                                ]
+                                            },
+                                            "microphone": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "transcription_model_id": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "language": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "maxLength": 10
+                                                    },
+                                                    "max_seconds": {
+                                                        "type": "integer",
+                                                        "minimum": 5,
+                                                        "maximum": 600
+                                                    },
+                                                    "auto_send": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "enabled",
+                                                    "max_seconds",
+                                                    "auto_send"
+                                                ]
+                                            },
+                                            "tools": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "allowed": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                ""
+                                                            ]
+                                                        },
+                                                        "uniqueItems": true
+                                                    },
+                                                    "max_steps": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 20
+                                                    },
+                                                    "confirm_writes": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "allowed",
+                                                    "max_steps",
+                                                    "confirm_writes"
+                                                ]
+                                            },
+                                            "rag": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "mode": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "off"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "mode"
+                                                ]
+                                            },
+                                            "access": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "roles": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "uniqueItems": true
+                                                    },
+                                                    "surfaces": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "page",
+                                                                "floating",
+                                                                "api"
+                                                            ]
+                                                        },
+                                                        "minItems": 1,
+                                                        "uniqueItems": true
+                                                    }
+                                                },
+                                                "required": [
+                                                    "roles",
+                                                    "surfaces"
+                                                ]
+                                            },
+                                            "limits": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "requests_per_minute": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ],
+                                                        "minimum": 1,
+                                                        "maximum": 1000
+                                                    },
+                                                    "concurrent_per_user": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ],
+                                                        "minimum": 1,
+                                                        "maximum": 20
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "required": [
+                                            "identity",
+                                            "instructions",
+                                            "execution",
+                                            "responses",
+                                            "context",
+                                            "multimedia",
+                                            "microphone",
+                                            "tools",
+                                            "rag",
+                                            "access",
+                                            "limits"
+                                        ]
+                                    },
+                                    "notes": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 1000
+                                    }
+                                },
+                                "required": [
+                                    "config"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "number": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "notes": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "published_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "config": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                },
+                                                "check": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "warnings": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "errors",
+                                                        "warnings"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "number",
+                                                "status",
+                                                "notes",
+                                                "published_at",
+                                                "config",
+                                                "check"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/agents/{agent}/publish": {
+            "post": {
+                "operationId": "v1.ai.agents.publish",
+                "summary": "Publish the draft. Validation errors (unusable model, unsupported\ncapabilities, unknown tools) block the publication",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "notes": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 1000
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "number": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "notes": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "published_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "config": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "number",
+                                                "status",
+                                                "notes",
+                                                "published_at",
+                                                "config"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/agents/{agent}/versions/{version}/restore": {
+            "post": {
+                "operationId": "v1.ai.agents.versions.restore",
+                "summary": "Restore a previous version: its settings are published as a new version",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "required": true,
+                        "description": "The version ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "number": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "notes": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "published_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "config": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "number",
+                                                "status",
+                                                "notes",
+                                                "published_at",
+                                                "config"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/agents/{agent}/test": {
+            "post": {
+                "operationId": "v1.ai.agents.test",
+                "summary": "Try the draft (or the published version). Recorded as a test in the\nledger, not remembered, and only read-only tools are offered",
+                "tags": [
+                    "AI agents"
+                ],
+                "parameters": [
+                    {
+                        "name": "agent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The agent ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "message": {
+                                        "type": "string",
+                                        "maxLength": 4000
+                                    }
+                                },
+                                "required": [
+                                    "message"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "version": {
+                                            "type": "integer"
+                                        },
+                                        "text": {
+                                            "type": "string"
+                                        },
+                                        "request_id": {
+                                            "type": "string"
+                                        },
+                                        "model": {
+                                            "type": "string"
+                                        },
+                                        "latency_ms": {
+                                            "type": "string"
+                                        },
+                                        "cost": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "cost_status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "version",
+                                        "text",
+                                        "request_id",
+                                        "model",
+                                        "latency_ms",
+                                        "cost",
+                                        "cost_status"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "The credential was rejected by the provider.",
+                                                "The provider account has no credit or quota left.",
+                                                "The provider rate limit was reached.",
+                                                "The provider could not be reached.",
+                                                "The model does not exist or is not available for this credential.",
+                                                "The provider rejected the request.",
+                                                "The provider is overloaded. Try again later.",
+                                                "An AI budget limit was reached.",
+                                                "The connection is not configured correctly.",
+                                                "The provider returned an unexpected error."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/ai/connections": {
             "get": {
                 "operationId": "v1.ai.connections.index",
@@ -1896,7 +3487,8 @@
                                                             "Mistral",
                                                             "xAI",
                                                             "Ollama",
-                                                            "OpenAI compatible (custom)"
+                                                            "OpenAI compatible (custom)",
+                                                            "Simulated (no network)"
                                                         ]
                                                     },
                                                     "base_url": {
@@ -2165,7 +3757,8 @@
                                                         "Mistral",
                                                         "xAI",
                                                         "Ollama",
-                                                        "OpenAI compatible (custom)"
+                                                        "OpenAI compatible (custom)",
+                                                        "Simulated (no network)"
                                                     ]
                                                 },
                                                 "base_url": {
@@ -2335,7 +3928,8 @@
                                                         "Mistral",
                                                         "xAI",
                                                         "Ollama",
-                                                        "OpenAI compatible (custom)"
+                                                        "OpenAI compatible (custom)",
+                                                        "Simulated (no network)"
                                                     ]
                                                 },
                                                 "base_url": {
@@ -2611,7 +4205,8 @@
                                                         "Mistral",
                                                         "xAI",
                                                         "Ollama",
-                                                        "OpenAI compatible (custom)"
+                                                        "OpenAI compatible (custom)",
+                                                        "Simulated (no network)"
                                                     ]
                                                 },
                                                 "base_url": {
@@ -5488,82 +7083,6 @@
             }
         },
         "schemas": {
-            "AiPrompt": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "slug": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "ai_model_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "temperature": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "max_tokens": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "is_default": {
-                        "type": "boolean"
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name",
-                    "slug",
-                    "description",
-                    "content",
-                    "ai_model_id",
-                    "temperature",
-                    "max_tokens",
-                    "is_default",
-                    "is_active",
-                    "created_at",
-                    "updated_at"
-                ],
-                "title": "AiPrompt"
-            },
             "BudgetPeriod": {
                 "type": "string",
                 "enum": [
@@ -5579,7 +7098,8 @@
                     "user",
                     "role",
                     "feature",
-                    "connection"
+                    "connection",
+                    "agent"
                 ],
                 "title": "BudgetScope"
             },
@@ -5624,7 +7144,8 @@
                     "mistral",
                     "xai",
                     "ollama",
-                    "openai-compatible"
+                    "openai-compatible",
+                    "simulated"
                 ],
                 "title": "Driver"
             },

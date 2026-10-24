@@ -96,6 +96,35 @@ class AiGateway
     }
 
     /**
+     * Provider map for the SDK failover, in order: the model, its retries
+     * (the same model under alias provider names, used on rate limits,
+     * overloads and connection errors) and the usable fallback models.
+     *
+     *     $agent->prompt($text, provider: $gateway->providers($model, retries: 1, fallbacks: [$backup]));
+     *
+     * @param  list<AiModel>  $fallbacks
+     * @return array<string, string>
+     */
+    public function providers(AiModel $model, int $retries = 0, array $fallbacks = []): array
+    {
+        $map = [$this->resolver->providerName($model->connection) => $model->model];
+
+        for ($attempt = 1; $attempt <= $retries; $attempt++) {
+            $map[$this->resolver->providerName($model->connection, 'r'.$attempt)] = $model->model;
+        }
+
+        foreach ($fallbacks as $fallback) {
+            if ($fallback->id === $model->id || ! $fallback->is_enabled || ! $fallback->connection->is_active) {
+                continue;
+            }
+
+            $map[$this->resolver->providerName($fallback->connection, 'f'.$fallback->id)] = $fallback->model;
+        }
+
+        return $map;
+    }
+
+    /**
      * @param  array{input_chars?: int, max_output_tokens?: int|null, agent?: string|null, agent_version_id?: int|null, conversation_id?: string|null, idempotency_key?: string|null, metadata?: array<string, mixed>}  $options
      */
     protected function open(AiModel $model, Feature $feature, ?Authenticatable $user, array $options): AiRequest

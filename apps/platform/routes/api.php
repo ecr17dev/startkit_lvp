@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Ai\AgentController as AiAgentController;
 use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
 use App\Http\Controllers\Api\V1\Ai\ConnectionController as AiConnectionController;
 use App\Http\Controllers\Api\V1\Ai\ModelController as AiModelController;
@@ -55,7 +56,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::middleware(['ability:ai', 'can:ai.chat'])->prefix('ai')->name('ai.')->group(function () {
-            Route::get('prompts', [AiController::class, 'prompts'])->name('prompts');
+            Route::get('chat/agents', [AiController::class, 'agents'])->name('chat.agents');
             Route::post('chat', [AiController::class, 'chat'])->middleware('throttle:ai')->name('chat');
             Route::get('me/usage', [AiController::class, 'usage'])->name('me.usage');
         });
@@ -71,6 +72,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('usage', [AiUsageController::class, 'summary'])->name('usage.summary');
                 Route::get('usage/requests', [AiUsageController::class, 'requests'])->name('usage.requests');
                 Route::get('budgets', [AiBudgetController::class, 'index'])->name('budgets.index');
+                Route::get('agents', [AiAgentController::class, 'index'])->name('agents.index');
+                Route::get('agents/{agent}', [AiAgentController::class, 'show'])->name('agents.show');
             });
 
             Route::middleware('ability:write')->group(function () {
@@ -86,6 +89,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('budgets', [AiBudgetController::class, 'store'])->name('budgets.store');
                 Route::patch('budgets/{budget}', [AiBudgetController::class, 'update'])->name('budgets.update');
                 Route::delete('budgets/{budget}', [AiBudgetController::class, 'destroy'])->name('budgets.destroy');
+                Route::post('agents', [AiAgentController::class, 'store'])->name('agents.store');
+                Route::patch('agents/{agent}', [AiAgentController::class, 'update'])->name('agents.update');
+                Route::put('agents/{agent}/draft', [AiAgentController::class, 'saveDraft'])->name('agents.draft.update');
+                Route::post('agents/{agent}/publish', [AiAgentController::class, 'publish'])->name('agents.publish');
+                Route::post('agents/{agent}/versions/{version}/restore', [AiAgentController::class, 'restore'])->scopeBindings()->name('agents.versions.restore');
+                Route::post('agents/{agent}/test', [AiAgentController::class, 'test'])->middleware('throttle:20,1')->name('agents.test');
             });
         });
     });

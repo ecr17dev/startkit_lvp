@@ -63,10 +63,12 @@ type ModelOption = {
 const props = defineProps<{
     conversations: Conversation[];
     conversation: { id: string; title: string; messages: ChatMessage[] } | null;
-    prompts: {
+    agents: {
         id: number;
         name: string;
         description: string | null;
+        avatar: string | null;
+        greeting: string | null;
         is_default: boolean;
     }[];
     models: ModelOption[];
@@ -82,11 +84,9 @@ const { streaming, send, stop } = useAiStream();
 const messages = ref<ChatMessage[]>([...(props.conversation?.messages ?? [])]);
 const input = ref('');
 const error = ref<string | null>(null);
-const promptId = ref<string>(
+const agentId = ref<string>(
     String(
-        props.prompts.find((p) => p.is_default)?.id ??
-            props.prompts[0]?.id ??
-            '',
+        props.agents.find((a) => a.is_default)?.id ?? props.agents[0]?.id ?? '',
     ),
 );
 const target = ref<string>('default');
@@ -144,7 +144,7 @@ const submit = async () => {
         {
             message,
             conversation_id: conversationId,
-            prompt_id: promptId.value ? Number(promptId.value) : null,
+            agent_id: agentId.value ? Number(agentId.value) : null,
             model_id: target.value === 'default' ? null : Number(target.value),
         },
         {
@@ -286,7 +286,7 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                         <p class="max-w-md text-sm">
                             {{
                                 t(
-                                    'Choose a system prompt and start writing. Your conversations are saved automatically.',
+                                    'Choose an agent and start writing. Your conversations are saved automatically.',
                                 )
                             }}
                         </p>
@@ -417,19 +417,18 @@ const tokens = (usage?: Partial<StreamUsage> | null) =>
                     @submit.prevent="submit"
                 >
                     <div class="flex flex-wrap gap-2">
-                        <Select v-if="prompts.length" v-model="promptId">
+                        <Select v-if="agents.length" v-model="agentId">
                             <SelectTrigger size="sm" class="w-48">
-                                <SelectValue
-                                    :placeholder="t('System prompt')"
-                                />
+                                <SelectValue :placeholder="t('Agent')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
-                                    v-for="prompt in prompts"
-                                    :key="prompt.id"
-                                    :value="String(prompt.id)"
+                                    v-for="agent in agents"
+                                    :key="agent.id"
+                                    :value="String(agent.id)"
                                 >
-                                    {{ prompt.name }}
+                                    {{ agent.avatar ? `${agent.avatar} ` : ''
+                                    }}{{ agent.name }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>

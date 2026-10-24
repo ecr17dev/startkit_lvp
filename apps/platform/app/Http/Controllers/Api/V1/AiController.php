@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\AiService;
 use App\Http\Controllers\Controller;
-use App\Models\AiPrompt;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -12,23 +11,41 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Laravel\Ai\Models\Conversation;
+use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Enums\CostStatus;
+use Starter\Ai\Exceptions\AgentLimitExceededException;
+use Starter\Ai\Exceptions\AgentNotAvailableException;
+use Starter\Ai\Exceptions\BudgetExceededException;
+use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
 
 #[Group('AI', weight: 3)]
 class AiController extends Controller
 {
-    public function __construct(protected AiService $ai) {}
+    public function __construct(
+        protected AiService $ai,
+        protected AgentManager $agents,
+    ) {}
 
     /**
-     * List the available system prompts.
+     * List the agents available to the authenticated user through the API.
      */
-    public function prompts(): JsonResponse
+    public function agents(Request $request): JsonResponse
     {
+        /** @var User $user */
+        $user = $request->user();
+
         return response()->json([
-            'data' => AiPrompt::query()->active()->orderByDesc('is_default')->orderBy('name')
-                ->get(['id', 'name', 'slug', 'description', 'is_default']),
+            'data' => $this->agents->availableFor($user, 'api')->map(fn (Agent $agent) => [
+                'id' => $agent->id,
+                'slug' => $agent->slug,
+                'name' => $agent->name,
+                'description' => $agent->description,
+                'is_default' => $agent->is_default,
+                'version' => $agent->publishedVersion?->number,
+            ])->values(),
         ]);
     }
 
@@ -45,8 +62,8 @@ class AiController extends Controller
 
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:20000'],
-            /** Slug of the system prompt to use. Defaults to the default prompt. */
-            'prompt' => ['nullable', 'string', Rule::exists('ai_prompts', 'slug')->where('is_active', true)],
+            /** Slug of the agent to use. Defaults to the default agent available to you. */
+            'agent' => ['nullable', 'string', 'max:80'],
             /** Conversation to continue. */
             'conversation_id' => ['nullable', 'string', 'max:36'],
             /** Catalog model id (requires the `ai.models.manage` permission). */
@@ -63,13 +80,26 @@ class AiController extends Controller
 
         $canChooseModel = $user->can('ai.models.manage');
 
-        ['response' => $response, 'request' => $ledger] = $this->ai->chat(
-            $user,
-            $validated['message'],
-            prompt: isset($validated['prompt']) ? AiPrompt::query()->where('slug', $validated['prompt'])->first() : null,
-            model: $canChooseModel && isset($validated['model_id']) ? AiModel::query()->find((int) $validated['model_id']) : null,
-            conversationId: $validated['conversation_id'] ?? null,
-        );
+        try {
+            $version = $this->agents->resolve($user, $validated['agent'] ?? null, 'api');
+
+            ['response' => $response, 'request' => $ledger] = $this->ai->chat(
+                $user,
+                $version,
+                $validated['message'],
+                model: $canChooseModel && isset($validated['model_id']) ? AiModel::query()->find((int) $validated['model_id']) : null,
+                conversationId: $validated['conversation_id'] ?? null,
+            );
+        } catch (AgentNotAvailableException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 404);
+        } catch (AgentLimitExceededException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 429, $exception->retryAfter > 0 ? ['Retry-After' => (string) $exception->retryAfter] : []);
+        } catch (BudgetExceededException $exception) {
+            // Quota exhausted, as providers report it...
+            return response()->json(['message' => $exception->getMessage()], 429);
+        } catch (ModelNotUsableException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 503);
+        }
 
         if ($ledger->conversation_id === null && $response->conversationId !== null) {
             $ledger->forceFill(['conversation_id' => $response->conversationId])->save();
@@ -80,6 +110,9 @@ class AiController extends Controller
             'conversation_id' => $response->conversationId,
             /** Ledger request id (see the usage endpoints). */
             'request_id' => $ledger->id,
+            'agent' => $version->agent->slug,
+            /** Published agent version that answered. */
+            'agent_version' => $version->number,
             'provider' => $ledger->provider,
             'model' => $ledger->model,
             'usage' => [

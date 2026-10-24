@@ -7,6 +7,7 @@ export type DriverOption = {
     requires_base_url: boolean;
     default_url: string | null;
     discovery: boolean;
+    simulated: boolean;
 };
 
 export type AiConnection = {
@@ -128,3 +129,125 @@ export type Breakdown = {
     unknown: number;
     errors: number;
 };
+
+export type AgentSummary = {
+    id: number;
+    slug: string;
+    name: string;
+    description: string | null;
+    is_active: boolean;
+    is_default: boolean;
+    avatar: string | null;
+    published_version: {
+        id: number;
+        number: number;
+        published_at: string | null;
+    } | null;
+    draft: { id: number; number: number; updated_at: string } | null;
+    tools: string[];
+    surfaces: string[];
+    roles: string[];
+};
+
+export type AgentConfig = {
+    identity: {
+        avatar: string | null;
+        greeting: string | null;
+        language: string;
+        tone: string;
+    };
+    instructions: { system_prompt: string; variables: string[] };
+    execution: {
+        model_id: number | null;
+        fallback_model_ids: number[];
+        timeout: number;
+        retries: number;
+    };
+    responses: {
+        max_tokens: number | null;
+        temperature: number | null;
+        style: string;
+    };
+    context: { history_messages: number; retention_days: number | null };
+    multimedia: {
+        images: boolean;
+        documents: boolean;
+        max_files: number;
+        max_file_mb: number;
+        mime_types: string[];
+    };
+    microphone: {
+        enabled: boolean;
+        transcription_model_id: number | null;
+        language: string | null;
+        max_seconds: number;
+        auto_send: boolean;
+    };
+    tools: { allowed: string[]; max_steps: number; confirm_writes: boolean };
+    rag: { mode: string };
+    access: { roles: string[]; surfaces: string[] };
+    limits: {
+        requests_per_minute: number | null;
+        concurrent_per_user: number | null;
+    };
+};
+
+export type AgentCheck = { errors: string[]; warnings: string[] };
+
+export type AgentVersionRow = {
+    id: number;
+    number: number;
+    status: 'draft' | 'published' | 'archived';
+    notes: string | null;
+    created_by: string | null;
+    published_by: string | null;
+    published_at: string | null;
+    created_at: string;
+    changes: string[];
+};
+
+export type AgentToolOption = {
+    name: string;
+    group: string;
+    label: string;
+    kind: 'read' | 'write' | 'sensitive';
+    permission: string | null;
+};
+
+export type AgentModelOption = {
+    id: number;
+    label: string;
+    connection: string;
+    is_default?: boolean;
+    capabilities?: Record<'tools' | 'vision' | 'documents', string>;
+};
+
+export type AgentOptions = {
+    models: AgentModelOption[];
+    transcription_models: AgentModelOption[];
+    tools: AgentToolOption[];
+    roles: string[];
+    variables: string[];
+    languages: string[];
+    tones: string[];
+    styles: string[];
+    surfaces: string[];
+    image_types: string[];
+    document_types: string[];
+};
+
+export type AgentTestResult =
+    | {
+          ok: true;
+          version: number;
+          text: string;
+          provider: string | null;
+          model: string | null;
+          latency_ms: number | null;
+          input_tokens: number;
+          output_tokens: number;
+          cost: string | null;
+          cost_status: string;
+          tools: string[];
+      }
+    | { ok: false; version: number; error: string };

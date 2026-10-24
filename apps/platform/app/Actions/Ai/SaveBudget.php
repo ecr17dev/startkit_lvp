@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use Starter\Ai\Enums\BudgetPeriod;
 use Starter\Ai\Enums\BudgetScope;
 use Starter\Ai\Enums\Feature;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\Budget;
 
 class SaveBudget
@@ -45,6 +46,10 @@ class SaveBudget
         $validator->after(function ($validator) use ($input) {
             if (($input['scope'] ?? null) === BudgetScope::Feature->value && Feature::tryFrom((string) ($input['scope_value'] ?? '')) === null) {
                 $validator->errors()->add('scope_value', __('Choose a valid feature.'));
+            }
+
+            if (($input['scope'] ?? null) === BudgetScope::Agent->value && ! Agent::query()->where('slug', (string) ($input['scope_value'] ?? ''))->exists()) {
+                $validator->errors()->add('scope_value', __('Choose a valid agent.'));
             }
         });
 

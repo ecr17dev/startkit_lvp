@@ -21,6 +21,9 @@ enum Driver: string
     case Ollama = 'ollama';
     case Custom = 'openai-compatible';
 
+    // Local provider without network calls, clearly labelled as simulated...
+    case Simulated = 'simulated';
+
     public function label(): string
     {
         return match ($this) {
@@ -36,6 +39,7 @@ enum Driver: string
             self::xAI => 'xAI',
             self::Ollama => 'Ollama',
             self::Custom => 'OpenAI compatible (custom)',
+            self::Simulated => 'Simulated (no network)',
         };
     }
 
@@ -62,13 +66,14 @@ enum Driver: string
     {
         return match ($this) {
             self::Bedrock => ['api_key', 'access_key_id', 'secret_access_key', 'session_token'],
+            self::Simulated => [],
             default => ['api_key'],
         };
     }
 
     public function requiresApiKey(): bool
     {
-        return ! in_array($this, [self::Bedrock, self::Ollama, self::Custom], true);
+        return ! in_array($this, [self::Bedrock, self::Ollama, self::Custom, self::Simulated], true);
     }
 
     public function requiresBaseUrl(): bool
@@ -95,6 +100,11 @@ enum Driver: string
         };
     }
 
+    public function isSimulated(): bool
+    {
+        return $this === self::Simulated;
+    }
+
     /**
      * Whether the provider API lists its models (discovery).
      */
@@ -104,7 +114,7 @@ enum Driver: string
     }
 
     /**
-     * @return list<array{value: string, label: string, options: list<string>, credentials: list<string>, requires_api_key: bool, requires_base_url: bool, default_url: string|null, discovery: bool}>
+     * @return list<array{value: string, label: string, options: list<string>, credentials: list<string>, requires_api_key: bool, requires_base_url: bool, default_url: string|null, discovery: bool, simulated: bool}>
      */
     public static function catalog(): array
     {
@@ -117,6 +127,7 @@ enum Driver: string
             'requires_base_url' => $driver->requiresBaseUrl(),
             'default_url' => $driver->defaultUrl(),
             'discovery' => $driver->supportsDiscovery(),
+            'simulated' => $driver->isSimulated(),
         ], self::cases());
     }
 }

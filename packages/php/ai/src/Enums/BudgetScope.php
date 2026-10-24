@@ -9,4 +9,5 @@ enum BudgetScope: string
     case Role = 'role';
     case Feature = 'feature';
     case Connection = 'connection';
+    case Agent = 'agent';
 }

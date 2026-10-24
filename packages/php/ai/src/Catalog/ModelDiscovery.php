@@ -32,8 +32,24 @@ class ModelDiscovery
             Driver::Ollama => $this->ollama($connection),
             Driver::OpenRouter => app(OpenRouterCatalog::class)->models($connection),
             Driver::Bedrock, Driver::Azure => throw new RuntimeException((string) __('This provider does not list its models: add them manually.')),
+            Driver::Simulated => $this->simulated(),
             default => $this->openAiCompatible($connection),
         };
+    }
+
+    /**
+     * Built-in models of the simulated provider.
+     *
+     * @return list<DiscoveredModel>
+     */
+    protected function simulated(): array
+    {
+        return [
+            new DiscoveredModel('simulated-chat', 'Simulated chat', 'simulated', ['text'], ['text', 'image', 'file'], ['text'], 32000, 4096, [
+                'streaming' => 'supported', 'tools' => 'supported', 'structured_output' => 'supported', 'vision' => 'supported', 'documents' => 'supported',
+            ]),
+            new DiscoveredModel('simulated-transcriber', 'Simulated transcriber', 'simulated', ['transcription'], ['audio'], ['text']),
+        ];
     }
 
     /**

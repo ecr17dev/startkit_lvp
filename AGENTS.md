@@ -37,6 +37,11 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   `docs/identity.md`.
 - **Secretos**: nunca en props Inertia, bundles Vite, logs ni JSON exportable. Las
   credenciales se guardan cifradas (`encrypted` cast) o como referencias `env:NAME`.
+- **Agentes**: el chat siempre usa la versión publicada y autorizada de un agente
+  (`Starter\Ai\Agents\AgentManager::resolve()`); nunca aceptes system prompt,
+  herramientas ni colecciones desde el cliente. Las herramientas se registran en
+  `Starter\Ai\Agents\ToolRegistry` y llaman a las mismas Actions que el panel.
+  Sin claves, usa el proveedor simulado (`STARTER_AI_SIMULATED=true`).
 - **Costos IA**: toda llamada se registra en el libro de consumo. Una tarifa
   desconocida produce costo desconocido (`null`), nunca cero. En código propio usa
   `Starter\Ai\AiGateway::run()`/`::stream()` (valida el modelo, reserva

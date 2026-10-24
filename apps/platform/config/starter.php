@@ -1,6 +1,6 @@
 <?php
 
-use App\Ai\Agents\Assistant;
+use Starter\Ai\Agents\ConfiguredAgent;
 use Starter\Ai\Agents\PingAgent;
 
 /*
@@ -69,6 +69,8 @@ return [
     | STARTER_AI_SECRET_ are also allowed). Application secrets can never be
     | referenced. agent_features: ledger feature of agents called directly
     | through the SDK (calls made with AiGateway declare it explicitly).
+    | simulated: the seeder installs the simulated provider (no network,
+    | clearly labelled) so a local installation works without credentials.
     |
     */
 
@@ -80,9 +82,10 @@ return [
             'OPENAI_COMPATIBLE_API_KEY',
         ],
         'agent_features' => [
-            Assistant::class => 'chat',
+            ConfiguredAgent::class => 'chat',
             PingAgent::class => 'test',
         ],
+        'simulated' => (bool) env('STARTER_AI_SIMULATED', env('APP_ENV', 'production') !== 'production'),
         'interrupt_after_minutes' => (int) env('STARTER_AI_INTERRUPT_AFTER_MINUTES', 15),
     ],
 

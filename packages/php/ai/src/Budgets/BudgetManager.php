@@ -36,7 +36,7 @@ class BudgetManager
      *
      * @return Collection<int, Budget>
      */
-    public function applicable(?Authenticatable $user, Feature $feature, ?int $connectionId): Collection
+    public function applicable(?Authenticatable $user, Feature $feature, ?int $connectionId, ?string $agent = null): Collection
     {
         $roles = $user !== null && method_exists($user, 'getRoleNames') ? $user->getRoleNames()->all() : [];
 
@@ -49,6 +49,7 @@ class BudgetManager
                 BudgetScope::Role => in_array($budget->scope_value, $roles, true),
                 BudgetScope::Feature => $budget->scope_value === $feature->value,
                 BudgetScope::Connection => $connectionId !== null && (string) $connectionId === $budget->scope_value,
+                BudgetScope::Agent => $agent !== null && $agent === $budget->scope_value,
             })
             ->values();
     }
@@ -61,7 +62,7 @@ class BudgetManager
      */
     public function reserve(AiRequest $request, ?string $estimate, ?Authenticatable $user): void
     {
-        $budgets = $this->applicable($user, $request->feature, $request->connection_id);
+        $budgets = $this->applicable($user, $request->feature, $request->connection_id, $request->agent);
 
         if ($budgets->isEmpty()) {
             return;
@@ -258,7 +259,7 @@ class BudgetManager
     protected function chargeUnreserved(AiRequest $request, ?string $actual): void
     {
         $user = $request->user;
-        $budgets = $this->applicable($user instanceof Authenticatable ? $user : null, $request->feature, $request->connection_id);
+        $budgets = $this->applicable($user instanceof Authenticatable ? $user : null, $request->feature, $request->connection_id, $request->agent);
 
         if ($budgets->isEmpty()) {
             return;

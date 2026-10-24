@@ -2,123 +2,185 @@
 
 namespace App\Ai;
 
-use App\Ai\Agents\Assistant;
-use App\Models\AiPrompt;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
+use Closure;
 use Illuminate\Support\Carbon;
+use Laravel\Ai\Approvals\Decisions;
+use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Files\File;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Starter\Administration\Settings\SettingsManager;
+use Starter\Ai\Agents\AgentLimiter;
+use Starter\Ai\Agents\AgentManager;
+use Starter\Ai\Agents\ConfiguredAgent;
+use Starter\Ai\Agents\ToolContext;
+use Starter\Ai\Agents\ToolKind;
+use Starter\Ai\Agents\ToolRegistry;
 use Starter\Ai\AiGateway;
 use Starter\Ai\Enums\Feature;
-use Starter\Ai\Enums\ModelStatus;
 use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\AgentVersion;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
 use Starter\Ai\Pricing\CostCalculator;
+use Throwable;
 
 /**
- * The assistant of the application. Every call goes through the AI gateway:
- * on-demand connection, cost estimate, budget reservation and ledger.
+ * Conversations with the configured agents. The server resolves the
+ * published version, its model, fallbacks, tools and limits; every call
+ * goes through the AI gateway (estimate, budget reservation, ledger).
  */
 class AiService
 {
     public function __construct(
         protected SettingsManager $settings,
         protected AiGateway $gateway,
+        protected AgentManager $agents,
+        protected AgentLimiter $limiter,
+        protected ToolRegistry $tools,
     ) {}
 
     /**
-     * Send a message and wait for the full response.
+     * Send a message (or approval decisions) and wait for the full response.
      *
+     * @param  list<File>  $attachments
      * @return array{response: AgentResponse, request: AiRequest}
      */
-    public function chat(User $user, string $message, ?AiPrompt $prompt = null, ?AiModel $model = null, ?string $conversationId = null): array
+    public function chat(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'api'): array
     {
-        $prompt ??= AiPrompt::default();
-        $model = $this->resolveModel($prompt, $model);
-        $assistant = $this->assistant($user, $prompt, $conversationId);
-        $ledger = null;
+        $release = $this->limiter->acquire($version, $user);
 
-        $response = $this->gateway->run(
-            $model,
-            Feature::Chat,
-            $user,
-            function (string $provider, string $name, AiRequest $request) use ($assistant, $message, &$ledger) {
-                $ledger = $request;
+        try {
+            $model = $this->resolveModel($version, $model);
+            $agent = $this->agent($user, $version, $conversationId, $surface);
+            $providers = $this->providers($version, $model);
+            $ledger = null;
 
-                return $assistant->prompt($message, provider: $provider, model: $name);
-            },
-            $this->options($prompt, $message, $conversationId),
-        );
+            $response = $this->gateway->run(
+                $model,
+                Feature::Chat,
+                $user,
+                function (string $provider, string $name, AiRequest $request) use ($agent, $input, $attachments, $providers, &$ledger) {
+                    $ledger = $request;
+
+                    return $agent->prompt($input, $attachments, provider: $providers);
+                },
+                $this->options($version, $input, $conversationId),
+            );
+        } finally {
+            $release();
+        }
 
         /** @var AiRequest $ledger */
         return ['response' => $response, 'request' => $ledger->refresh()];
     }
 
     /**
-     * Send a message and stream the response. The ledger request is closed
-     * when the stream completes.
+     * Send a message (or approval decisions) and stream the response. The
+     * caller must invoke the returned release callback when the stream ends.
      *
-     * @return array{response: StreamableAgentResponse, request: AiRequest}
+     * @param  list<File>  $attachments
+     * @return array{response: StreamableAgentResponse, request: AiRequest, release: Closure(): void}
      */
-    public function stream(User $user, string $message, ?AiPrompt $prompt = null, ?AiModel $model = null, ?string $conversationId = null): array
+    public function stream(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'page'): array
     {
-        $prompt ??= AiPrompt::default();
-        $model = $this->resolveModel($prompt, $model);
-        $assistant = $this->assistant($user, $prompt, $conversationId);
+        $release = $this->limiter->acquire($version, $user);
+
+        try {
+            $model = $this->resolveModel($version, $model);
+            $agent = $this->agent($user, $version, $conversationId, $surface);
+            $providers = $this->providers($version, $model);
+            $ledger = null;
+
+            $response = $this->gateway->stream(
+                $model,
+                Feature::Chat,
+                $user,
+                function (string $provider, string $name, AiRequest $request) use ($agent, $input, $attachments, $providers, &$ledger) {
+                    $ledger = $request;
+
+                    return $agent->stream($input, $attachments, provider: $providers);
+                },
+                $this->options($version, $input, $conversationId),
+            );
+        } catch (Throwable $exception) {
+            $release();
+
+            throw $exception;
+        }
+
+        /** @var AiRequest $ledger */
+        return ['response' => $response, 'request' => $ledger, 'release' => $release];
+    }
+
+    /**
+     * Try a version (usually the draft) from the panel. The call is recorded
+     * as a test, is not remembered as a conversation and only offers the
+     * read-only tools, so a test never changes data.
+     *
+     * @return array{response: AgentResponse, request: AiRequest, tools: list<string>}
+     */
+    public function test(User $actor, AgentVersion $version, string $message): array
+    {
+        $model = $this->resolveModel($version);
+        $context = new ToolContext($actor, $version, 'page');
+        $tools = array_values(array_filter(
+            $this->tools->resolve($version->settings()->tools(), $context),
+            fn (Tool $tool) => $this->tools->get($this->toolName($tool))?->kind === ToolKind::Read,
+        ));
+        $agent = new ConfiguredAgent($version, $this->variables($actor), $tools);
+        $providers = $this->providers($version, $model);
         $ledger = null;
 
-        $response = $this->gateway->stream(
+        $response = $this->gateway->run(
             $model,
-            Feature::Chat,
-            $user,
-            function (string $provider, string $name, AiRequest $request) use ($assistant, $message, &$ledger) {
+            Feature::Test,
+            $actor,
+            function (string $provider, string $name, AiRequest $request) use ($agent, $message, $providers, &$ledger) {
                 $ledger = $request;
 
-                return $assistant->stream($message, provider: $provider, model: $name);
+                return $agent->prompt($message, provider: $providers);
             },
-            $this->options($prompt, $message, $conversationId),
+            [...$this->options($version, $message, null), 'metadata' => ['test' => true, 'version' => $version->number]],
         );
 
         /** @var AiRequest $ledger */
-        return ['response' => $response, 'request' => $ledger];
+        return ['response' => $response, 'request' => $ledger->refresh(), 'tools' => array_map(fn (Tool $tool) => $this->toolName($tool), $tools)];
     }
 
     /**
-     * Build the assistant agent for the given user and conversation.
+     * Build the SDK agent for a user, remembering the conversation.
      */
-    public function assistant(User $user, ?AiPrompt $prompt, ?string $conversationId = null): Assistant
+    public function agent(User $user, AgentVersion $version, ?string $conversationId = null, string $surface = 'page'): ConfiguredAgent
     {
-        $assistant = new Assistant($prompt, [
-            'app_name' => (string) $this->settings->get('branding.app_name', config('app.name')),
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'locale' => app()->getLocale(),
-            'date' => Carbon::now()->toDateString(),
-            'datetime' => Carbon::now()->toDateTimeString(),
-        ]);
+        $context = new ToolContext($user, $version, $surface, $conversationId);
 
-        return $assistant->continueOrStart($conversationId, $user);
+        $agent = new ConfiguredAgent($version, $this->variables($user), $this->tools->resolve($version->settings()->tools(), $context));
+
+        return $agent->continueOrStart($conversationId, $user);
     }
 
     /**
-     * Model to use: the explicit choice, then the prompt's model, then the
-     * default model of the catalog.
+     * Model to use: an explicit choice (administrators), the model of the
+     * version, then the default model of the catalog.
      *
      * @throws ModelNotUsableException
      */
-    public function resolveModel(?AiPrompt $prompt, ?AiModel $model = null): AiModel
+    public function resolveModel(AgentVersion $version, ?AiModel $model = null): AiModel
     {
-        $candidates = array_filter([$model, $prompt?->model]);
+        $configured = $version->settings()->modelId();
+
+        $candidates = array_filter([
+            $model,
+            $configured !== null ? AiModel::query()->find($configured) : null,
+        ]);
 
         foreach ($candidates as $candidate) {
-            $candidate->loadMissing('connection');
-
-            if ($candidate->is_enabled && $candidate->connection->is_active && $candidate->status !== ModelStatus::Unavailable) {
-                return $candidate;
+            if (AiModel::query()->usable()->forFunction('text')->whereKey($candidate->id)->exists()) {
+                return $candidate->loadMissing('connection');
             }
         }
 
@@ -155,16 +217,61 @@ class AiService
     }
 
     /**
-     * @return array{input_chars: int, max_output_tokens: int|null, agent: string, conversation_id: string|null, metadata: array<string, mixed>}
+     * Variables a system prompt may reference.
+     *
+     * @return array<string, string>
      */
-    protected function options(?AiPrompt $prompt, string $message, ?string $conversationId): array
+    public function variables(User $user): array
     {
         return [
-            'input_chars' => mb_strlen($message) + mb_strlen((string) $prompt?->content),
-            'max_output_tokens' => $prompt?->max_tokens,
-            'agent' => Assistant::class,
-            'conversation_id' => $conversationId,
-            'metadata' => array_filter(['prompt' => $prompt?->slug]),
+            'app_name' => (string) $this->settings->get('branding.app_name', config('app.name')),
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_roles' => $user->getRoleNames()->implode(', '),
+            'locale' => app()->getLocale(),
+            'date' => Carbon::now()->toDateString(),
+            'datetime' => Carbon::now()->toDateTimeString(),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function providers(AgentVersion $version, AiModel $model): array
+    {
+        $config = $version->settings();
+
+        $fallbacks = AiModel::query()
+            ->with('connection')
+            ->usable()
+            ->forFunction('text')
+            ->whereIn('id', $config->fallbackModelIds())
+            ->get()
+            ->sortBy(fn (AiModel $fallback) => array_search($fallback->id, $config->fallbackModelIds(), true))
+            ->all();
+
+        return $this->gateway->providers($model, $config->retries(), array_values($fallbacks));
+    }
+
+    /**
+     * @return array{input_chars: int, max_output_tokens: int|null, agent: string, agent_version_id: int, conversation_id: string|null, metadata: array<string, mixed>}
+     */
+    protected function options(AgentVersion $version, string|Decisions $input, ?string $conversationId): array
+    {
+        $config = $version->settings();
+
+        return [
+            'input_chars' => (is_string($input) ? mb_strlen($input) : 0) + mb_strlen($config->systemPrompt()),
+            'max_output_tokens' => $config->maxTokens(),
+            'agent' => $version->agent->slug,
+            'agent_version_id' => $version->id,
+            'conversation_id' => $conversationId,
+            'metadata' => ['agent_version' => $version->number] + ($input instanceof Decisions ? ['approval' => true] : []),
+        ];
+    }
+
+    protected function toolName(Tool $tool): string
+    {
+        return method_exists($tool, 'name') ? (string) $tool->name() : class_basename($tool);
     }
 }

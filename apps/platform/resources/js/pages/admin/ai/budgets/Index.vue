@@ -83,6 +83,7 @@ const props = defineProps<{
         roles: string[];
         connections: { id: number; label: string }[];
         users: { id: number; name: string; email: string }[];
+        agents: { slug: string; name: string }[];
     };
 }>();
 
@@ -92,6 +93,7 @@ const scopeLabels: Record<string, string> = {
     role: 'One role',
     feature: 'One feature',
     connection: 'One connection',
+    agent: 'One agent',
 };
 
 const open = ref(false);
@@ -131,6 +133,11 @@ const scopeOptions = computed<{ value: string; label: string }[]>(() => {
                 value: String(connection.id),
                 label: connection.label,
             }));
+        case 'agent':
+            return props.options.agents.map((agent) => ({
+                value: agent.slug,
+                label: agent.name,
+            }));
         default:
             return [];
     }
@@ -153,6 +160,11 @@ const scopeName = (budget: BudgetRow) => {
     if (budget.scope === 'feature')
         return t(
             featureLabels[budget.scope_value ?? ''] ?? budget.scope_value ?? '',
+        );
+    if (budget.scope === 'agent')
+        return (
+            props.options.agents.find((a) => a.slug === budget.scope_value)
+                ?.name ?? budget.scope_value
         );
 
     return budget.scope_value;

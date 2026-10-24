@@ -40,7 +40,7 @@ import { index as budgets } from '@/routes/admin/ai/budgets';
 import { index as connections } from '@/routes/admin/ai/connections';
 import { index as models } from '@/routes/admin/ai/models';
 import { index as prices } from '@/routes/admin/ai/prices';
-import { index as prompts } from '@/routes/admin/ai/prompts';
+import { index as agents } from '@/routes/admin/ai/agents';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
@@ -140,8 +140,8 @@ const sections = computed<NavSection[]>(() => {
                     can: 'ai.models.manage',
                 },
                 {
-                    title: t('System prompts'),
-                    href: prompts(),
+                    title: t('Agents'),
+                    href: agents(),
                     icon: Bot,
                     can: 'ai.agents.manage',
                 },

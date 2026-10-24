@@ -244,15 +244,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ai/prompts": {
+    "/v1/ai/chat/agents": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List the available system prompts */
-        get: operations["v1.ai.prompts"];
+        /** List the agents available to the authenticated user through the API */
+        get: operations["v1.ai.chat.agents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -353,6 +353,119 @@ export interface paths {
         post?: never;
         /** Revoke an invitation */
         delete: operations["v1.invitations.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List agents with their published version and draft */
+        get: operations["v1.ai.agents.index"];
+        put?: never;
+        /** Create an agent with a first draft (default settings when omitted) */
+        post: operations["v1.ai.agents.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/agents/{agent}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Show an agent: published settings, draft, validation and history */
+        get: operations["v1.ai.agents.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the name, description and flags of an agent */
+        patch: operations["v1.ai.agents.update"];
+        trace?: never;
+    };
+    "/v1/ai/agents/{agent}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft settings. The complete settings object is required
+         *     (see the agent defaults in the published version)
+         */
+        put: operations["v1.ai.agents.draft.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/agents/{agent}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft. Validation errors (unusable model, unsupported
+         *     capabilities, unknown tools) block the publication
+         */
+        post: operations["v1.ai.agents.publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/agents/{agent}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a previous version: its settings are published as a new version */
+        post: operations["v1.ai.agents.versions.restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/agents/{agent}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Try the draft (or the published version). Recorded as a test in the
+         *     ledger, not remembered, and only read-only tools are offered
+         */
+        post: operations["v1.ai.agents.test"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -593,23 +706,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** AiPrompt */
-        AiPrompt: {
-            id: number;
-            name: string;
-            slug: string;
-            description: string | null;
-            content: string;
-            ai_model_id: number | null;
-            temperature: string | null;
-            max_tokens: number | null;
-            is_default: boolean;
-            is_active: boolean;
-            /** Format: date-time */
-            created_at: string | null;
-            /** Format: date-time */
-            updated_at: string | null;
-        };
         /**
          * BudgetPeriod
          * @enum {string}
@@ -619,7 +715,7 @@ export interface components {
          * BudgetScope
          * @enum {string}
          */
-        BudgetScope: "global" | "user" | "role" | "feature" | "connection";
+        BudgetScope: "global" | "user" | "role" | "feature" | "connection" | "agent";
         /**
          * Capability
          * @enum {string}
@@ -636,7 +732,7 @@ export interface components {
          * @description Text drivers of the Laravel AI SDK offered for connections. Every driver maps to an SDK driver name; "openai-compatible" covers custom endpoints.
          * @enum {string}
          */
-        Driver: "openai" | "anthropic" | "gemini" | "deepseek" | "openrouter" | "bedrock" | "azure" | "groq" | "mistral" | "xai" | "ollama" | "openai-compatible";
+        Driver: "openai" | "anthropic" | "gemini" | "deepseek" | "openrouter" | "bedrock" | "azure" | "groq" | "mistral" | "xai" | "ollama" | "openai-compatible" | "simulated";
         /**
          * Feature
          * @description What an AI call was made for (ledger dimension).
@@ -1424,7 +1520,7 @@ export interface operations {
             };
         };
     };
-    "v1.ai.prompts": {
+    "v1.ai.chat.agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -1439,7 +1535,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["AiPrompt"][];
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            is_default: boolean;
+                            version: number | null;
+                        }[];
                     };
                 };
             };
@@ -1458,8 +1561,8 @@ export interface operations {
             content: {
                 "application/json": {
                     message: string;
-                    /** @description Slug of the system prompt to use. Defaults to the default prompt. */
-                    prompt?: string | null;
+                    /** @description Slug of the agent to use. Defaults to the default agent available to you. */
+                    agent?: string | null;
                     /** @description Conversation to continue. */
                     conversation_id?: string | null;
                     /** @description Catalog model id (requires the `ai.models.manage` permission). */
@@ -1478,6 +1581,9 @@ export interface operations {
                         conversation_id: string;
                         /** @description Ledger request id (see the usage endpoints). */
                         request_id: string;
+                        agent: string;
+                        /** @description Published agent version that answered. */
+                        agent_version: number;
                         provider: string;
                         model: string;
                         usage: {
@@ -1493,7 +1599,37 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             422: components["responses"]["ValidationException"];
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.ai.me.usage": {
@@ -1659,6 +1795,463 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
+    "v1.ai.agents.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            is_active: boolean;
+                            is_default: boolean;
+                            avatar: unknown;
+                            published_version: {
+                                id: number;
+                                number: number;
+                                published_at: string | null;
+                            } | null;
+                            draft: {
+                                id: number;
+                                number: number;
+                                updated_at: string;
+                            } | null;
+                            tools: unknown[];
+                            surfaces: unknown[];
+                            roles: unknown[];
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "v1.ai.agents.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @description Lowercase letters, numbers and dashes. */
+                    slug: string;
+                    description?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            is_active: boolean;
+                            is_default: boolean;
+                            avatar: unknown;
+                            published_version: {
+                                id: number;
+                                number: number;
+                                published_at: string | null;
+                            } | null;
+                            draft: {
+                                id: number;
+                                number: number;
+                                updated_at: string;
+                            } | null;
+                            tools: unknown[];
+                            surfaces: unknown[];
+                            roles: unknown[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.agents.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            is_active: boolean;
+                            is_default: boolean;
+                            avatar: unknown;
+                            published_version: {
+                                id: number;
+                                number: number;
+                                published_at: string | null;
+                            } | null;
+                            draft: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                notes: string | null;
+                                published_at: string | null;
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                                check: {
+                                    errors: string[];
+                                    warnings: string[];
+                                };
+                            } | null;
+                            tools: unknown[];
+                            surfaces: unknown[];
+                            roles: unknown[];
+                            published: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                notes: string | null;
+                                published_at: string | null;
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            } | null;
+                            versions: unknown[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.agents.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    description?: string | null;
+                    is_active?: boolean;
+                    is_default?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            is_active: boolean;
+                            is_default: boolean;
+                            avatar: unknown;
+                            published_version: {
+                                id: number;
+                                number: number;
+                                published_at: string | null;
+                            } | null;
+                            draft: {
+                                id: number;
+                                number: number;
+                                updated_at: string;
+                            } | null;
+                            tools: unknown[];
+                            surfaces: unknown[];
+                            roles: unknown[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.agents.draft.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    config: {
+                        identity: {
+                            avatar?: string | null;
+                            greeting?: string | null;
+                            /** @enum {string} */
+                            language: "auto" | "es" | "en";
+                            /** @enum {string} */
+                            tone: "neutral" | "formal" | "friendly" | "concise";
+                        };
+                        instructions: {
+                            system_prompt: string;
+                            variables: ("app_name" | "user_name" | "user_email" | "user_roles" | "locale" | "date" | "datetime")[];
+                        };
+                        execution: {
+                            model_id?: number | null;
+                            fallback_model_ids: number[];
+                            timeout: number;
+                            retries: number;
+                        };
+                        responses: {
+                            max_tokens?: number | null;
+                            temperature?: number | null;
+                            /** @enum {string} */
+                            style: "markdown" | "plain";
+                        };
+                        context: {
+                            history_messages: number;
+                            retention_days?: number | null;
+                        };
+                        multimedia: {
+                            images: boolean;
+                            documents: boolean;
+                            max_files: number;
+                            max_file_mb: number;
+                            mime_types: ("image/png" | "image/jpeg" | "image/webp" | "image/gif" | "application/pdf" | "text/plain" | "text/markdown" | "text/csv")[];
+                        };
+                        microphone: {
+                            enabled: boolean;
+                            transcription_model_id?: number | null;
+                            language?: string | null;
+                            max_seconds: number;
+                            auto_send: boolean;
+                        };
+                        tools: {
+                            allowed: ""[];
+                            max_steps: number;
+                            confirm_writes: boolean;
+                        };
+                        rag: {
+                            /** @enum {string} */
+                            mode: "off";
+                        };
+                        access: {
+                            roles: string[];
+                            surfaces: ("page" | "floating" | "api")[];
+                        };
+                        limits: {
+                            requests_per_minute?: number | null;
+                            concurrent_per_user?: number | null;
+                        };
+                    };
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            number: number;
+                            status: string;
+                            notes: string | null;
+                            published_at: string | null;
+                            config: {
+                                [key: string]: unknown;
+                            };
+                            check: {
+                                errors: string[];
+                                warnings: string[];
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.agents.publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            number: number;
+                            status: string;
+                            notes: string | null;
+                            published_at: string | null;
+                            config: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.agents.versions.restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+                /** @description The version ID */
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            number: number;
+                            status: string;
+                            notes: string | null;
+                            published_at: string | null;
+                            config: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.agents.test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The agent ID */
+                agent: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        version: number;
+                        text: string;
+                        request_id: string;
+                        model: string;
+                        latency_ms: string;
+                        cost: string | null;
+                        cost_status: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        message: "The credential was rejected by the provider." | "The provider account has no credit or quota left." | "The provider rate limit was reached." | "The provider could not be reached." | "The model does not exist or is not available for this credential." | "The provider rejected the request." | "The provider is overloaded. Try again later." | "An AI budget limit was reached." | "The connection is not configured correctly." | "The provider returned an unexpected error.";
+                    };
+                };
+            };
+        };
+    };
     "v1.ai.connections.index": {
         parameters: {
             query?: never;
@@ -1680,7 +2273,7 @@ export interface operations {
                             label: string;
                             driver: string;
                             /** @enum {string} */
-                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)" | "Simulated (no network)";
                             base_url: string | null;
                             endpoint: string | null;
                             /** @enum {string} */
@@ -1749,7 +2342,7 @@ export interface operations {
                             label: string;
                             driver: string;
                             /** @enum {string} */
-                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)" | "Simulated (no network)";
                             base_url: string | null;
                             endpoint: string | null;
                             /** @enum {string} */
@@ -1800,7 +2393,7 @@ export interface operations {
                             label: string;
                             driver: string;
                             /** @enum {string} */
-                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)" | "Simulated (no network)";
                             base_url: string | null;
                             endpoint: string | null;
                             /** @enum {string} */
@@ -1900,7 +2493,7 @@ export interface operations {
                             label: string;
                             driver: string;
                             /** @enum {string} */
-                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)";
+                            driver_label: "OpenAI" | "Anthropic" | "Google Gemini" | "DeepSeek" | "OpenRouter" | "Amazon Bedrock" | "Azure OpenAI" | "Groq" | "Mistral" | "xAI" | "Ollama" | "OpenAI compatible (custom)" | "Simulated (no network)";
                             base_url: string | null;
                             endpoint: string | null;
                             /** @enum {string} */

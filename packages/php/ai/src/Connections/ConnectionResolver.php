@@ -5,6 +5,7 @@ namespace Starter\Ai\Connections;
 use Laravel\Ai\AiManager;
 use Starter\Ai\Enums\Driver;
 use Starter\Ai\Models\Connection;
+use Starter\Ai\Simulated\SimulatedProvider;
 
 /**
  * Turns a connection into an SDK provider built on demand for the current
@@ -20,9 +21,11 @@ class ConnectionResolver
     /**
      * Build the provider and return the name to pass to the SDK.
      */
-    public function providerName(Connection $connection): string
+    public function providerName(Connection $connection, ?string $alias = null): string
     {
-        $name = self::PREFIX.$connection->id.'_'.$connection->credentialsVersion();
+        // An alias builds another instance of the same connection, used as a
+        // distinct entry of the SDK failover (retries, fallbacks)...
+        $name = self::PREFIX.$connection->id.'_'.$connection->credentialsVersion().($alias !== null ? '_'.$alias : '');
 
         $this->manager->build(['name' => $name, ...$this->config($connection)]);
 
@@ -60,6 +63,7 @@ class ConnectionResolver
                 'api_version' => $connection->option('api_version', '2025-04-01-preview'),
                 'deployment' => $connection->option('deployment'),
             ],
+            Driver::Simulated => ['driver' => SimulatedProvider::DRIVER, 'key' => ''],
             default => $config,
         };
     }

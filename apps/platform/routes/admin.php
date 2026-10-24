@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\Ai\AiPromptController;
+use App\Http\Controllers\Admin\Ai\AgentController;
 use App\Http\Controllers\Admin\Ai\BudgetController;
 use App\Http\Controllers\Admin\Ai\ConnectionController;
 use App\Http\Controllers\Admin\Ai\ModelController;
@@ -86,7 +86,16 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
         });
 
         Route::middleware('can:ai.agents.manage')->group(function () {
-            Route::resource('prompts', AiPromptController::class)->except('show');
+            Route::get('agents', [AgentController::class, 'index'])->name('agents.index');
+            Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
+            Route::get('agents/{agent}', [AgentController::class, 'edit'])->name('agents.edit');
+            Route::put('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
+            Route::delete('agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+            Route::put('agents/{agent}/draft', [AgentController::class, 'saveDraft'])->name('agents.draft.update');
+            Route::delete('agents/{agent}/draft', [AgentController::class, 'discardDraft'])->name('agents.draft.destroy');
+            Route::post('agents/{agent}/publish', [AgentController::class, 'publish'])->name('agents.publish');
+            Route::post('agents/{agent}/versions/{version}/restore', [AgentController::class, 'rollback'])->scopeBindings()->name('agents.versions.restore');
+            Route::post('agents/{agent}/test', [AgentController::class, 'test'])->middleware('throttle:20,1')->name('agents.test');
         });
 
         Route::middleware('can:ai.usage.read')->group(function () {
