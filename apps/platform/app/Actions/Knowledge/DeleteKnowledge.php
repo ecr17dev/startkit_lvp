@@ -6,10 +6,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Starter\Knowledge\Enums\Capability;
 use Starter\Knowledge\Enums\IndexVersionStatus;
 use Starter\Knowledge\Enums\JobStatus;
 use Starter\Knowledge\Enums\JobType;
 use Starter\Knowledge\Enums\SourceStatus;
+use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\Document;
 use Starter\Knowledge\Models\EmbeddingProfile;
@@ -31,11 +33,13 @@ class DeleteKnowledge
         protected RagJobs $jobs,
         protected VectorStore $store,
         protected Provisioner $provisioner,
+        protected Knowledge $knowledge,
     ) {}
 
     public function document(User $actor, Document $document): RagJob
     {
         Gate::forUser($actor)->authorize('rag.documents.delete');
+        $this->knowledge->ensureFor($document->collection, Capability::Delete);
 
         $job = $this->deletions->delete($document, 'manual', null, $actor->id);
 
@@ -47,6 +51,7 @@ class DeleteKnowledge
     public function source(User $actor, Source $source): RagJob
     {
         Gate::forUser($actor)->authorize('rag.sources.manage');
+        $this->knowledge->ensureFor($source->collection, Capability::Delete);
 
         $this->cancelOpenJobs($source->jobs()->whereNull('parent_id')->whereIn('status', JobStatus::open())->get());
 
@@ -64,6 +69,8 @@ class DeleteKnowledge
     public function collection(User $actor, Collection $collection, string $confirmation): RagJob
     {
         Gate::forUser($actor)->authorize('rag.collections.manage');
+
+        $this->knowledge->ensureFor($collection, Capability::Delete);
 
         if ($confirmation !== $collection->slug) {
             throw ValidationException::withMessages(['confirmation' => __('Type the collection identifier to confirm.')]);

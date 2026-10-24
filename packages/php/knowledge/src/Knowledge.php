@@ -10,6 +10,7 @@ use Starter\Knowledge\Enums\ConnectionStatus;
 use Starter\Knowledge\Enums\JobStatus;
 use Starter\Knowledge\Enums\RagMode;
 use Starter\Knowledge\Exceptions\RagUnavailableException;
+use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\RagConnection;
 use Starter\Knowledge\Models\RagJob;
@@ -79,6 +80,32 @@ class Knowledge
         return $connection;
     }
 
+    /**
+     * The collection's own connection must be ready and support the
+     * operation (read only connections and retrieval APIs hide ingestion).
+     * Deletions are allowed while knowledge is disabled.
+     *
+     * @throws RagUnavailableException
+     */
+    public function ensureFor(Collection $collection, Capability $capability): RagConnection
+    {
+        $connection = $collection->connection;
+
+        if ($capability !== Capability::Delete) {
+            $this->ensureAvailable();
+
+            if (! $connection->isReady()) {
+                throw new RagUnavailableException((string) __('The connection of this collection is not ready. Run its diagnostics.'));
+            }
+        }
+
+        if (! $connection->can($capability)) {
+            throw new RagUnavailableException((string) __('The knowledge connection does not support this operation.'));
+        }
+
+        return $connection;
+    }
+
     public function internalConnection(): RagConnection
     {
         return RagConnection::query()->firstOrCreate(['name' => 'internal'], [
@@ -89,8 +116,8 @@ class Knowledge
     }
 
     /**
-     * Connection a mode would use (internal only until external
-     * connections are configured).
+     * Connection a mode would use: the internal one or a configured
+     * external connection of the matching kind.
      */
     public function connectionFor(RagMode $mode, ?int $connectionId = null): ?RagConnection
     {
@@ -108,7 +135,10 @@ class Knowledge
      */
     public function diagnose(RagConnection $connection): DiagnosticReport
     {
-        $report = $this->provisioner->diagnose($connection);
+        $report = $connection->kind->managed()
+            ? $this->provisioner->diagnose($connection)
+            : app(Store\ExternalApi\ApiDiagnostics::class)->diagnose($connection);
+
         $this->record($connection, $report, false);
 
         return $report;
@@ -127,15 +157,17 @@ class Knowledge
         $connection = $this->connectionFor($mode, $connectionId)
             ?? throw new RagUnavailableException((string) __('Choose a configured knowledge connection.'));
 
+        // Nothing is created on an external database without this explicit
+        // activation, and never on a read only one...
         $report = $connection->kind->managed()
-            ? $this->provisioner->diagnose($connection, $createExtension, provision: true)
+            ? $this->provisioner->diagnose($connection, $createExtension && ! $connection->isReadOnly(), provision: ! $connection->isReadOnly())
             : app(Store\ExternalApi\ApiDiagnostics::class)->diagnose($connection);
 
         $this->record($connection, $report, true);
 
         if ($report->passed()) {
             // Vector tables of existing profiles (idempotent)...
-            foreach ($connection->profiles()->get() as $profile) {
+            foreach ($connection->isReadOnly() ? [] : $connection->profiles()->get() as $profile) {
                 $this->provisionProfile($profile);
             }
 
@@ -178,7 +210,7 @@ class Knowledge
         if ($activation || ! $report->passed()) {
             $connection->forceFill([
                 'status' => $report->passed() ? ConnectionStatus::Ready : ConnectionStatus::Failed,
-                'capabilities' => $report->passed() ? ($connection->kind->managed() ? Capability::all() : $connection->capabilities) : $connection->capabilities,
+                'capabilities' => $report->passed() ? ($connection->kind->managed() ? $connection->managedCapabilities() : ($report->capabilities() ?? [])) : $connection->capabilities,
             ]);
         }
 

@@ -15,6 +15,7 @@ export type RagConnection = {
     kind: 'internal' | 'pgsql' | 'api';
     status: 'pending' | 'ready' | 'failed' | 'disabled';
     capabilities: string[];
+    read_only: boolean;
     pgvector_version: string | null;
     diagnostics: {
         passed: boolean;
@@ -23,6 +24,27 @@ export type RagConnection = {
         checked_at: string;
     } | null;
     checked_at: string | null;
+};
+
+export type RagConnectionDetail = RagConnection & {
+    config: {
+        host?: string;
+        port?: number;
+        database?: string;
+        schema?: string;
+        sslmode?: string;
+        sslrootcert?: string;
+        connect_timeout?: number;
+        statement_timeout_ms?: number;
+        read_only?: boolean;
+        base_url?: string;
+        timeout?: number;
+        enforces_acl?: boolean;
+    };
+    credentials: Record<string, string | null>;
+    active: boolean;
+    collections: number;
+    profiles: number;
 };
 
 export type RagStatus = {
@@ -113,6 +135,14 @@ export type CollectionSummary = {
     building_version: IndexVersionSummary | null;
     needs_reindex: boolean;
     open_jobs: number;
+    connection: {
+        id: number;
+        label: string;
+        kind: 'internal' | 'pgsql' | 'api';
+        status: RagConnection['status'];
+        read_only: boolean;
+        capabilities: string[];
+    };
     created_at: string;
 };
 
@@ -249,7 +279,12 @@ export type DocumentDetail = DocumentSummary & {
     effective_acl: string[];
     etag: string | null;
     last_modified: string | null;
-    collection: { id: number; name: string; slug: string };
+    collection: {
+        id: number;
+        name: string;
+        slug: string;
+        capabilities: string[];
+    };
 };
 
 export type DocumentVersionDetail = {

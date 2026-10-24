@@ -25,8 +25,10 @@ Desactivar detiene trabajos nuevos y recuperación, cancela de forma cooperativa
 abiertos y **no** borra documentos ni tablas. `php artisan starter:rag-diagnose` repite el
 diagnóstico desde la consola.
 
-Modos: `disabled`, `internal` (este PostgreSQL con pgvector), `external_pgsql` y
-`external_api` (etapa 7).
+Modos: `disabled`, `internal` (este PostgreSQL con pgvector), `external_pgsql` (otra base
+PostgreSQL con pgvector, administrable o de solo lectura) y `external_api` (servicio de
+recuperación). Las conexiones externas, su matriz de capacidades y la activación explícita
+se describen en [rag-external.md](rag-external.md).
 
 ## Modelo de datos
 

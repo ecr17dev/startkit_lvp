@@ -107,6 +107,8 @@ defineOptions({
 });
 
 const { can } = usePermissions();
+const supports = (capability: string) =>
+    props.collection.connection.capabilities.includes(capability);
 const tab = ref(
     new URLSearchParams(window.location.search).get('tab') ?? 'sources',
 );
@@ -240,8 +242,13 @@ onBeforeUnmount(() => clearInterval(timer));
             :description="collection.description ?? t('Knowledge collection')"
         >
             <template #icon><Library class="size-5" /></template>
+            <Badge v-if="collection.connection.read_only" variant="outline">{{
+                t('Read only · :connection', {
+                    connection: collection.connection.label,
+                })
+            }}</Badge>
             <Button
-                v-if="can('rag.jobs.manage')"
+                v-if="can('rag.jobs.manage') && supports('ingest')"
                 variant="outline"
                 :disabled="!!collection.building_version"
                 data-test="collection-reindex"
@@ -251,7 +258,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 {{ t('Reindex') }}
             </Button>
             <Button
-                v-if="can('rag.collections.manage')"
+                v-if="can('rag.collections.manage') && supports('delete')"
                 variant="outline"
                 @click="deleteOpen = true"
             >
@@ -332,7 +339,7 @@ onBeforeUnmount(() => clearInterval(timer));
             <TabsContent value="sources" class="grid gap-3">
                 <div class="flex justify-end">
                     <Button
-                        v-if="can('rag.sources.manage')"
+                        v-if="can('rag.sources.manage') && supports('ingest')"
                         data-test="new-source"
                         @click="openSource(null)"
                     >
@@ -481,6 +488,7 @@ onBeforeUnmount(() => clearInterval(timer));
                                     <div
                                         v-if="
                                             can('rag.sources.manage') &&
+                                            supports('ingest') &&
                                             source.status !== 'deleting'
                                         "
                                         class="flex justify-end gap-1"

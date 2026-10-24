@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\Knowledge\CollectionController as KnowledgeCollectionController;
+use App\Http\Controllers\Admin\Knowledge\ConnectionController as KnowledgeConnectionController;
 use App\Http\Controllers\Admin\Knowledge\DashboardController as KnowledgeDashboardController;
 use App\Http\Controllers\Admin\Knowledge\DocumentController as KnowledgeDocumentController;
 use App\Http\Controllers\Admin\Knowledge\EvaluationController as KnowledgeEvaluationController;
@@ -135,6 +136,12 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
         Route::post('diagnose', [KnowledgeController::class, 'diagnose'])->middleware('throttle:10,1')->name('diagnose');
         Route::post('activate', [KnowledgeController::class, 'activate'])->middleware('throttle:10,1')->name('activate');
         Route::post('deactivate', [KnowledgeController::class, 'deactivate'])->name('deactivate');
+
+        Route::get('connections', [KnowledgeConnectionController::class, 'index'])->name('connections.index');
+        Route::post('connections', [KnowledgeConnectionController::class, 'store'])->name('connections.store');
+        Route::put('connections/{connection}', [KnowledgeConnectionController::class, 'update'])->name('connections.update');
+        Route::delete('connections/{connection}', [KnowledgeConnectionController::class, 'destroy'])->name('connections.destroy');
+        Route::post('connections/{connection}/diagnose', [KnowledgeConnectionController::class, 'diagnose'])->middleware('throttle:10,1')->name('connections.diagnose');
 
         Route::post('profiles', [KnowledgeController::class, 'storeProfile'])->name('profiles.store');
         Route::put('profiles/{profile}', [KnowledgeController::class, 'updateProfile'])->name('profiles.update');

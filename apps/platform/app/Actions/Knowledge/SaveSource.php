@@ -55,7 +55,7 @@ class SaveSource
     public function handle(User $actor, Collection $collection, array $input, ?Source $source = null): array
     {
         Gate::forUser($actor)->authorize('rag.sources.manage');
-        $this->knowledge->ensureAvailable(Capability::Ingest);
+        $this->knowledge->ensureFor($collection, Capability::Ingest);
 
         $type = $source->type ?? SourceType::tryFrom((string) ($input['type'] ?? ''));
 

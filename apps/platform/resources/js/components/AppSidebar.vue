@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpenText,
     Bot,
+    Cable,
     Brain,
     ChartColumn,
     ClipboardCheck,
@@ -52,6 +53,7 @@ import {
     dashboard as knowledgeDashboard,
     lab as knowledgeLab,
 } from '@/routes/admin/knowledge';
+import { index as knowledgeConnections } from '@/routes/admin/knowledge/connections';
 import { index as knowledgeEvaluations } from '@/routes/admin/knowledge/evaluations';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
@@ -203,7 +205,16 @@ const sections = computed<NavSection[]>(() => {
                               ) &&
                               !currentUrl.value.startsWith(
                                   '/admin/knowledge/evaluations',
+                              ) &&
+                              !currentUrl.value.startsWith(
+                                  '/admin/knowledge/connections',
                               ),
+                      },
+                      {
+                          title: t('Connections'),
+                          href: knowledgeConnections(),
+                          icon: Cable,
+                          can: 'settings.update',
                       },
                       {
                           title: t('Dashboard'),

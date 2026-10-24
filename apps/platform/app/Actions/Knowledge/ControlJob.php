@@ -6,7 +6,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Starter\Knowledge\Enums\Capability;
 use Starter\Knowledge\Enums\JobStatus;
+use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\RagJob;
 use Starter\Knowledge\Pipeline\RagJobs;
@@ -18,7 +20,7 @@ use Throwable;
  */
 class ControlJob
 {
-    public function __construct(protected RagJobs $jobs, protected Reindexer $reindexer) {}
+    public function __construct(protected RagJobs $jobs, protected Reindexer $reindexer, protected Knowledge $knowledge) {}
 
     public function cancel(User $actor, RagJob $job): RagJob
     {
@@ -77,6 +79,7 @@ class ControlJob
     public function reindex(User $actor, Collection $collection, array $input = []): RagJob
     {
         Gate::forUser($actor)->authorize('rag.jobs.manage');
+        $this->knowledge->ensureFor($collection, Capability::Ingest);
 
         /** @var array{max_cost?: numeric-string|float|int|null} $data */
         $data = Validator::make($input, ['max_cost' => ['nullable', 'numeric', 'min:0', 'max:100000']])->validate();

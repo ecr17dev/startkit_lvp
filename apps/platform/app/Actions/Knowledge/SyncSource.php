@@ -27,7 +27,7 @@ class SyncSource
     public function handle(User $actor, Source $source, array $options = []): RagJob
     {
         Gate::forUser($actor)->authorize('rag.sources.manage');
-        $this->knowledge->ensureAvailable(Capability::Ingest);
+        $this->knowledge->ensureFor($source->collection, Capability::Ingest);
 
         if (! $source->isActive()) {
             throw ValidationException::withMessages(['source' => __('The source is paused.')]);

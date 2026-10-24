@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
+    Cable,
     Database,
     Library,
     Plus,
@@ -63,6 +64,7 @@ import { formatDate, formatNumber, t } from '@/lib/i18n';
 import { isOpenJob } from '@/lib/knowledge';
 import knowledge from '@/routes/admin/knowledge';
 import collectionRoutes from '@/routes/admin/knowledge/collections';
+import connectionRoutes from '@/routes/admin/knowledge/connections';
 import profileRoutes from '@/routes/admin/knowledge/profiles';
 import type {
     CollectionSummary,
@@ -96,9 +98,32 @@ const { can } = usePermissions();
 const connection = computed(() => props.status.connection ?? props.internal);
 const diagnostics = computed(() => connection.value.diagnostics?.checks ?? []);
 
-const activation = useForm({ mode: 'internal', create_extension: false });
+const activation = useForm({
+    mode: 'internal',
+    connection_id: '' as string,
+    create_extension: false,
+});
+// External modes use a configured connection of their kind...
+const modeConnections = computed(() =>
+    props.connections.filter(
+        (connection) =>
+            connection.kind ===
+            ({ external_pgsql: 'pgsql', external_api: 'api' } as const)[
+                activation.mode as 'external_pgsql' | 'external_api'
+            ],
+    ),
+);
 const activate = () =>
-    activation.post(knowledge.activate().url, { preserveScroll: true });
+    activation
+        .transform((data) => ({
+            mode: data.mode,
+            connection_id:
+                data.mode === 'internal' || data.connection_id === ''
+                    ? null
+                    : Number(data.connection_id),
+            create_extension: data.create_extension,
+        }))
+        .post(knowledge.activate().url, { preserveScroll: true });
 const deactivate = () =>
     router.post(knowledge.deactivate().url, {}, { preserveScroll: true });
 const diagnose = () =>
@@ -299,7 +324,36 @@ onBeforeUnmount(() => clearInterval(timer));
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div
+                                v-if="activation.mode !== 'internal'"
+                                class="grid gap-1.5"
+                            >
+                                <Label>{{ t('Connection') }}</Label>
+                                <Select v-model="activation.connection_id">
+                                    <SelectTrigger
+                                        class="w-64"
+                                        data-test="rag-connection"
+                                    >
+                                        <SelectValue
+                                            :placeholder="
+                                                modeConnections.length
+                                                    ? t('Choose a connection')
+                                                    : t('No connections yet')
+                                            "
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="connection in modeConnections"
+                                            :key="connection.id"
+                                            :value="String(connection.id)"
+                                            >{{ connection.label }}</SelectItem
+                                        >
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <Label
+                                v-if="activation.mode !== 'external_api'"
                                 class="flex items-center gap-2 text-sm font-normal"
                             >
                                 <Checkbox
@@ -337,6 +391,12 @@ onBeforeUnmount(() => clearInterval(timer));
                                 </Button>
                             </ConfirmDialog>
                         </template>
+                        <Button variant="ghost" as-child>
+                            <Link :href="connectionRoutes.index()">
+                                <Cable class="size-4" />
+                                {{ t('Connections') }}
+                            </Link>
+                        </Button>
                         <InputError :message="activation.errors.mode" />
                     </div>
                 </CardContent>

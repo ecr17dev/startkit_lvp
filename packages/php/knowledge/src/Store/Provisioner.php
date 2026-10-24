@@ -4,6 +4,7 @@ namespace Starter\Knowledge\Store;
 
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
+use Starter\Knowledge\Enums\ConnectionKind;
 use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\RagConnection;
 use Throwable;
@@ -48,6 +49,7 @@ class Provisioner
         }
 
         $this->checkTls($db, $connection, $report);
+        $schema = $this->schemaOf($connection);
 
         if ($version < self::MIN_POSTGRES) {
             return $report->error('version', 'PostgreSQL version', __('PostgreSQL 13 or later is required.'));
@@ -59,7 +61,31 @@ class Provisioner
             return $report;
         }
 
-        $this->checkPrivileges($db, $report);
+        if ($connection->isReadOnly()) {
+            return $this->checkReadOnly($db, $report, $schema);
+        }
+
+        // A dedicated schema on an external database is only created on
+        // the explicit activation...
+        if ($schema !== null && ! $this->schemaExists($db, $schema)) {
+            $sql = 'CREATE SCHEMA IF NOT EXISTS '.$this->ident($schema).';';
+
+            if (! $provision) {
+                (bool) $db->scalar("SELECT has_database_privilege(current_user, current_database(), 'CREATE')")
+                    ? $report->skipped('schema', 'Schema', __('The schema :schema and the knowledge tables are created on activation.', ['schema' => $schema]))
+                    : $report->error('privileges', 'Privileges', __('The role cannot create the schema :schema. Ask the database administrator to run:', ['schema' => $schema]), $sql);
+
+                return $report;
+            }
+
+            try {
+                $db->statement(rtrim($sql, ';'));
+            } catch (Throwable $exception) {
+                return $report->error('schema', 'Schema', $this->sanitize($exception), $sql);
+            }
+        }
+
+        $this->checkPrivileges($db, $report, $schema);
 
         if ($provision) {
             try {
@@ -68,13 +94,13 @@ class Provisioner
             } catch (Throwable $exception) {
                 return $report->error('schema', 'Schema', $this->sanitize($exception), $this->chunksSql());
             }
-        } elseif ($this->hasChunksTable($db)) {
+        } elseif ($this->hasChunksTable($db, $schema)) {
             $report->ok('schema', 'Schema', __('Knowledge tables found.'));
         } else {
             $report->skipped('schema', 'Schema', __('The tables are created on activation.'));
         }
 
-        if ($this->hasChunksTable($db)) {
+        if ($this->hasChunksTable($db, $schema)) {
             $this->smokeTest($db, $report);
         }
 
@@ -136,17 +162,48 @@ class Provisioner
         return true;
     }
 
-    protected function checkPrivileges(ConnectionInterface $db, DiagnosticReport $report): void
+    protected function checkPrivileges(ConnectionInterface $db, DiagnosticReport $report, ?string $schema = null): void
     {
-        $canCreate = (bool) $db->scalar("SELECT has_schema_privilege(current_user, current_schema(), 'CREATE')");
+        $canCreate = (bool) $db->scalar("SELECT has_schema_privilege(current_user, coalesce(?, current_schema()), 'CREATE')", [$schema]);
 
         if ($canCreate) {
             $report->ok('privileges', 'Privileges', __('The role can create the knowledge tables (no superuser needed).'));
-        } elseif ($this->hasChunksTable($db)) {
+        } elseif ($this->hasChunksTable($db, $schema)) {
             $report->warning('privileges', 'Privileges', __('The role cannot create tables; the existing ones will be used. New embedding profiles need an administrator.'));
         } else {
             $report->error('privileges', 'Privileges', __('The role cannot create tables in the schema. Grant CREATE or run the schema SQL with a migration role:'), $this->chunksSql());
         }
+    }
+
+    /**
+     * A read only connection uses the tables another system maintains:
+     * they must exist and be readable, and both searches must answer.
+     */
+    protected function checkReadOnly(ConnectionInterface $db, DiagnosticReport $report, ?string $schema): DiagnosticReport
+    {
+        if (! $this->hasChunksTable($db, $schema)) {
+            return $report->error('schema', 'Schema', __('The knowledge tables do not exist in this database and a read only connection cannot create them.'), $this->chunksSql());
+        }
+
+        if (! (bool) $db->scalar("SELECT has_table_privilege(current_user, format('%I.rag_chunks', coalesce(?, current_schema())), 'SELECT')", [$schema])) {
+            return $report->error('privileges', 'Privileges', __('The role cannot read the knowledge tables. Grant SELECT on rag_chunks and the vector tables.'));
+        }
+
+        $report->ok('privileges', 'Privileges', __('Read only: the role reads the knowledge tables; nothing is created or written.'));
+        $report->ok('schema', 'Schema', __('Knowledge tables found.'));
+
+        try {
+            $distance = (float) $db->scalar("SELECT '[1,0,0]'::vector <=> '[0.9,0.1,0]'::vector");
+            $db->select("SELECT id FROM rag_chunks WHERE search @@ websearch_to_tsquery('simple', 'knowledge probe') LIMIT 1");
+
+            $distance < 0.1
+                ? $report->ok('smoke', 'Search test', __('Vector and full text search answered correctly (read only).'))
+                : $report->error('smoke', 'Search test', __('The test search returned unexpected results.'));
+        } catch (Throwable $exception) {
+            $report->error('smoke', 'Search test', $this->sanitize($exception));
+        }
+
+        return $report;
     }
 
     /**
@@ -180,9 +237,32 @@ class Provisioner
         }
     }
 
-    public function hasChunksTable(ConnectionInterface $db): bool
+    /**
+     * Whether the chunks table exists (in the configured schema of an
+     * external connection, never another one found on the search path).
+     */
+    public function hasChunksTable(ConnectionInterface $db, ?string $schema = null): bool
     {
-        return (bool) $db->scalar("SELECT to_regclass('rag_chunks') IS NOT NULL");
+        return (bool) $db->scalar("SELECT to_regclass(format('%I.rag_chunks', coalesce(?, current_schema()))) IS NOT NULL", [$schema]);
+    }
+
+    /**
+     * Configured schema of an external connection (the internal one uses
+     * the application search path).
+     */
+    public function schemaOf(RagConnection $connection): ?string
+    {
+        return $connection->kind === ConnectionKind::Internal ? null : (string) $connection->setting('schema', 'public');
+    }
+
+    protected function schemaExists(ConnectionInterface $db, string $schema): bool
+    {
+        return (bool) $db->scalar('SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = ?)', [$schema]);
+    }
+
+    protected function ident(string $name): string
+    {
+        return '"'.str_replace('"', '""', $name).'"';
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Starter\Knowledge\Enums\Capability;
 use Starter\Knowledge\Enums\ConnectionKind;
 use Starter\Knowledge\Enums\ConnectionStatus;
+use Starter\Knowledge\Store\ExternalDatabases;
 
 /**
  * Where a collection's knowledge is stored and searched: the internal
@@ -87,13 +88,43 @@ class RagConnection extends Model
         return in_array($capability->value, $this->capabilities ?? [], true);
     }
 
+    public function setting(string $key, mixed $default = null): mixed
+    {
+        return $this->config[$key] ?? $default;
+    }
+
     /**
-     * Laravel database connection holding the data plane.
+     * Read only connections only search: ingestion, deletions and
+     * reindexing are managed by the system that owns the data.
+     */
+    public function isReadOnly(): bool
+    {
+        return $this->kind === ConnectionKind::Postgres && (bool) $this->setting('read_only', false);
+    }
+
+    /**
+     * Capabilities of a managed connection once its diagnostics pass (a
+     * retrieval API declares its own).
+     *
+     * @return list<string>
+     */
+    public function managedCapabilities(): array
+    {
+        if (! $this->isReadOnly()) {
+            return Capability::all();
+        }
+
+        return [Capability::Query->value, Capability::ListCollections->value, Capability::ListDocuments->value, Capability::Metrics->value, Capability::Chunks->value];
+    }
+
+    /**
+     * Laravel database connection holding the data plane (registered at
+     * runtime for external PostgreSQL connections).
      */
     public function databaseConnection(): string
     {
         return $this->kind === ConnectionKind::Internal
             ? (string) config('database.default')
-            : 'rag_'.$this->id;
+            : app(ExternalDatabases::class)->register($this);
     }
 }

@@ -2,9 +2,23 @@
 
 namespace Starter\Knowledge\Exceptions;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use RuntimeException;
 
 /**
- * RAG is disabled for the installation or its connection is not ready.
+ * Knowledge is disabled, not active, or its connection does not support
+ * the operation: 503 for API clients, a form error in the panel.
  */
-class RagUnavailableException extends RuntimeException {}
+class RagUnavailableException extends RuntimeException
+{
+    public function render(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $this->getMessage()], 503);
+        }
+
+        return back()->withErrors(['rag' => $this->getMessage()]);
+    }
+}

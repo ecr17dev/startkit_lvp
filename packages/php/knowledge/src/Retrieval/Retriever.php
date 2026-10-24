@@ -4,7 +4,6 @@ namespace Starter\Knowledge\Retrieval;
 
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
-use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Starter\Ai\Enums\Feature;
@@ -13,6 +12,7 @@ use Starter\Knowledge\Enums\SearchMethod;
 use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\IndexVersion;
+use Starter\Knowledge\Models\RagConnection;
 use Starter\Knowledge\Models\RetrievalRun;
 use Starter\Knowledge\Store\VectorStore;
 use Starter\Knowledge\Support\Principals;
@@ -45,6 +45,7 @@ class Retriever
         $principals = Principals::for($query->user);
         $collections = array_values(array_filter($query->collections, fn (Collection $collection) => $collection->status === Collection::ACTIVE
             && $collection->active_index_version_id !== null
+            && $collection->connection->isReady()
             && array_intersect($collection->acl, $principals) !== []));
 
         $text = Str::limit(trim($query->text), 2000, '');
@@ -94,28 +95,25 @@ class Retriever
             }
 
             if ($query->method !== SearchMethod::Vector) {
-                $byConfig = [];
+                // One query per data plane and text search configuration...
+                $groups = [];
 
                 foreach ($collections as $collection) {
-                    $byConfig[$collection->textSearchConfig()][] = $collection->active_index_version_id;
+                    $group = $collection->connection_id.'|'.$collection->textSearchConfig();
+                    $groups[$group] ??= ['connection' => $collection->connection, 'config' => $collection->textSearchConfig(), 'versions' => []];
+                    $groups[$group]['versions'][] = $collection->active_index_version_id;
                 }
 
-                foreach ($byConfig as $config => $versionIds) {
-                    $connection = $versions->first()?->profile->connection;
-
-                    if ($connection === null) {
-                        continue;
-                    }
-
+                foreach ($groups as ['connection' => $connection, 'config' => $config, 'versions' => $versionIds]) {
                     $searchStart = hrtime(true);
-                    $rows = $this->textSearch($this->store->db($connection), $config, $versionIds, $text, $principals, $query->sourceIds, $limit);
+                    $rows = $this->textSearch($connection, $config, $versionIds, $text, $principals, $query->sourceIds, $limit);
                     $searchMs += (int) ((hrtime(true) - $searchStart) / 1_000_000);
 
                     if ($query->minTextRank !== null) {
                         $rows = array_values(array_filter($rows, fn (Hit $hit) => $hit->score >= $query->minTextRank));
                     }
 
-                    $diagnostics['candidates']['text:'.$config] = count($rows);
+                    $diagnostics['candidates']['text:'.$config.($connection->kind->value === 'internal' ? '' : '@'.$connection->id)] = count($rows);
                     $lists[] = $rows;
                 }
             }
@@ -183,7 +181,7 @@ class Retriever
                 $bindings,
             );
 
-            return array_values(array_map(fn (object $row) => $this->hit($row, $profile->metric->scoreType(), vector: true), $rows));
+            return array_values(array_map(fn (object $row) => $this->hit($row, $profile->metric->scoreType(), vector: true, connectionId: $profile->connection_id), $rows));
         });
     }
 
@@ -193,8 +191,9 @@ class Retriever
      * @param  list<int>  $sourceIds
      * @return list<Hit>
      */
-    protected function textSearch(ConnectionInterface $db, string $config, array $versionIds, string $text, array $principals, array $sourceIds, int $limit): array
+    protected function textSearch(RagConnection $connection, string $config, array $versionIds, string $text, array $principals, array $sourceIds, int $limit): array
     {
+        $db = $this->store->db($connection);
         $sources = $sourceIds !== [] ? ' AND c.source_id = ANY(?::bigint[])' : '';
         $bindings = [$config, $text, '{'.implode(',', array_filter($versionIds)).'}', $config, $this->store->textArray($principals)];
 
@@ -216,10 +215,10 @@ class Retriever
             $bindings,
         );
 
-        return array_values(array_map(fn (object $row) => $this->hit($row, 'text_rank', vector: false), $rows));
+        return array_values(array_map(fn (object $row) => $this->hit($row, 'text_rank', vector: false, connectionId: $connection->id), $rows));
     }
 
-    protected function hit(object $row, string $scoreType, bool $vector): Hit
+    protected function hit(object $row, string $scoreType, bool $vector, int $connectionId): Hit
     {
         $data = (array) $row;
         $score = (float) $data['score'];
@@ -236,6 +235,7 @@ class Retriever
             scoreType: $scoreType,
             vectorScore: $vector ? $score : null,
             textScore: $vector ? null : $score,
+            connectionId: $connectionId,
         );
     }
 
@@ -257,13 +257,13 @@ class Retriever
             return $lists[0];
         }
 
-        /** @var array<int, Hit> $fused */
+        /** @var array<string, Hit> $fused */
         $fused = [];
         $scores = [];
 
         foreach ($lists as $list) {
             foreach ($list as $position => $hit) {
-                $id = $hit->chunkId;
+                $id = $hit->key();
                 $scores[$id] = ($scores[$id] ?? 0.0) + 1 / (self::RRF_K + $position + 1);
 
                 if (! isset($fused[$id])) {
@@ -281,7 +281,7 @@ class Retriever
         }
 
         $hits = array_values($fused);
-        usort($hits, fn (Hit $a, Hit $b) => $b->score <=> $a->score ?: $a->chunkId <=> $b->chunkId);
+        usort($hits, fn (Hit $a, Hit $b) => $b->score <=> $a->score ?: strcmp($a->key(), $b->key()));
 
         return $hits;
     }

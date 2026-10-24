@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Starter\Knowledge\Enums\Capability;
 use Starter\Knowledge\Enums\SearchMethod;
 use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\Collection;
@@ -27,13 +28,14 @@ class SaveCollection
     /**
      * @return array<string, mixed>
      */
-    public static function rules(?Collection $collection = null): array
+    public static function rules(?Collection $collection = null, ?int $connectionId = null): array
     {
         return [
             'name' => ['required', 'string', 'max:120'],
             'slug' => ['nullable', 'string', 'max:80', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('rag_collections', 'slug')->ignore($collection?->id)],
             'description' => ['nullable', 'string', 'max:1000'],
-            'embedding_profile_id' => ['required', 'integer', Rule::exists('rag_embedding_profiles', 'id')->where('status', EmbeddingProfile::READY)],
+            /** A ready profile of the collection connection. */
+            'embedding_profile_id' => ['required', 'integer', Rule::exists('rag_embedding_profiles', 'id')->where('status', EmbeddingProfile::READY)->when($connectionId !== null, fn ($rule) => $rule->where('connection_id', $connectionId))],
             /** Language of the full text search: simple, es, en, pt, fr, de or it. */
             'language' => ['required', Rule::in(array_keys(Collection::LANGUAGES))],
             'chunking' => ['required', 'array'],
@@ -58,14 +60,16 @@ class SaveCollection
     public function handle(User $actor, array $input, ?Collection $collection = null): Collection
     {
         Gate::forUser($actor)->authorize('rag.collections.manage');
-        $connection = $this->knowledge->ensureAvailable();
+        // New collections are created on the active connection (it must
+        // accept ingestion); an existing one keeps its own...
+        $connection = $collection === null ? $this->knowledge->ensureAvailable(Capability::Ingest) : $this->knowledge->ensureFor($collection, Capability::Query);
 
         $input['chunking'] = [...Collection::defaultChunking(), ...((array) ($input['chunking'] ?? []))];
         $input['search'] = [...Collection::defaultSearch(), ...((array) ($input['search'] ?? []))];
         $input['acl'] ??= ['everyone'];
 
         /** @var array<string, mixed> $data */
-        $data = Validator::make($input, self::rules($collection))->validate();
+        $data = Validator::make($input, self::rules($collection, $connection->id))->validate();
 
         $data['search']['top_k'] = (int) $data['search']['top_k'];
         $data['search']['max_context_tokens'] = (int) $data['search']['max_context_tokens'];

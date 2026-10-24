@@ -126,7 +126,9 @@ const location = (chunk: ChunkRow) =>
             </Button>
             <ConfirmDialog
                 v-if="
-                    can('rag.documents.delete') && document.status !== 'deleted'
+                    can('rag.documents.delete') &&
+                    document.collection.capabilities.includes('delete') &&
+                    document.status !== 'deleted'
                 "
                 :title="t('Delete document?')"
                 :description="

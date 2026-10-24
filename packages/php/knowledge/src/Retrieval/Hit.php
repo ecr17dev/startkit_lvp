@@ -24,7 +24,16 @@ final class Hit
         public ?float $vectorScore = null,
         public ?float $textScore = null,
         public int $rank = 0,
+        public int $connectionId = 0,
     ) {}
+
+    /**
+     * Identity across connections (chunk ids are per data plane).
+     */
+    public function key(): string
+    {
+        return $this->connectionId.':'.$this->chunkId;
+    }
 
     public function title(): string
     {

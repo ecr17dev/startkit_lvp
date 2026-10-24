@@ -1047,6 +1047,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/rag/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Knowledge connections (internal, external PostgreSQL and retrieval
+         *     APIs) with their capabilities and last diagnostics. Credentials are
+         *     never returned. Requires `settings.update`
+         */
+        get: operations["v1.rag.connections.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/rag/collections/{collection}/sources": {
         parameters: {
             query?: never;
@@ -1152,6 +1173,47 @@ export interface paths {
          *     MRR, hit rate, no result rate, latency and cost
          */
         post: operations["v1.rag.evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/connections/{connection}/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the diagnostics of a connection. Nothing is created or written
+         *     on an external database
+         */
+        post: operations["v1.rag.connections.diagnose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/connections/{connection}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate knowledge on a connection: diagnostics, schema provisioning
+         *     (managed and writable connections only) and the mode switch, only if
+         *     every check passes. Responds 422 with the report otherwise
+         */
+        post: operations["v1.rag.connections.activate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4715,6 +4777,7 @@ export interface operations {
                                 kind: string;
                                 status: string;
                                 capabilities: string[];
+                                read_only: boolean;
                                 pgvector_version: string | null;
                                 diagnostics: {
                                     [key: string]: unknown;
@@ -4812,6 +4875,15 @@ export interface operations {
                             } | null;
                             needs_reindex: string;
                             open_jobs: number;
+                            /** @description The interface only enables what the connection supports... */
+                            connection: {
+                                id: number;
+                                label: string;
+                                kind: string;
+                                status: string;
+                                read_only: boolean;
+                                capabilities: string[];
+                            };
                             created_at: string;
                         }[];
                     };
@@ -4992,6 +5064,15 @@ export interface operations {
                             } | null;
                             needs_reindex: string;
                             open_jobs: number;
+                            /** @description The interface only enables what the connection supports... */
+                            connection: {
+                                id: number;
+                                label: string;
+                                kind: string;
+                                status: string;
+                                read_only: boolean;
+                                capabilities: string[];
+                            };
                             created_at: string;
                             versions: {
                                 id: number;
@@ -5498,6 +5579,49 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
+    "v1.rag.connections.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            label: string;
+                            kind: string;
+                            status: string;
+                            capabilities: string[];
+                            read_only: boolean;
+                            pgvector_version: string | null;
+                            diagnostics: {
+                                [key: string]: unknown;
+                            } | null;
+                            checked_at: string | null;
+                            config: {
+                                [key: string]: unknown;
+                            };
+                            credentials: string;
+                            active: boolean;
+                            collections: number;
+                            profiles: number;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
     "v1.rag.sources.store": {
         parameters: {
             query?: never;
@@ -5914,6 +6038,91 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.connections.diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            passed: boolean;
+                            pgvector: string | null;
+                            checks: {
+                                key: string;
+                                label: string;
+                                status: string;
+                                message: string;
+                                sql?: string;
+                            }[];
+                            checked_at: string;
+                            connection: {
+                                id: number;
+                                name: string;
+                                label: string;
+                                kind: string;
+                                status: string;
+                                capabilities: string[];
+                                read_only: boolean;
+                                pgvector_version: string | null;
+                                diagnostics: {
+                                    [key: string]: unknown;
+                                } | null;
+                                checked_at: string | null;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.connections.activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection ID */
+                connection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Try CREATE EXTENSION vector (requires a privileged role). */
+                    create_extension?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "v1.ai.transcriptions.store": {

@@ -50,9 +50,40 @@ class KnowledgePresenter
             'kind' => $connection->kind->value,
             'status' => $connection->status->value,
             'capabilities' => $connection->capabilities ?? [],
+            'read_only' => $connection->isReadOnly(),
             'pgvector_version' => $connection->pgvector_version,
             'diagnostics' => $connection->diagnostics,
             'checked_at' => $connection->checked_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Connection with its editable settings. Credentials are masked: a
+     * stored secret is never sent back, an environment reference is shown
+     * as is.
+     *
+     * @return array<string, mixed>
+     */
+    public static function connectionDetail(RagConnection $connection, bool $active): array
+    {
+        $credentials = [];
+
+        foreach ($connection->credentials ?? [] as $key => $value) {
+            $credentials[$key] = match (true) {
+                ! is_string($value) || $value === '' => null,
+                str_starts_with($value, 'env:') => $value,
+                $key === 'username' => $value,
+                default => str_repeat('•', 8),
+            };
+        }
+
+        return [
+            ...self::connection($connection),
+            'config' => $connection->kind->value === 'internal' ? [] : ($connection->config ?? []),
+            'credentials' => $credentials,
+            'active' => $active,
+            'collections' => $connection->collections()->count(),
+            'profiles' => $connection->profiles()->count(),
         ];
     }
 
@@ -125,6 +156,15 @@ class KnowledgePresenter
             'building_version' => $building !== null ? self::indexVersion($building) : null,
             'needs_reindex' => $active !== null && ($active->embedding_profile_id !== $collection->embedding_profile_id || $active->chunking != $collection->chunking),
             'open_jobs' => $collection->jobs()->whereNull('parent_id')->whereIn('status', JobStatus::open())->count(),
+            // The interface only enables what the connection supports...
+            'connection' => [
+                'id' => $collection->connection->id,
+                'label' => $collection->connection->label,
+                'kind' => $collection->connection->kind->value,
+                'status' => $collection->connection->status->value,
+                'read_only' => $collection->connection->isReadOnly(),
+                'capabilities' => $collection->connection->capabilities ?? [],
+            ],
             'created_at' => $collection->created_at->toIso8601String(),
         ];
     }

@@ -10,6 +10,7 @@
 - [Identidad](docs/identity.md): login OTP, registro e invitaciones, roles, delegación, sesiones y auditoría.
 - [IA](docs/ai.md): conexiones, catálogo, tarifas, libro de consumo, presupuestos, agentes versionados, herramientas con propuestas, chat flotante, multimedia, recomendador, laboratorio y API.
 - [Conocimiento (RAG)](docs/knowledge.md): activación con diagnóstico de pgvector, perfiles de embeddings, colecciones, fuentes (archivos, URLs sin SSRF, sitemap, adaptadores, discos), pipeline durable, versiones del índice, bajas, recuperación vectorial/texto/híbrida con ACL, respuestas con citas validadas, laboratorio con juicios de relevancia, panel de operación y calidad, conjuntos de evaluación (recall@k, MRR), feedback de respuestas, retención, API y permisos.
+- [Conocimiento externo](docs/rag-external.md): conexiones PostgreSQL externas (TLS, esquema dedicado, solo lectura, secretos), API de recuperación y matriz de capacidades.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
 

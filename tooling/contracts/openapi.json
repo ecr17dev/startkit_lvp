@@ -9862,6 +9862,9 @@
                                                                 "type": "string"
                                                             }
                                                         },
+                                                        "read_only": {
+                                                            "type": "boolean"
+                                                        },
                                                         "pgvector_version": {
                                                             "type": [
                                                                 "string",
@@ -9889,6 +9892,7 @@
                                                         "kind",
                                                         "status",
                                                         "capabilities",
+                                                        "read_only",
                                                         "pgvector_version",
                                                         "diagnostics",
                                                         "checked_at"
@@ -10229,6 +10233,41 @@
                                                         "type": "integer",
                                                         "minimum": 0
                                                     },
+                                                    "connection": {
+                                                        "type": "object",
+                                                        "description": "The interface only enables what the connection supports...",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "kind": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "read_only": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "capabilities": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "label",
+                                                            "kind",
+                                                            "status",
+                                                            "read_only",
+                                                            "capabilities"
+                                                        ]
+                                                    },
                                                     "created_at": {
                                                         "type": "string"
                                                     }
@@ -10253,6 +10292,7 @@
                                                     "building_version",
                                                     "needs_reindex",
                                                     "open_jobs",
+                                                    "connection",
                                                     "created_at"
                                                 ]
                                             }
@@ -11055,6 +11095,41 @@
                                                     "type": "integer",
                                                     "minimum": 0
                                                 },
+                                                "connection": {
+                                                    "type": "object",
+                                                    "description": "The interface only enables what the connection supports...",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "label": {
+                                                            "type": "string"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "read_only": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "capabilities": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "label",
+                                                        "kind",
+                                                        "status",
+                                                        "read_only",
+                                                        "capabilities"
+                                                    ]
+                                                },
                                                 "created_at": {
                                                     "type": "string"
                                                 },
@@ -11170,6 +11245,7 @@
                                                 "building_version",
                                                 "needs_reindex",
                                                 "open_jobs",
+                                                "connection",
                                                 "created_at",
                                                 "versions"
                                             ]
@@ -12606,6 +12682,124 @@
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/connections": {
+            "get": {
+                "operationId": "v1.rag.connections.index",
+                "summary": "Knowledge connections (internal, external PostgreSQL and retrieval\nAPIs) with their capabilities and last diagnostics. Credentials are\nnever returned. Requires `settings.update`",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "label": {
+                                                        "type": "string"
+                                                    },
+                                                    "kind": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "capabilities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "read_only": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "pgvector_version": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "diagnostics": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "additionalProperties": {}
+                                                    },
+                                                    "checked_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "config": {
+                                                        "type": "object",
+                                                        "additionalProperties": {}
+                                                    },
+                                                    "credentials": {
+                                                        "type": "string"
+                                                    },
+                                                    "active": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "collections": {
+                                                        "type": "integer",
+                                                        "minimum": 0
+                                                    },
+                                                    "profiles": {
+                                                        "type": "integer",
+                                                        "minimum": 0
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "label",
+                                                    "kind",
+                                                    "status",
+                                                    "capabilities",
+                                                    "read_only",
+                                                    "pgvector_version",
+                                                    "diagnostics",
+                                                    "checked_at",
+                                                    "config",
+                                                    "credentials",
+                                                    "active",
+                                                    "collections",
+                                                    "profiles"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -14205,6 +14399,224 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/connections/{connection}/diagnose": {
+            "post": {
+                "operationId": "v1.rag.connections.diagnose",
+                "summary": "Run the diagnostics of a connection. Nothing is created or written\non an external database",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "parameters": [
+                    {
+                        "name": "connection",
+                        "in": "path",
+                        "required": true,
+                        "description": "The connection ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "passed": {
+                                                    "type": "boolean"
+                                                },
+                                                "pgvector": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "checks": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "sql": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "key",
+                                                            "label",
+                                                            "status",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                },
+                                                "checked_at": {
+                                                    "type": "string"
+                                                },
+                                                "connection": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "label": {
+                                                            "type": "string"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "capabilities": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "read_only": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "pgvector_version": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "diagnostics": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "additionalProperties": {}
+                                                        },
+                                                        "checked_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "label",
+                                                        "kind",
+                                                        "status",
+                                                        "capabilities",
+                                                        "read_only",
+                                                        "pgvector_version",
+                                                        "diagnostics",
+                                                        "checked_at"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "passed",
+                                                "pgvector",
+                                                "checks",
+                                                "checked_at",
+                                                "connection"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/connections/{connection}/activate": {
+            "post": {
+                "operationId": "v1.rag.connections.activate",
+                "summary": "Activate knowledge on a connection: diagnostics, schema provisioning\n(managed and writable connections only) and the mode switch, only if\nevery check passes. Responds 422 with the report otherwise",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "parameters": [
+                    {
+                        "name": "connection",
+                        "in": "path",
+                        "required": true,
+                        "description": "The connection ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "create_extension": {
+                                        "type": "boolean",
+                                        "description": "Try CREATE EXTENSION vector (requires a privileged role)."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"

@@ -14,6 +14,14 @@ final class DiagnosticReport
 
     private ?string $pgvector = null;
 
+    /**
+     * Operations declared by a retrieval API (managed connections derive
+     * theirs from the connection).
+     *
+     * @var list<string>|null
+     */
+    private ?array $capabilities = null;
+
     public function add(string $key, string $label, string $status, string $message, ?string $sql = null): self
     {
         $this->checks[] = array_filter(compact('key', 'label', 'status', 'message', 'sql'), fn ($value) => $value !== null);
@@ -51,6 +59,24 @@ final class DiagnosticReport
     public function pgvector(): ?string
     {
         return $this->pgvector;
+    }
+
+    /**
+     * @param  list<string>  $capabilities
+     */
+    public function setCapabilities(array $capabilities): self
+    {
+        $this->capabilities = $capabilities;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function capabilities(): ?array
+    {
+        return $this->capabilities;
     }
 
     public function passed(): bool

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\Rag\AnalyticsController as RagAnalyticsController;
 use App\Http\Controllers\Api\V1\Rag\CollectionController as RagCollectionController;
+use App\Http\Controllers\Api\V1\Rag\ConnectionController as RagConnectionController;
 use App\Http\Controllers\Api\V1\Rag\DocumentController as RagDocumentController;
 use App\Http\Controllers\Api\V1\Rag\JobController as RagJobController;
 use App\Http\Controllers\Api\V1\Rag\SearchController as RagSearchController;
@@ -85,6 +86,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('analytics', [RagAnalyticsController::class, 'analytics'])->name('analytics');
                 Route::get('evaluation-sets', [RagAnalyticsController::class, 'sets'])->name('evaluation-sets.index');
                 Route::get('evaluations/{run}', [RagAnalyticsController::class, 'evaluation'])->whereUuid('run')->name('evaluations.show');
+                Route::get('connections', [RagConnectionController::class, 'index'])->name('connections.index');
             });
 
             Route::middleware('ability:write')->group(function () {
@@ -95,6 +97,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('jobs/{job}/retry', [RagJobController::class, 'retry'])->whereUuid('job')->name('jobs.retry');
                 Route::post('jobs/{job}/resume', [RagJobController::class, 'resume'])->whereUuid('job')->name('jobs.resume');
                 Route::post('evaluation-sets/{set}/evaluate', [RagAnalyticsController::class, 'evaluate'])->middleware('throttle:10,1')->name('evaluate');
+                Route::post('connections/{connection}/diagnose', [RagConnectionController::class, 'diagnose'])->middleware('throttle:10,1')->name('connections.diagnose');
+                Route::post('connections/{connection}/activate', [RagConnectionController::class, 'activate'])->middleware('throttle:10,1')->name('connections.activate');
             });
         });
 

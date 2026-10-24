@@ -45,7 +45,7 @@ class DocumentController extends Controller
                 'effective_acl' => $document->effectiveAcl(),
                 'etag' => $document->etag,
                 'last_modified' => $document->last_modified,
-                'collection' => ['id' => $collection->id, 'name' => $collection->name, 'slug' => $collection->slug],
+                'collection' => ['id' => $collection->id, 'name' => $collection->name, 'slug' => $collection->slug, 'capabilities' => $collection->connection->capabilities ?? []],
             ],
             'version' => $version !== null ? [
                 'id' => $version->id,

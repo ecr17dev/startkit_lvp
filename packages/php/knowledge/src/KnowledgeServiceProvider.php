@@ -36,6 +36,7 @@ use Starter\Knowledge\Pipeline\RagJobs;
 use Starter\Knowledge\Pipeline\Reindexer;
 use Starter\Knowledge\Pipeline\SourceSync;
 use Starter\Knowledge\Retrieval\Retriever;
+use Starter\Knowledge\Store\ExternalDatabases;
 use Starter\Knowledge\Store\Provisioner;
 use Starter\Knowledge\Store\VectorStore;
 
@@ -56,6 +57,7 @@ class KnowledgeServiceProvider extends ServiceProvider
         // Registered once per process by the application...
         $this->app->singleton(ParserRegistry::class);
         $this->app->singleton(AdapterRegistry::class);
+        $this->app->singleton(ExternalDatabases::class);
     }
 
     /**
