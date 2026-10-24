@@ -56,7 +56,7 @@ implementado y verificado de lo pendiente.
 | 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Implementada (recomendador y laboratorio pasan a la etapa 4) |
 | 4. Agentes versionados, chat flotante con herramientas, multimedia, recomendador y laboratorio | Implementada (sin búsqueda web de catálogo ni voz de salida, fuera de alcance) |
 | 5–6. RAG interno y operación | Implementadas: activación, fuentes, pipeline durable, recuperación híbrida con ACL, citas validadas, laboratorio con juicios, API, panel de conocimiento, conjuntos de evaluación (recall@k, MRR), feedback de respuestas y retención de versiones |
-| 7. PostgreSQL externo, retrieval API y PostgREST | Pendiente |
+| 7. PostgreSQL externo, retrieval API y PostgREST | Implementada: conexiones PostgreSQL externas (TLS, esquema dedicado, solo lectura), API de recuperación con contrato v1 y servidor de referencia, PostgREST opcional con esquema `api` filtrado por JWT. El proceso PostgREST real no se ejecutó en este entorno (ver docs/postgrest.md) |
 | 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Pendiente (OpenAPI y cliente tipado ya generados) |
 
 ## Comandos útiles

@@ -246,6 +246,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | PostgREST (optional, protected)
+    |--------------------------------------------------------------------------
+    |
+    | Data API over the dedicated "api" schema only (views and RPC that filter
+    | by the principals of a short JWT signed here). Laravel calls it server
+    | to server; direct_tokens allows the session exchange for browser
+    | clients (off by default). Never exposes users, sessions, OTP, keys,
+    | budgets or jobs, and offers no writes.
+    |
+    */
+
+    'postgrest' => [
+        'url' => env('POSTGREST_URL', 'http://127.0.0.1:3000'),
+        // At least 32 characters, shared with PGRST_JWT_SECRET...
+        'jwt_secret' => env('POSTGREST_JWT_SECRET'),
+        'ttl' => (int) env('POSTGREST_JWT_TTL', 300),
+        'timeout' => (int) env('POSTGREST_TIMEOUT', 10),
+        'schema' => 'api',
+        'roles' => [
+            'authenticator' => env('POSTGREST_DB_USER', 'starter_postgrest_authenticator'),
+            'anon' => env('POSTGREST_ANON_ROLE', 'starter_postgrest_anon'),
+            'user' => env('POSTGREST_USER_ROLE', 'starter_postgrest_user'),
+        ],
+        'direct_tokens' => (bool) env('POSTGREST_DIRECT_TOKENS', false),
+        // Password of the authenticator role, used by starter:postgrest-install...
+        'db_password' => env('POSTGREST_DB_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Branding catalogs
     |--------------------------------------------------------------------------
     |

@@ -21,6 +21,7 @@ import {
     Sparkles,
     Tags,
     Users,
+    Waypoints,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -58,6 +59,7 @@ import { index as knowledgeEvaluations } from '@/routes/admin/knowledge/evaluati
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
+import integrations from '@/routes/admin/integrations';
 import general from '@/routes/admin/settings/general';
 import { index as users } from '@/routes/admin/users';
 import { ui as apiDocs } from '@/routes/scramble/docs';
@@ -128,6 +130,17 @@ const sections = computed<NavSection[]>(() => {
                                   currentUrl.value.startsWith(
                                       '/admin/settings',
                                   ),
+                          },
+                      ]
+                    : []),
+                ...((page.props.features as { postgrest?: boolean } | undefined)
+                    ?.postgrest
+                    ? [
+                          {
+                              title: 'PostgREST',
+                              href: integrations.postgrest(),
+                              icon: Waypoints,
+                              can: 'settings.update',
                           },
                       ]
                     : []),

@@ -8,6 +8,7 @@ use App\Knowledge\ProjectDocsAdapter;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
+use App\PostgRest\PostgRest;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -23,6 +24,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
+use Starter\Administration\Health\HealthChecker;
 use Starter\Ai\Agents\ToolRegistry;
 use Starter\Identity\Models\Invitation;
 use Starter\Knowledge\Ingestion\Sources\AdapterRegistry;
@@ -52,6 +54,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Publication checks of the RAG settings of agents...
         KnowledgeGrounding::registerChecks();
+
+        // PostgREST is checked (and required) only while its feature is on...
+        $this->callAfterResolving(HealthChecker::class, fn (HealthChecker $health) => $health->register(
+            'postgrest',
+            fn () => app(PostgRest::class)->health(),
+            fn () => (bool) config('starter.features.postgrest'),
+        ));
 
         // Internal content adapters offered as knowledge sources...
         $this->callAfterResolving(AdapterRegistry::class, fn (AdapterRegistry $adapters) => $adapters->register(new ProjectDocsAdapter));

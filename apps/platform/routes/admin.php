@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Ai\PriceController;
 use App\Http\Controllers\Admin\Ai\RecommenderController;
 use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
+use App\Http\Controllers\Admin\Integrations\PostgRestController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\Knowledge\CollectionController as KnowledgeCollectionController;
 use App\Http\Controllers\Admin\Knowledge\ConnectionController as KnowledgeConnectionController;
@@ -129,6 +130,10 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
             Route::delete('budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
         });
     });
+
+    // Integrations: optional PostgREST (status and a test as the current user)...
+    Route::get('integrations/postgrest', [PostgRestController::class, 'index'])->name('integrations.postgrest');
+    Route::post('integrations/postgrest/test', [PostgRestController::class, 'test'])->middleware('throttle:10,1')->name('integrations.postgrest.test');
 
     // Knowledge (RAG): activation, profiles, collections, sources, documents and jobs...
     Route::prefix('knowledge')->name('knowledge.')->group(function () {

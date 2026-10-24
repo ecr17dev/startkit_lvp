@@ -43,6 +43,9 @@
         },
         {
             "name": "Retrieval API (contract v1)"
+        },
+        {
+            "name": "PostgREST"
         }
     ],
     "security": [
@@ -15008,6 +15011,57 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/postgrest/token": {
+            "post": {
+                "operationId": "v1.postgrest.token",
+                "summary": "Exchange the session or token for a short PostgREST JWT (direct\nclient access). Only when POSTGREST_DIRECT_TOKENS=true; the JWT\ncarries the role of the published objects and the principals of the\nuser, and expires in POSTGREST_JWT_TTL seconds",
+                "tags": [
+                    "PostgREST"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "expires_at": {
+                                                    "type": "string"
+                                                },
+                                                "url": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "token",
+                                                "expires_at",
+                                                "url"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"

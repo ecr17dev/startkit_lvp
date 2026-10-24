@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Ai\UsageController as AiUsageController;
 use App\Http\Controllers\Api\V1\AiController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\PostgRestTokenController;
 use App\Http\Controllers\Api\V1\Rag\AnalyticsController as RagAnalyticsController;
 use App\Http\Controllers\Api\V1\Rag\CollectionController as RagCollectionController;
 use App\Http\Controllers\Api\V1\Rag\ConnectionController as RagConnectionController;
@@ -40,6 +41,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('me', [AuthController::class, 'me'])->middleware('ability:read')->name('me');
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::post('postgrest/token', PostgRestTokenController::class)->middleware(['ability:read', 'throttle:30,1'])->name('postgrest.token');
 
         Route::middleware('ability:read')->group(function () {
             Route::get('users', [UserController::class, 'index'])->name('users.index');
