@@ -60,6 +60,9 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware('can:ai.chat')->prefix('ai')->name('ai.')->group(function () {
+        Route::get('chat/bootstrap', [ChatController::class, 'bootstrap'])->name('chat.bootstrap');
+        Route::get('conversations', [ChatController::class, 'conversations'])->name('conversations.index');
+        Route::get('conversations/{conversation}', [ChatController::class, 'conversation'])->name('conversations.show');
         Route::get('chat/{conversation?}', [ChatController::class, 'index'])->name('chat');
         Route::post('chat/stream', [ChatController::class, 'stream'])->middleware('throttle:ai')->name('chat.stream');
         Route::patch('chat/{conversation}', [ChatController::class, 'update'])->name('chat.update');

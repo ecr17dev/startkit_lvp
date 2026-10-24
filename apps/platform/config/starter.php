@@ -71,6 +71,7 @@ return [
     | through the SDK (calls made with AiGateway declare it explicitly).
     | simulated: the seeder installs the simulated provider (no network,
     | clearly labelled) so a local installation works without credentials.
+    | proposal_ttl_minutes: time to confirm a change prepared by an agent.
     |
     */
 
@@ -86,6 +87,7 @@ return [
             PingAgent::class => 'test',
         ],
         'simulated' => (bool) env('STARTER_AI_SIMULATED', env('APP_ENV', 'production') !== 'production'),
+        'proposal_ttl_minutes' => (int) env('STARTER_AI_PROPOSAL_TTL', 10),
         'interrupt_after_minutes' => (int) env('STARTER_AI_INTERRUPT_AFTER_MINUTES', 15),
     ],
 

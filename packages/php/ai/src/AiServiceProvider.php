@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\AiManager;
+use Starter\Ai\Agents\ActionProposals;
 use Starter\Ai\Agents\AgentLimiter;
 use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Agents\ToolRegistry;
@@ -24,6 +25,7 @@ use Starter\Ai\Currency\ExchangeRates;
 use Starter\Ai\Ledger\ExecutionContext;
 use Starter\Ai\Ledger\UsageLedger;
 use Starter\Ai\Listeners\RecordSdkUsage;
+use Starter\Ai\Models\ActionProposal;
 use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AgentVersion;
 use Starter\Ai\Models\AiModel;
@@ -47,7 +49,7 @@ class AiServiceProvider extends ServiceProvider
 
         foreach ([ConnectionResolver::class, CostCalculator::class, CostEstimator::class, PriceBook::class, BudgetManager::class,
             UsageLedger::class, AiGateway::class, ModelDiscovery::class, OpenRouterCatalog::class, CatalogManager::class,
-            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class] as $service) {
+            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class, ActionProposals::class] as $service) {
             $this->app->scoped($service);
         }
 
@@ -75,6 +77,7 @@ class AiServiceProvider extends ServiceProvider
             'ai_budget' => Budget::class,
             'ai_agent' => Agent::class,
             'ai_agent_version' => AgentVersion::class,
+            'ai_action_proposal' => ActionProposal::class,
         ]);
 
         if ($this->app->runningInConsole()) {

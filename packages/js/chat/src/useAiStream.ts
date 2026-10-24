@@ -12,9 +12,50 @@ export type StreamSummary = {
     conversation_id: string | null;
     request_id: string | null;
     /** Calculated cost in USD, or null when it is unknown (never zero by default). */
-    cost: number | null;
+    cost: string | null;
     cost_status: string | null;
     model: string | null;
+    provider?: string | null;
+    latency_ms?: number | null;
+    input_tokens?: number | null;
+    output_tokens?: number | null;
+    agent_version?: number | null;
+};
+
+export type ProposalChange = { field: string; before: unknown; after: unknown };
+
+/** A change prepared by an agent tool, waiting for the user's decision. */
+export type ChatProposal = {
+    id: string;
+    tool: string;
+    kind: 'write' | 'sensitive';
+    status:
+        | 'pending'
+        | 'approved'
+        | 'executing'
+        | 'executed'
+        | 'failed'
+        | 'rejected'
+        | 'expired'
+        | 'superseded';
+    preview: {
+        title: string;
+        target: { type: string | null; id: string | null; label: string | null };
+        changes: ProposalChange[];
+        effects: string[];
+        url: string | null;
+    };
+    result: Record<string, unknown> | null;
+    error: string | null;
+    expires_at: string;
+    created_at: string;
+    conversation_id: string | null;
+};
+
+export type ToolActivity = {
+    id: string;
+    name: string;
+    status: 'running' | 'done' | 'failed' | 'denied' | 'waiting';
 };
 
 type StreamEvent = {
@@ -24,37 +65,78 @@ type StreamEvent = {
     provider?: string;
     model?: string | null;
     usage?: StreamUsage | null;
-    conversation_id?: string | null;
-    cost?: number | null;
-    cost_status?: string | null;
-    request_id?: string | null;
-};
+    proposal?: ChatProposal;
+    tool_id?: string;
+    tool_name?: string;
+    successful?: boolean;
+    denied?: boolean;
+    preliminary?: boolean;
+    approvals?: { id: string; tool: string }[];
+} & Partial<StreamSummary>;
 
-type Handlers = {
+export type StreamHandlers = {
     onDelta: (delta: string) => void;
     onStart?: (event: { provider?: string; model?: string | null }) => void;
     onUsage?: (usage: StreamUsage) => void;
     onSummary?: (summary: StreamSummary) => void;
+    onProposal?: (proposal: ChatProposal) => void;
+    onTool?: (activity: ToolActivity) => void;
     onError?: (message: string) => void;
 };
 
 /**
- * POST a payload to a Laravel AI SDK streaming endpoint and dispatch the
- * server-sent events (text_delta, stream_end, summary, error...).
+ * POST a payload (JSON or FormData) to a Laravel AI SDK streaming endpoint
+ * and dispatch the server-sent events: text deltas, tool calls and
+ * results, approval requests and proposals, the summary and errors.
  */
 export function useAiStream() {
     const streaming = ref(false);
     let controller: AbortController | null = null;
 
-    const handle = (payload: StreamEvent, handlers: Handlers) => {
+    const handle = (payload: StreamEvent, handlers: StreamHandlers) => {
         switch (payload.type) {
             case 'stream_start':
-                handlers.onStart?.(
-                    payload as { provider?: string; model?: string },
-                );
+                handlers.onStart?.(payload as { provider?: string; model?: string });
                 break;
             case 'text_delta':
                 handlers.onDelta(payload.delta ?? '');
+                break;
+            case 'tool_call':
+                handlers.onTool?.({
+                    id: payload.tool_id ?? '',
+                    name: payload.tool_name ?? '',
+                    status: 'running',
+                });
+                break;
+            case 'tool_result':
+                if (!payload.preliminary) {
+                    handlers.onTool?.({
+                        id: payload.tool_id ?? '',
+                        name: payload.tool_name ?? '',
+                        status: payload.denied
+                            ? 'denied'
+                            : payload.successful
+                              ? 'done'
+                              : 'failed',
+                    });
+                }
+
+                break;
+            case 'tool_approval_request':
+                for (const approval of payload.approvals ?? []) {
+                    handlers.onTool?.({
+                        id: approval.id,
+                        name: approval.tool,
+                        status: 'waiting',
+                    });
+                }
+
+                break;
+            case 'proposal':
+                if (payload.proposal) {
+                    handlers.onProposal?.(payload.proposal);
+                }
+
                 break;
             case 'stream_end':
                 if (payload.usage) {
@@ -69,6 +151,11 @@ export function useAiStream() {
                     cost: payload.cost ?? null,
                     cost_status: payload.cost_status ?? null,
                     model: payload.model ?? null,
+                    provider: payload.provider ?? null,
+                    latency_ms: payload.latency_ms ?? null,
+                    input_tokens: payload.input_tokens ?? null,
+                    output_tokens: payload.output_tokens ?? null,
+                    agent_version: payload.agent_version ?? null,
                 });
                 break;
             case 'error':
@@ -79,22 +166,24 @@ export function useAiStream() {
 
     const send = async (
         url: string,
-        body: Record<string, unknown>,
-        handlers: Handlers,
+        body: Record<string, unknown> | FormData,
+        handlers: StreamHandlers,
     ) => {
         controller = new AbortController();
         streaming.value = true;
+
+        const isForm = body instanceof FormData;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
                     Accept: 'text/event-stream',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-XSRF-TOKEN': xsrfToken(),
                 },
-                body: JSON.stringify(body),
+                body: isForm ? body : JSON.stringify(body),
                 signal: controller.signal,
                 credentials: 'same-origin',
             });

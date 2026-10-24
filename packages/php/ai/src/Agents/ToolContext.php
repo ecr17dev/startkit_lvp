@@ -16,6 +16,7 @@ final class ToolContext
         public readonly AgentVersion $version,
         public readonly string $surface = 'page',
         public ?string $conversationId = null,
+        public ?string $requestId = null,
     ) {}
 
     public function config(): AgentConfig

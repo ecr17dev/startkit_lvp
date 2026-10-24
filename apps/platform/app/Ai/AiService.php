@@ -7,6 +7,7 @@ use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Closure;
 use Illuminate\Support\Carbon;
+use Laravel\Ai\Approvals\Decision;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Files\File;
@@ -22,6 +23,7 @@ use Starter\Ai\Agents\ToolRegistry;
 use Starter\Ai\AiGateway;
 use Starter\Ai\Enums\Feature;
 use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\ActionProposal;
 use Starter\Ai\Models\AgentVersion;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
@@ -55,7 +57,8 @@ class AiService
 
         try {
             $model = $this->resolveModel($version, $model);
-            $agent = $this->agent($user, $version, $conversationId, $surface);
+            $context = new ToolContext($user, $version, $surface, $conversationId);
+            $agent = $this->agent($user, $version, $conversationId, $surface, $context);
             $providers = $this->providers($version, $model);
             $ledger = null;
 
@@ -63,8 +66,9 @@ class AiService
                 $model,
                 Feature::Chat,
                 $user,
-                function (string $provider, string $name, AiRequest $request) use ($agent, $input, $attachments, $providers, &$ledger) {
+                function (string $provider, string $name, AiRequest $request) use ($agent, $context, $input, $attachments, $providers, &$ledger) {
                     $ledger = $request;
+                    $context->requestId = $request->id;
 
                     return $agent->prompt($input, $attachments, provider: $providers);
                 },
@@ -91,7 +95,8 @@ class AiService
 
         try {
             $model = $this->resolveModel($version, $model);
-            $agent = $this->agent($user, $version, $conversationId, $surface);
+            $context = new ToolContext($user, $version, $surface, $conversationId);
+            $agent = $this->agent($user, $version, $conversationId, $surface, $context);
             $providers = $this->providers($version, $model);
             $ledger = null;
 
@@ -99,8 +104,9 @@ class AiService
                 $model,
                 Feature::Chat,
                 $user,
-                function (string $provider, string $name, AiRequest $request) use ($agent, $input, $attachments, $providers, &$ledger) {
+                function (string $provider, string $name, AiRequest $request) use ($agent, $context, $input, $attachments, $providers, &$ledger) {
                     $ledger = $request;
+                    $context->requestId = $request->id;
 
                     return $agent->stream($input, $attachments, provider: $providers);
                 },
@@ -154,13 +160,27 @@ class AiService
     /**
      * Build the SDK agent for a user, remembering the conversation.
      */
-    public function agent(User $user, AgentVersion $version, ?string $conversationId = null, string $surface = 'page'): ConfiguredAgent
+    public function agent(User $user, AgentVersion $version, ?string $conversationId = null, string $surface = 'page', ?ToolContext $context = null): ConfiguredAgent
     {
-        $context = new ToolContext($user, $version, $surface, $conversationId);
+        $context ??= new ToolContext($user, $version, $surface, $conversationId);
 
         $agent = new ConfiguredAgent($version, $this->variables($user), $this->tools->resolve($version->settings()->tools(), $context));
 
         return $agent->continueOrStart($conversationId, $user);
+    }
+
+    /**
+     * SDK decisions that resume a run paused on a proposal. Other calls
+     * paused in the same turn are rejected (the user decides one at a time).
+     */
+    public static function decisions(ActionProposal $proposal, bool $approve): Decisions
+    {
+        return Decisions::from([
+            $proposal->tool_call_id => $approve
+                ? Decision::approve()
+                : Decision::reject('The user cancelled this change. Nothing was done.'),
+            '*' => Decision::reject('The user did not confirm this change, so it was not done. Ask again if it is still needed.'),
+        ]);
     }
 
     /**

@@ -299,6 +299,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/action-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List your proposals, newest first */
+        get: operations["v1.admin.action-proposals.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-proposals/{proposal}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Show one of your proposals: target, before/after values and effects */
+        get: operations["v1.admin.action-proposals.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-proposals/{proposal}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a pending proposal and let the agent finish its answer */
+        post: operations["v1.admin.action-proposals.confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-proposals/{proposal}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a pending proposal. Nothing is changed */
+        post: operations["v1.admin.action-proposals.reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/invitations": {
         parameters: {
             query?: never;
@@ -776,6 +844,11 @@ export interface components {
          * @enum {string}
          */
         PriceUnit: "per_million_tokens" | "per_thousand_tokens" | "per_token" | "per_minute" | "per_second" | "per_request" | "per_image" | "per_unit";
+        /**
+         * ProposalStatus
+         * @enum {string}
+         */
+        ProposalStatus: "pending" | "approved" | "executing" | "executed" | "failed" | "rejected" | "expired" | "superseded";
         /** RoleRequest */
         RoleRequest: {
             name: string;
@@ -1594,6 +1667,35 @@ export interface operations {
                         cost: string | null;
                         /** @enum {string} */
                         cost_status: "calculated" | "unknown" | "pending" | "estimated" | "reconciled";
+                        /** @description Changes waiting for your confirmation (see /admin/action-proposals). */
+                        proposals: {
+                            id: string;
+                            tool: string;
+                            kind: string;
+                            status: string;
+                            preview: {
+                                title: string;
+                                target: {
+                                    type: string | null;
+                                    id: string | null;
+                                    label: string | null;
+                                };
+                                changes: {
+                                    field: string;
+                                    before: unknown;
+                                    after: unknown;
+                                }[];
+                                effects: string[];
+                                url: string | null;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            expires_at: string;
+                            created_at: string;
+                            conversation_id: string | null;
+                        }[];
                     };
                 };
             };
@@ -1659,6 +1761,309 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.admin.action-proposals.index": {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ProposalStatus"] | null;
+                per_page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            tool: string;
+                            kind: string;
+                            status: string;
+                            preview: {
+                                title: string;
+                                target: {
+                                    type: string | null;
+                                    id: string | null;
+                                    label: string | null;
+                                };
+                                changes: {
+                                    field: string;
+                                    before: unknown;
+                                    after: unknown;
+                                }[];
+                                effects: string[];
+                                url: string | null;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            expires_at: string;
+                            created_at: string;
+                            conversation_id: string | null;
+                        }[];
+                        meta: {
+                            current_page: number;
+                            last_page: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.admin.action-proposals.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            tool: string;
+                            kind: string;
+                            status: string;
+                            preview: {
+                                title: string;
+                                target: {
+                                    type: string | null;
+                                    id: string | null;
+                                    label: string | null;
+                                };
+                                changes: {
+                                    field: string;
+                                    before: unknown;
+                                    after: unknown;
+                                }[];
+                                effects: string[];
+                                url: string | null;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            expires_at: string;
+                            created_at: string;
+                            conversation_id: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.admin.action-proposals.confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            tool: string;
+                            kind: string;
+                            status: string;
+                            preview: {
+                                title: string;
+                                target: {
+                                    type: string | null;
+                                    id: string | null;
+                                    label: string | null;
+                                };
+                                changes: {
+                                    field: string;
+                                    before: unknown;
+                                    after: unknown;
+                                }[];
+                                effects: string[];
+                                url: string | null;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            expires_at: string;
+                            created_at: string;
+                            conversation_id: string | null;
+                        };
+                        /** @description Final answer of the agent after the decision. */
+                        text: string;
+                        conversation_id: unknown;
+                        request_id: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.admin.action-proposals.reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            tool: string;
+                            kind: string;
+                            status: string;
+                            preview: {
+                                title: string;
+                                target: {
+                                    type: string | null;
+                                    id: string | null;
+                                    label: string | null;
+                                };
+                                changes: {
+                                    field: string;
+                                    before: unknown;
+                                    after: unknown;
+                                }[];
+                                effects: string[];
+                                url: string | null;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            expires_at: string;
+                            created_at: string;
+                            conversation_id: string | null;
+                        };
+                        /** @description Final answer of the agent after the decision. */
+                        text: string;
+                        conversation_id: unknown;
+                        request_id: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.invitations.index": {
@@ -2072,7 +2477,7 @@ export interface operations {
                             auto_send: boolean;
                         };
                         tools: {
-                            allowed: ""[];
+                            allowed: ("users_list" | "users_get" | "users_create" | "users_invite" | "users_update" | "users_disable" | "users_delete" | "users_assign_role" | "users_remove_role" | "roles_list" | "roles_get" | "roles_create" | "roles_update" | "roles_delete" | "roles_set_permissions" | "permissions_list")[];
                             max_steps: number;
                             confirm_writes: boolean;
                         };

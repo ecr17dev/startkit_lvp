@@ -292,7 +292,22 @@ class AgentManager
     {
         $version = $agent->publishedVersion;
 
-        if (! $agent->is_active || $version === null) {
+        if ($version === null) {
+            return false;
+        }
+
+        $version->setRelation('agent', $agent);
+
+        return $this->canUseVersion($version, $user, $surface);
+    }
+
+    /**
+     * Determine whether the user may use a given version (for instance, to
+     * resume a conversation paused on a proposal of that version).
+     */
+    public function canUseVersion(AgentVersion $version, ?Authenticatable $user, string $surface): bool
+    {
+        if (! $version->agent->is_active) {
             return false;
         }
 

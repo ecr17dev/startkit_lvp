@@ -152,6 +152,8 @@ escritura con `write`, además del permiso correspondiente.
 | `GET/POST agents`, `GET/PATCH agents/{id}` | Agentes (`ai.agents.manage`) |
 | `PUT agents/{id}/draft`, `POST agents/{id}/publish`, `POST agents/{id}/test` | Borrador, publicación y prueba |
 | `POST agents/{id}/versions/{version}/restore` | Reversión (publica de nuevo una versión anterior) |
+| `GET /api/v1/admin/action-proposals`, `GET …/{id}` | Propuestas propias de cambios preparados por agentes (habilidad `ai`) |
+| `POST …/{id}/confirm`, `POST …/{id}/reject` | Confirmar (reanuda la conversación y ejecuta) o cancelar |
 | `GET/POST connections`, `GET/PATCH/DELETE connections/{id}` | Conexiones |
 | `POST connections/{id}/test`, `POST connections/{id}/discover` | Prueba y descubrimiento |
 | `GET/POST models`, `GET/PATCH models/{id}`, `POST models/{id}/verify` | Catálogo |
@@ -233,10 +235,57 @@ claramente identificado, para desarrollo, demostraciones y pruebas sin claves:
 - El seeder lo instala cuando `STARTER_AI_SIMULATED=true` (por defecto fuera de
   producción) y no existen conexiones.
 
+## Herramientas del operador y propuestas
+
+El agente puede consultar y administrar usuarios, roles y permisos con
+herramientas tipadas del SDK (`app/Ai/Tools`, registradas en
+`App\Ai\OperatorTools`). Cada herramienta llama a las mismas Actions que el
+panel y la API (Policies, delegación, protección del último propietario y
+auditoría); el actor, la sesión y la versión del agente se inyectan en el
+servidor (`Agents\ToolContext`), nunca desde los argumentos del modelo.
+
+| Herramienta | Tipo | Permiso para ofrecerla |
+| --- | --- | --- |
+| `users_list`, `users_get` | Lectura | `users.read` |
+| `users_create`, `users_invite`, `users_update` | Cambio | `users.create`, `users.invite`, `users.update` |
+| `users_disable`, `users_delete` | Sensible | `users.disable`, `users.delete` |
+| `users_assign_role`, `users_remove_role` | Sensible | `users.update` |
+| `roles_list`, `roles_get`, `permissions_list` | Lectura | `roles.read` |
+| `roles_create`, `roles_update`, `roles_delete` | Sensible | `roles.manage` |
+| `roles_set_permissions` | Sensible | `permissions.manage` |
+
+- **Lecturas** y **cambios ordinarios** se ejecutan directamente (salvo que el
+  agente tenga activado "confirmar todos los cambios").
+- **Sensibles**: reutilizan el mecanismo de aprobación del SDK
+  (`Approvable`). Cuando el modelo llama a la herramienta, esta valida,
+  autoriza y prepara una vista previa (objetivo exacto, valores antes/después y
+  efectos); si algo falla no hay propuesta y el modelo recibe el error. Si todo
+  está bien, el SDK pausa la ejecución y se guarda una **propuesta**
+  (`ai_action_proposals`) con actor, versión del agente, solicitud del libro,
+  conversación, argumentos normalizados y su hash, huella del recurso y
+  vencimiento (`STARTER_AI_PROPOSAL_TTL`, 10 minutos).
+- La tarjeta del chat permite **confirmar** o **cancelar**. La decisión es una
+  transición atómica desde `pending` (solo su actor y antes de vencer) y
+  reanuda la ejecución del SDK con `Decisions`; las demás llamadas pausadas del
+  mismo turno se rechazan y un mensaje nuevo deja las pendientes como
+  `superseded`.
+- Al ejecutarse, la herramienta reclama la propuesta una sola vez
+  (`approved → executing`), comprueba que los argumentos y la huella del recurso
+  no cambiaron, vuelve a autorizar dentro de la Action y ejecuta en una
+  transacción. El resultado (`executed` o `failed`) se registra en la propuesta
+  y en la auditoría (`ai.proposal.approved/rejected/failed`,
+  `ai.tool.executed/failed`, además del evento propio de la Action). El modelo
+  nunca recibe éxito si el servicio falló o si solo se preparó la propuesta.
+- Los permisos revocados aplican de inmediato: el actor se recarga antes de cada
+  herramienta y spatie/laravel-permission invalida su caché al cambiar roles.
+- Las propuestas vencidas se marcan `expired` en `starter:ai-maintain`.
+- En el chat, el streaming emite además eventos `proposal` (estado de cada
+  tarjeta) junto a los eventos del SDK (`tool_call`, `tool_result`,
+  `tool_approval_request`). En la API, `POST /api/v1/ai/chat` devuelve las
+  propuestas pendientes y se confirman en `/api/v1/admin/action-proposals`.
+
 ## Pendiente (resto de la etapa 4)
 
-- Herramientas del operador (usuarios, roles, permisos) con propuestas de acción
-  confirmadas sobre el mecanismo de aprobación del SDK.
 - Chat flotante, adjuntos, transcripción con micrófono y títulos de conversación
   generados a través del gateway.
 - Recomendador de modelos (7.3 de la especificación) y laboratorio de pruebas.

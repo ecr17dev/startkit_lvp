@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Ai\OperatorTools;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
@@ -20,6 +21,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
+use Starter\Ai\Agents\ToolRegistry;
 use Starter\Identity\Models\Invitation;
 
 class AppServiceProvider extends ServiceProvider
@@ -42,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureApiDocs();
 
+        // Operator tools that agents may be allowed to use...
+        $this->callAfterResolving(ToolRegistry::class, fn (ToolRegistry $registry) => OperatorTools::register($registry));
     }
 
     /**

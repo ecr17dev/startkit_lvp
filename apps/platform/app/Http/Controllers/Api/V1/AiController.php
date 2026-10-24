@@ -11,12 +11,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Laravel\Ai\Models\Conversation;
+use Starter\Ai\Agents\ActionProposals;
 use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Enums\CostStatus;
+use Starter\Ai\Enums\ProposalStatus;
 use Starter\Ai\Exceptions\AgentLimitExceededException;
 use Starter\Ai\Exceptions\AgentNotAvailableException;
 use Starter\Ai\Exceptions\BudgetExceededException;
 use Starter\Ai\Exceptions\ModelNotUsableException;
+use Starter\Ai\Models\ActionProposal;
 use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
@@ -27,6 +30,7 @@ class AiController extends Controller
     public function __construct(
         protected AiService $ai,
         protected AgentManager $agents,
+        protected ActionProposals $proposals,
     ) {}
 
     /**
@@ -76,6 +80,9 @@ class AiController extends Controller
                 ->where('participant_id', $user->getKey())
                 ->whereKey($validated['conversation_id'])
                 ->firstOrFail();
+
+            // A new message abandons the changes still waiting for a decision...
+            $this->proposals->supersede($validated['conversation_id'], $user);
         }
 
         $canChooseModel = $user->can('ai.models.manage');
@@ -105,6 +112,10 @@ class AiController extends Controller
             $ledger->forceFill(['conversation_id' => $response->conversationId])->save();
         }
 
+        if (($validated['conversation_id'] ?? null) === null && $response->conversationId !== null) {
+            $this->proposals->attachConversation($ledger->id, $response->conversationId);
+        }
+
         return response()->json([
             'text' => $response->text,
             'conversation_id' => $response->conversationId,
@@ -123,6 +134,14 @@ class AiController extends Controller
             'cost' => $ledger->cost !== null ? (string) $ledger->cost : null,
             /** @var 'calculated'|'unknown'|'pending'|'estimated'|'reconciled' */
             'cost_status' => $ledger->cost_status->value,
+            /** Changes waiting for your confirmation (see /admin/action-proposals). */
+            'proposals' => ActionProposal::query()
+                ->where('ai_request_id', $ledger->id)
+                ->where('status', ProposalStatus::Pending->value)
+                ->orderBy('created_at')
+                ->get()
+                ->map(fn (ActionProposal $proposal) => $proposal->present())
+                ->values(),
         ]);
     }
 

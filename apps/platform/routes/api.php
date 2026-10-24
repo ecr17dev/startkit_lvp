@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActionProposalController;
 use App\Http\Controllers\Api\V1\Ai\AgentController as AiAgentController;
 use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
 use App\Http\Controllers\Api\V1\Ai\ConnectionController as AiConnectionController;
@@ -59,6 +60,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('chat/agents', [AiController::class, 'agents'])->name('chat.agents');
             Route::post('chat', [AiController::class, 'chat'])->middleware('throttle:ai')->name('chat');
             Route::get('me/usage', [AiController::class, 'usage'])->name('me.usage');
+        });
+
+        // Changes prepared by agent tools, confirmed or cancelled by their actor...
+        Route::middleware(['ability:ai', 'can:ai.chat'])->prefix('admin/action-proposals')->name('admin.action-proposals.')->group(function () {
+            Route::get('/', [ActionProposalController::class, 'index'])->name('index');
+            Route::get('{proposal}', [ActionProposalController::class, 'show'])->whereUuid('proposal')->name('show');
+            Route::post('{proposal}/confirm', [ActionProposalController::class, 'confirm'])->whereUuid('proposal')->middleware('throttle:ai')->name('confirm');
+            Route::post('{proposal}/reject', [ActionProposalController::class, 'reject'])->whereUuid('proposal')->middleware('throttle:ai')->name('reject');
         });
 
         // AI administration: same Actions and permissions as the panel...
