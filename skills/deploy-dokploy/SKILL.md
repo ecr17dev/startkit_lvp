@@ -65,14 +65,19 @@ propietario. Guía completa: [docs/dokploy.md](../../docs/dokploy.md).
 5. **Dominios**: `domain-create` con `composeId`, `domainType: compose`, `serviceName: web`,
    `port: 8080`, `path: /`; el definitivo con `https: true` y `certificateType: letsencrypt`, el
    de sslip.io con `https: false` y `certificateType: none`.
-6. **Despliega**: `compose-deploy`. Sigue `deployment-allByCompose` y `deployment-readLogs`
-   (el primer build compila extensiones de PHP, instala Composer y pnpm y compila Vite: 5–15 min;
-   los siguientes usan la caché). Con `autoDeploy`, cada push a la rama redespliega.
+6. **Despliega**: `compose-deploy`. Sigue `deployment-allByCompose` (estado) y
+   `deployment-readLogs` con `tail` corto (el build es muy verboso). El primer build compila
+   extensiones de PHP, instala Composer y pnpm y compila Vite (5–15 min); los siguientes usan la
+   caché (1–2 min). Con `autoDeploy`, cada push a la rama redespliega: **no hagas push ni
+   redespliegues mientras otro despliegue del mismo servicio está en curso**, porque Dokploy los
+   ejecuta en paralelo.
 7. **Verifica**: `curl -fsS https://<dominio>/up` (o el de sslip.io) responde 200 y
    `/login` carga.
 8. **Acceso**: con `MAIL_MAILER=log`, pide un código en `/login` con el correo del propietario y
-   léelo en los logs del servicio `app` (`compose-readLogs` con el contenedor de `app`, buscando
-   el correo o «Código»). Con Resend, llega al correo.
+   léelo en los logs del servicio `app`: `docker-getContainersByAppNameMatch` (`appName`,
+   `appType: docker-compose`, `serverId`) da el `containerId` y `compose-readLogs` con
+   `since: 5m` muestra el correo (el código va en la línea `# 123456`; el filtro `search` no
+   acepta `@`). Con Resend, llega al correo. Deja la incorporación al usuario.
 9. **Correo real (Resend)**: si el dominio del remitente ya está verificado en Resend (registros
    `resend._domainkey` y `send` en la zona), agrega `RESEND_API_KEY` y `MAIL_MAILER=resend` al
    `env` y redespliega, o configúralo en el panel (Configuración del sistema → Servidor de
@@ -107,4 +112,4 @@ propietario. Guía completa: [docs/dokploy.md](../../docs/dokploy.md).
 | Redirecciones a `http://` | `TRUSTED_PROXIES` vacío: el compose de Dokploy lo deja en `*` |
 | Otro proyecto responde en `app` | falta `isolatedDeployment: true` |
 | `password authentication failed` tras cambiar `DB_PASSWORD` | PostgreSQL fija la clave al crear el volumen: vuelve a la original o cámbiala dentro de la base |
-| Composer falla descargando de GitHub | límite de la API sin token: vuelve a desplegar; Composer reintenta desde el código fuente |
+| `The container name ... is already in use` | dos despliegues en paralelo (un push durante el primero): el que terminó bien dejó el stack arriba; revisa `docker-getContainersByAppNameMatch` y vuelve a desplegar si hace falta |

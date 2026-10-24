@@ -74,8 +74,8 @@ construyen en el servidor (Composer, pnpm y Vite dentro del build); el primer de
 | Crear y configurar | `compose-create` (`environmentId`, `serverId`, `sourceType: github`) y `compose-update` (`githubId`, `owner`, `repository`, `branch`, `composePath`, `isolatedDeployment`, `autoDeploy`, `env`) |
 | DNS | `dnsProvider-all`, `dnsProvider-listZones`, `dnsProvider-listRecords`; si no hay herramienta para crear el registro, se le pide al usuario |
 | Dominios | `domain-generateDomain` (sslip.io), `domain-create` (`serviceName: web`, `port: 8080`) |
-| Desplegar y seguir | `compose-deploy`, `deployment-allByCompose`, `deployment-readLogs` (con `tail` corto: el build es muy verboso) |
-| Diagnosticar | `compose-readLogs` del contenedor de `app`, `migrate` o `web` |
+| Desplegar y seguir | `compose-deploy`, `deployment-allByCompose`, `deployment-readLogs` (con `tail` corto: el build es muy verboso). No empujes cambios mientras corre un despliegue: Dokploy ejecuta los dos en paralelo y uno falla por nombres de contenedor repetidos |
+| Diagnosticar y leer el código del propietario | `docker-getContainersByAppNameMatch` (IDs de contenedor) y `compose-readLogs` de `app`, `migrate` o `web` |
 
 Los secretos (`APP_KEY`, `DB_PASSWORD`) se generan en un archivo temporal privado, se pasan al
 `env` y el archivo se borra; nunca aparecen en la respuesta ni en el repositorio.
