@@ -1,5 +1,6 @@
 import type {
     ChatProposal,
+    StreamKnowledge,
     StreamSummary,
     StreamUsage,
     ToolActivity,
@@ -62,6 +63,7 @@ export type ChatMessageItem = {
     summary?: StreamSummary | null;
     tools?: ToolActivity[];
     attachments?: ChatAttachmentInfo[];
+    knowledge?: StreamKnowledge | null;
     error?: string | null;
     created_at?: string;
 };
@@ -249,6 +251,7 @@ export function useChat(options: {
                 }
             },
             onProposal: upsertProposal,
+            onKnowledge: (knowledge) => (answer.knowledge = knowledge),
             onUsage: (usage) => (answer.usage = usage),
             onSummary: (summary) => {
                 answer.summary = summary;

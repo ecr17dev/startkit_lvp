@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Starter\Ai\Agents\AgentManager;
+use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AiModel;
 use Starter\Knowledge\Enums\JobType;
 use Starter\Knowledge\Enums\Metric;
@@ -23,7 +25,7 @@ class KnowledgeSeeder extends Seeder
      * project documentation. Production installations activate RAG from
      * Admin → Knowledge with a real embeddings model.
      */
-    public function run(Knowledge $knowledge, RagJobs $jobs): void
+    public function run(Knowledge $knowledge, RagJobs $jobs, AgentManager $agents): void
     {
         if (! config('starter.features.rag') || ! config('starter.ai.simulated')) {
             return;
@@ -48,14 +50,16 @@ class KnowledgeSeeder extends Seeder
         $connection = $knowledge->connection();
 
         if ($connection === null || Collection::query()->exists()) {
+            $this->agent($agents, Collection::query()->where('slug', 'documentacion')->first());
+
             return;
         }
 
-        $profile = EmbeddingProfile::query()->firstOrCreate(['connection_id' => $connection->id, 'name' => 'Simulado · 256d'], [
+        $profile = EmbeddingProfile::query()->firstOrCreate(['connection_id' => $connection->id, 'name' => 'Simulado · 1024d'], [
             'model_id' => $model->id,
             'provider' => 'simulated',
             'model' => $model->model,
-            'dimensions' => 256,
+            'dimensions' => 1024,
             'metric' => Metric::Cosine,
             'normalize' => true,
             'batch_size' => 32,
@@ -83,5 +87,28 @@ class KnowledgeSeeder extends Seeder
         ]);
 
         $jobs->create(JobType::SyncSource, ['collection_id' => $collection->id, 'source_id' => $source->id, 'trigger' => 'seed']);
+
+        $this->agent($agents, $collection);
+    }
+
+    /**
+     * Agent that answers from the documentation with citations.
+     */
+    protected function agent(AgentManager $agents, ?Collection $collection): void
+    {
+        if ($collection === null || Agent::query()->where('slug', 'documentacion')->exists()) {
+            return;
+        }
+
+        $agent = $agents->create(['slug' => 'documentacion', 'name' => 'Experto en documentación', 'description' => 'Responde con evidencia de la documentación del proyecto y cita sus fuentes.'], [
+            'identity' => ['avatar' => '📚', 'greeting' => 'Pregúntame sobre la documentación del proyecto.', 'language' => 'auto', 'tone' => 'neutral'],
+            'instructions' => [
+                'system_prompt' => 'Eres el experto en la documentación de {{app_name}}. Responde en el idioma del usuario, de forma breve y precisa.',
+                'variables' => ['app_name'],
+            ],
+            'rag' => ['mode' => 'always', 'collections' => [$collection->id], 'top_k' => 4, 'max_context_tokens' => 2500, 'evidence' => 'required', 'min_hits' => 1, 'method' => null, 'min_score' => 0.15],
+        ]);
+
+        $agents->publish($agent);
     }
 }

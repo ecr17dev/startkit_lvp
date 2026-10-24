@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import {
+    BookOpen,
     Bot,
     Check,
     Clock,
+    ExternalLink,
     Paperclip,
     User as UserIcon,
     Wrench,
@@ -10,6 +12,8 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import type { ChatMessageItem } from '@/composables/useChat';
+import { usePermissions } from '@/composables/usePermissions';
+import { show as documentShow } from '@/routes/admin/knowledge/documents';
 import { costStatusLabels, formatCost } from '@/lib/ai';
 import { formatDate, formatNumber, t } from '@/lib/i18n';
 import { renderMarkdown } from '@/lib/markdown';
@@ -32,6 +36,15 @@ const tokens = computed(() => {
 
     return usage ? (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0) : 0;
 });
+
+const { can } = usePermissions();
+
+const outcomeNotices: Record<string, string> = {
+    abstained:
+        'No evidence in the authorized sources: no answer was generated.',
+    general: 'General answer: not based on the organization sources.',
+    unsupported: 'The answer did not cite the retrieved sources.',
+};
 
 const toolLabels: Record<string, string> = {
     running: 'running',
@@ -135,6 +148,78 @@ const toolLabels: Record<string, string> = {
                     <span
                         class="size-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:300ms]"
                     />
+                </div>
+                <div
+                    v-if="message.knowledge"
+                    class="grid gap-1.5 border-t pt-2 text-xs"
+                    data-test="chat-knowledge"
+                >
+                    <p
+                        v-if="
+                            message.knowledge.outcome &&
+                            outcomeNotices[message.knowledge.outcome]
+                        "
+                        class="flex items-center gap-1.5 text-amber-700 dark:text-amber-400"
+                    >
+                        <BookOpen class="size-3.5 shrink-0" />
+                        {{ t(outcomeNotices[message.knowledge.outcome]) }}
+                    </p>
+                    <ol
+                        v-if="message.knowledge.citations.length"
+                        class="grid gap-1"
+                    >
+                        <li
+                            v-for="citation in message.knowledge.citations"
+                            :key="citation.n"
+                            class="flex items-start gap-1.5 text-muted-foreground"
+                            :data-test="`citation-${citation.n}`"
+                        >
+                            <span class="font-mono font-medium text-foreground"
+                                >[{{ citation.n }}]</span
+                            >
+                            <span class="min-w-0">
+                                <a
+                                    v-if="
+                                        citation.document_id &&
+                                        can('rag.documents.read')
+                                    "
+                                    :href="
+                                        documentShow(citation.document_id).url
+                                    "
+                                    class="font-medium text-foreground hover:underline"
+                                    >{{ citation.title }}</a
+                                >
+                                <span
+                                    v-else
+                                    class="font-medium text-foreground"
+                                    >{{ citation.title }}</span
+                                >
+                                <template v-if="citation.location">
+                                    — {{ citation.location }}</template
+                                >
+                                <a
+                                    v-if="citation.uri"
+                                    :href="citation.uri"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="ml-1 inline-flex items-center hover:text-foreground"
+                                    :aria-label="t('Open origin')"
+                                    ><ExternalLink class="size-3"
+                                /></a>
+                            </span>
+                        </li>
+                    </ol>
+                    <p
+                        v-if="message.knowledge.invalid"
+                        class="text-muted-foreground"
+                    >
+                        {{
+                            t(
+                                ':n citations did not match a retrieved passage and were discarded.',
+                                { n: message.knowledge.invalid },
+                            )
+                        }}
+                    </p>
                 </div>
                 <p v-if="message.error" class="text-sm text-destructive">
                     {{ message.error }}

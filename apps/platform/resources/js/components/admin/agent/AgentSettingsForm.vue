@@ -32,6 +32,13 @@ const props = defineProps<{
 }>();
 
 const config = computed(() => props.form.config);
+
+const toggleCollection = (id: number, checked: boolean | string) => {
+    const current = config.value.rag.collections;
+    config.value.rag.collections = checked
+        ? [...new Set([...current, id])]
+        : current.filter((item) => item !== id);
+};
 const error = (key: string) =>
     (props.form.errors as Record<string, string | undefined>)[`config.${key}`];
 
@@ -574,15 +581,207 @@ const insertVariable = (name: string) => {
                 </div>
             </div>
 
-            <div class="grid gap-2 rounded-lg border border-dashed p-4">
-                <p class="text-sm font-medium">{{ t('Knowledge (RAG)') }}</p>
-                <p class="text-xs text-muted-foreground">
+            <div class="grid gap-4 rounded-lg border p-4" data-test="agent-rag">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="grid gap-1">
+                        <p class="text-sm font-medium">
+                            {{ t('Knowledge (RAG)') }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{
+                                t(
+                                    'Answers grounded on authorized collections, with validated [n] citations. The access lists of each user apply inside the search.',
+                                )
+                            }}
+                        </p>
+                    </div>
+                    <Select
+                        v-model="config.rag.mode"
+                        :disabled="!options.knowledge.feature"
+                    >
+                        <SelectTrigger class="w-56" data-test="agent-rag-mode">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="off">{{ t('Off') }}</SelectItem>
+                            <SelectItem value="always">{{
+                                t('Search before every message')
+                            }}</SelectItem>
+                            <SelectItem value="tool">{{
+                                t('The model decides (tool)')
+                            }}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <p
+                    v-if="!options.knowledge.feature"
+                    class="text-xs text-muted-foreground"
+                >
                     {{
                         t(
-                            'Retrieval from knowledge collections arrives with the knowledge module. Voice output is not part of this version.',
+                            'Knowledge is disabled in this installation (STARTER_FEATURE_RAG).',
                         )
                     }}
                 </p>
+                <p
+                    v-else-if="!options.knowledge.available"
+                    class="text-xs text-amber-600 dark:text-amber-400"
+                >
+                    {{
+                        t(
+                            'Knowledge (RAG) is not active: the agent answers without retrieval until it is activated.',
+                        )
+                    }}
+                </p>
+                <template v-if="config.rag.mode !== 'off'">
+                    <div class="grid gap-2">
+                        <Label>{{ t('Collections') }}</Label>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <Label
+                                v-for="collection in options.knowledge
+                                    .collections"
+                                :key="collection.id"
+                                class="flex items-center gap-2 rounded-md border p-2 text-sm font-normal"
+                            >
+                                <Checkbox
+                                    :model-value="
+                                        config.rag.collections.includes(
+                                            collection.id,
+                                        )
+                                    "
+                                    @update:model-value="
+                                        (checked) =>
+                                            toggleCollection(
+                                                collection.id,
+                                                checked,
+                                            )
+                                    "
+                                />
+                                <span class="min-w-0 flex-1 truncate">{{
+                                    collection.name
+                                }}</span>
+                                <span class="text-xs text-muted-foreground">{{
+                                    collection.acl.join(', ')
+                                }}</span>
+                            </Label>
+                        </div>
+                        <p
+                            v-if="!options.knowledge.collections.length"
+                            class="text-xs text-muted-foreground"
+                        >
+                            {{ t('No collections yet.') }}
+                        </p>
+                        <InputError :message="error('rag.collections')" />
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="grid gap-2">
+                            <Label>{{ t('Method') }}</Label>
+                            <Select
+                                :model-value="config.rag.method ?? 'default'"
+                                @update:model-value="
+                                    (value) =>
+                                        (config.rag.method =
+                                            value === 'default'
+                                                ? null
+                                                : (value as
+                                                      | 'vector'
+                                                      | 'text'
+                                                      | 'hybrid'))
+                                "
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="default">{{
+                                        t('Collection setting')
+                                    }}</SelectItem>
+                                    <SelectItem value="hybrid">{{
+                                        t('Hybrid (RRF)')
+                                    }}</SelectItem>
+                                    <SelectItem value="vector">{{
+                                        t('Vector')
+                                    }}</SelectItem>
+                                    <SelectItem value="text">{{
+                                        t('Full text')
+                                    }}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="rag-top-k">Top-k</Label>
+                            <Input
+                                id="rag-top-k"
+                                v-model.number="config.rag.top_k"
+                                type="number"
+                                min="1"
+                                max="20"
+                            />
+                            <InputError :message="error('rag.top_k')" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="rag-context">{{
+                                t('Context budget (tokens)')
+                            }}</Label>
+                            <Input
+                                id="rag-context"
+                                v-model.number="config.rag.max_context_tokens"
+                                type="number"
+                                min="200"
+                                max="32000"
+                            />
+                            <InputError
+                                :message="error('rag.max_context_tokens')"
+                            />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="rag-min-score">{{
+                                t('Minimum similarity')
+                            }}</Label>
+                            <Input
+                                id="rag-min-score"
+                                v-model.number="config.rag.min_score"
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                :placeholder="t('none')"
+                            />
+                        </div>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label>{{ t('Without enough evidence') }}</Label>
+                            <Select v-model="config.rag.evidence">
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="required">{{
+                                        t('Abstain (evidence required)')
+                                    }}</SelectItem>
+                                    <SelectItem value="general">{{
+                                        t(
+                                            'Answer in general terms, clearly identified',
+                                        )
+                                    }}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="rag-min-hits">{{
+                                t('Minimum passages')
+                            }}</Label>
+                            <Input
+                                id="rag-min-hits"
+                                v-model.number="config.rag.min_hits"
+                                type="number"
+                                min="1"
+                                max="10"
+                            />
+                        </div>
+                    </div>
+                </template>
             </div>
         </TabsContent>
 

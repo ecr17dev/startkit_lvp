@@ -270,3 +270,55 @@ export type PaginatedDocuments = {
     data: DocumentSummary[];
     meta: PaginationMeta;
 };
+
+export type RetrievalHitRow = {
+    rank: number;
+    chunk_id: number;
+    document_id: number;
+    collection_id: number;
+    source_id: number;
+    title: string;
+    location?: string;
+    uri?: string;
+    section?: string;
+    page_start?: number;
+    page_end?: number;
+    score: number;
+    score_type: string;
+    vector_score?: number;
+    text_score?: number;
+    token_count: number;
+    content?: string;
+};
+
+export type RetrievalResultData = {
+    run_id: string | null;
+    method: string;
+    hits: RetrievalHitRow[];
+    latency_ms: number;
+    embedding_ms: number | null;
+    search_ms: number;
+    cost: string | null;
+    context_tokens: number;
+    diagnostics: {
+        candidates?: Record<string, number>;
+        exact?: Record<string, boolean>;
+    };
+};
+
+export type LabCollectionOption = {
+    id: number;
+    name: string;
+    language: string;
+    search: SearchSettings;
+};
+
+export type RetrievalRunSummary = {
+    id: string;
+    query: string;
+    method: string;
+    hits: number;
+    latency_ms: number;
+    cost: string | null;
+    created_at: string | null;
+};

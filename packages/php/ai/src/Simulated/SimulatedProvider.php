@@ -38,7 +38,7 @@ class SimulatedProvider extends OpenAiCompatibleProvider
 
     public function defaultEmbeddingsDimensions(): int
     {
-        return 256;
+        return 1024;
     }
 
     public function defaultTextModel(): string

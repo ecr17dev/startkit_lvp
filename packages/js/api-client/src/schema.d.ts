@@ -847,6 +847,240 @@ export interface paths {
         patch: operations["v1.ai.budgets.update"];
         trace?: never;
     };
+    "/v1/rag/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Knowledge status: mode, connection, capabilities and diagnostics */
+        get: operations["v1.rag.status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Collections you can see */
+        get: operations["v1.rag.collections.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/collections/{collection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A collection with its sources and index versions */
+        get: operations["v1.rag.collections.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/collections/{collection}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents of a collection */
+        get: operations["v1.rag.documents.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/documents/{document}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A document with its chunks in the active index version */
+        get: operations["v1.rag.documents.show"];
+        put?: never;
+        post?: never;
+        /** Delete a document: it leaves the searches at once and a job purges it */
+        delete: operations["v1.rag.documents.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Indexing jobs (latest first) */
+        get: operations["v1.rag.jobs.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/jobs/{job}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress of a job: stage, known progress, units, timings and cost */
+        get: operations["v1.rag.jobs.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search the authorized knowledge
+         * @description Returns the ranked passages (only from collections and documents your
+         *     access lists allow), the method, latency and the cost of embedding the
+         *     query (null when its price is unknown). Scores are rankings within a
+         *     method (cosine similarity, text rank or reciprocal rank fusion), not
+         *     probabilities. Requires `rag.playground.use`.
+         */
+        post: operations["v1.rag.search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/collections/{collection}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source and start its sync
+         * @description Types url, sitemap, adapter and disk take a JSON `config`; files are
+         *     uploaded with multipart/form-data (`files[]`). Responds 202 with the
+         *     sync `job_id`.
+         */
+        post: operations["v1.rag.sources.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{source}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a sync of a source (an open sync is returned instead of a new one) */
+        post: operations["v1.rag.sources.sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/jobs/{job}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request the cooperative cancellation of a job */
+        post: operations["v1.rag.jobs.cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/jobs/{job}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed or cancelled job */
+        post: operations["v1.rag.jobs.retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/jobs/{job}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused ingestion with a confirmed maximum cost (`max_cost`, USD) */
+        post: operations["v1.rag.jobs.resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/transcriptions": {
         parameters: {
             query?: never;
@@ -1042,6 +1276,45 @@ export interface components {
             capabilities?: components["schemas"]["CapabilityStatus"][];
         };
         /**
+         * SaveSource
+         * @description Creates (and syncs) or updates a source of a collection.
+         */
+        SaveSource: {
+            type: components["schemas"]["SourceType"];
+            name: string;
+            config?: string[] | null;
+            acl?: string[] | null;
+            /**
+             * @description Automatic sync: hourly, daily or weekly (empty = manual).
+             * @enum {string|null}
+             */
+            schedule?: "hourly" | "daily" | "weekly" | null;
+        };
+        /**
+         * SearchKnowledge
+         * @description Search the authorized knowledge (lab and API). The collections are
+         *     limited to those whose access list includes the actor; the retriever
+         *     applies the document access lists inside the query.
+         */
+        SearchKnowledge: {
+            query: string;
+            /** @description Collections to search (default: every collection you can access). */
+            collection_ids?: number[] | null;
+            method?: components["schemas"]["SearchMethod"] | null;
+            top_k?: number | null;
+            min_score?: number | null;
+            min_text_rank?: number | null;
+            max_context_tokens?: number | null;
+            source_ids?: number[] | null;
+            /** @description Force exact (true) or approximate (false) vector search. */
+            exact?: boolean | null;
+        };
+        /**
+         * SearchMethod
+         * @enum {string}
+         */
+        SearchMethod: "vector" | "text" | "hybrid";
+        /**
          * SetModelPrice
          * @description Set (or stop) a manual price. A change creates a new version; costs
          *     already recorded keep the price they were calculated with.
@@ -1056,6 +1329,11 @@ export interface components {
             /** @description Where the price comes from (URL of the price list, agreement...). */
             notes?: string | null;
         };
+        /**
+         * SourceType
+         * @enum {string}
+         */
+        SourceType: "upload" | "url" | "sitemap" | "adapter" | "disk";
         /**
          * StoreUserRequest
          * @description Validation is shared with the action (panel, API and AI tools).
@@ -1789,6 +2067,24 @@ export interface operations {
                         cost: string | null;
                         /** @enum {string} */
                         cost_status: "calculated" | "unknown" | "pending" | "estimated" | "reconciled";
+                        /** @description Knowledge used to answer: outcome (answered, general, unsupported, abstained) and validated citations; null without RAG. */
+                        knowledge: {
+                            mode: string;
+                            used: string;
+                            /** @enum {string} */
+                            outcome: "abstained" | "general" | "unsupported" | "answered";
+                            hits: number;
+                            citations: {
+                                n: string;
+                                document_id: number;
+                                chunk_id: number;
+                                title: string;
+                                location: string | null;
+                                uri: unknown;
+                                score: number;
+                            }[];
+                            invalid: number;
+                        } | null;
                         /** @description Changes waiting for your confirmation (see /admin/action-proposals). */
                         proposals: {
                             id: string;
@@ -1818,6 +2114,42 @@ export interface operations {
                             created_at: string;
                             conversation_id: string | null;
                         }[];
+                    } | {
+                        text: string;
+                        conversation_id: string | null;
+                        request_id: null;
+                        agent: string;
+                        agent_version: number;
+                        provider: null;
+                        model: null;
+                        usage: {
+                            /** @constant */
+                            input_tokens: 0;
+                            /** @constant */
+                            output_tokens: 0;
+                        };
+                        /** @constant */
+                        cost: "0";
+                        /** @constant */
+                        cost_status: "calculated";
+                        knowledge: {
+                            mode: string;
+                            used: string;
+                            /** @enum {string} */
+                            outcome: "abstained" | "general" | "unsupported" | "answered";
+                            hits: number;
+                            citations: {
+                                n: string;
+                                document_id: number;
+                                chunk_id: number;
+                                title: string;
+                                location: string | null;
+                                uri: unknown;
+                                score: number;
+                            }[];
+                            invalid: number;
+                        };
+                        proposals: string[];
                     };
                 };
             };
@@ -2459,8 +2791,14 @@ export interface operations {
                                     [key: string]: unknown;
                                 };
                                 check: {
-                                    errors: string[];
-                                    warnings: string[];
+                                    errors: [
+                                        string[],
+                                        string | string[]
+                                    ];
+                                    warnings: [
+                                        string,
+                                        string | string[]
+                                    ];
                                 };
                             } | null;
                             tools: unknown[];
@@ -2605,7 +2943,16 @@ export interface operations {
                         };
                         rag: {
                             /** @enum {string} */
-                            mode: "off";
+                            mode: "off" | "always" | "tool";
+                            collections: number[];
+                            /** @enum {string|null} */
+                            method?: "vector" | "text" | "hybrid" | null;
+                            top_k: number;
+                            max_context_tokens: number;
+                            min_score?: number | null;
+                            /** @enum {string} */
+                            evidence: "required" | "general";
+                            min_hits: number;
                         };
                         access: {
                             roles: string[];
@@ -2637,8 +2984,14 @@ export interface operations {
                                 [key: string]: unknown;
                             };
                             check: {
-                                errors: string[];
-                                warnings: string[];
+                                errors: [
+                                    string[],
+                                    string | string[]
+                                ];
+                                warnings: [
+                                    string,
+                                    string | string[]
+                                ];
                             };
                         };
                     };
@@ -4253,6 +4606,1030 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.rag.status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            feature: string;
+                            mode: string;
+                            available: string;
+                            connection: {
+                                id: number;
+                                name: string;
+                                label: string;
+                                kind: string;
+                                status: string;
+                                capabilities: string[];
+                                pgvector_version: string | null;
+                                diagnostics: {
+                                    [key: string]: unknown;
+                                } | null;
+                                checked_at: string | null;
+                            } | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.rag.collections.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            status: string;
+                            language: string;
+                            embedding_profile_id: number;
+                            profile: string;
+                            chunking: {
+                                target_tokens: number;
+                                overlap_tokens: number;
+                                max_tokens: number;
+                            };
+                            search: {
+                                method: string;
+                                top_k: number;
+                                min_score: number | null;
+                                min_text_rank: number | null;
+                                max_context_tokens: number;
+                            };
+                            acl: string[];
+                            retention_days: number | null;
+                            sources: number;
+                            documents: number;
+                            documents_by_status: string;
+                            active_version: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                reason: string;
+                                profile: string;
+                                embedding_profile_id: number;
+                                chunking: {
+                                    target_tokens: number;
+                                    overlap_tokens: number;
+                                    max_tokens: number;
+                                };
+                                documents: number;
+                                chunks: number;
+                                tokens: number;
+                                cost: string | null;
+                                published_at: string | null;
+                                purged_at: string | null;
+                                created_at: string;
+                            } | null;
+                            building_version: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                reason: string;
+                                profile: string;
+                                embedding_profile_id: number;
+                                chunking: {
+                                    target_tokens: number;
+                                    overlap_tokens: number;
+                                    max_tokens: number;
+                                };
+                                documents: number;
+                                chunks: number;
+                                tokens: number;
+                                cost: string | null;
+                                published_at: string | null;
+                                purged_at: string | null;
+                                created_at: string;
+                            } | null;
+                            needs_reindex: string;
+                            open_jobs: number;
+                            created_at: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.rag.collections.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The collection ID */
+                collection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            slug: string;
+                            name: string;
+                            description: string | null;
+                            status: string;
+                            language: string;
+                            embedding_profile_id: number;
+                            profile: string;
+                            chunking: {
+                                target_tokens: number;
+                                overlap_tokens: number;
+                                max_tokens: number;
+                            };
+                            search: {
+                                method: string;
+                                top_k: number;
+                                min_score: number | null;
+                                min_text_rank: number | null;
+                                max_context_tokens: number;
+                            };
+                            acl: string[];
+                            retention_days: number | null;
+                            sources: {
+                                id: number;
+                                collection_id: number;
+                                type: string;
+                                name: string;
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                                acl: string[] | null;
+                                status: string;
+                                schedule: string | null;
+                                next_sync_at: string | null;
+                                last_sync_at: string | null;
+                                last_error: string | null;
+                                documents: number;
+                                chunks: number;
+                                size: number;
+                                failed: number;
+                                cost: string | null;
+                                last_job: {
+                                    id: string;
+                                    parent_id: string | null;
+                                    type: string;
+                                    status: string;
+                                    stage: string | null;
+                                    progress_done: number;
+                                    progress_total: number | null;
+                                    attempts: number;
+                                    units: {
+                                        [key: string]: number;
+                                    } | string;
+                                    timings: {
+                                        [key: string]: number;
+                                    } | string;
+                                    estimate: {
+                                        tokens?: number;
+                                        cost?: string | null;
+                                        documents?: number;
+                                    } | null;
+                                    cost: string | null;
+                                    max_cost: string | null;
+                                    error: string | null;
+                                    error_type: string | null;
+                                    trigger: string;
+                                    warnings: string | string[];
+                                    source_id: number | null;
+                                    document_id: number | null;
+                                    children: number;
+                                    started_at: string | null;
+                                    finished_at: string | null;
+                                    created_at: string;
+                                } | null;
+                                open_job: {
+                                    id: string;
+                                    parent_id: string | null;
+                                    type: string;
+                                    status: string;
+                                    stage: string | null;
+                                    progress_done: number;
+                                    progress_total: number | null;
+                                    attempts: number;
+                                    units: {
+                                        [key: string]: number;
+                                    } | string;
+                                    timings: {
+                                        [key: string]: number;
+                                    } | string;
+                                    estimate: {
+                                        tokens?: number;
+                                        cost?: string | null;
+                                        documents?: number;
+                                    } | null;
+                                    cost: string | null;
+                                    max_cost: string | null;
+                                    error: string | null;
+                                    error_type: string | null;
+                                    trigger: string;
+                                    warnings: string | string[];
+                                    source_id: number | null;
+                                    document_id: number | null;
+                                    children: number;
+                                    started_at: string | null;
+                                    finished_at: string | null;
+                                    created_at: string;
+                                } | null;
+                            }[];
+                            documents: number;
+                            documents_by_status: string;
+                            active_version: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                reason: string;
+                                profile: string;
+                                embedding_profile_id: number;
+                                chunking: {
+                                    target_tokens: number;
+                                    overlap_tokens: number;
+                                    max_tokens: number;
+                                };
+                                documents: number;
+                                chunks: number;
+                                tokens: number;
+                                cost: string | null;
+                                published_at: string | null;
+                                purged_at: string | null;
+                                created_at: string;
+                            } | null;
+                            building_version: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                reason: string;
+                                profile: string;
+                                embedding_profile_id: number;
+                                chunking: {
+                                    target_tokens: number;
+                                    overlap_tokens: number;
+                                    max_tokens: number;
+                                };
+                                documents: number;
+                                chunks: number;
+                                tokens: number;
+                                cost: string | null;
+                                published_at: string | null;
+                                purged_at: string | null;
+                                created_at: string;
+                            } | null;
+                            needs_reindex: string;
+                            open_jobs: number;
+                            created_at: string;
+                            versions: {
+                                id: number;
+                                number: number;
+                                status: string;
+                                reason: string;
+                                profile: string;
+                                embedding_profile_id: number;
+                                chunking: {
+                                    target_tokens: number;
+                                    overlap_tokens: number;
+                                    max_tokens: number;
+                                };
+                                documents: number;
+                                chunks: number;
+                                tokens: number;
+                                cost: string | null;
+                                published_at: string | null;
+                                purged_at: string | null;
+                                created_at: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.documents.index": {
+        parameters: {
+            query?: {
+                /** @description pending, indexing, indexed, failed, empty, duplicate or deleted. */
+                status?: string | null;
+                source_id?: number | null;
+                per_page?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description The collection ID */
+                collection: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            collection_id: number;
+                            source_id: number;
+                            source: string | null;
+                            title: string | null;
+                            uri: string | null;
+                            external_id: string;
+                            mime_type: string | null;
+                            status: string;
+                            content_hash: string | null;
+                            size: number;
+                            chunk_count: number;
+                            token_count: number;
+                            acl: string[] | null;
+                            error: string | null;
+                            indexed_at: string | null;
+                            updated_at: string;
+                        }[];
+                        meta: {
+                            current_page: number;
+                            last_page: number;
+                            from: number | null;
+                            to: number | null;
+                            total: number;
+                            per_page: number;
+                            links: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.rag.documents.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            collection_id: number;
+                            source_id: number;
+                            source: string | null;
+                            title: string | null;
+                            uri: string | null;
+                            external_id: string;
+                            mime_type: string | null;
+                            status: string;
+                            content_hash: string | null;
+                            size: number;
+                            chunk_count: number;
+                            token_count: number;
+                            acl: string[] | null;
+                            error: string | null;
+                            indexed_at: string | null;
+                            updated_at: string;
+                            metadata: {
+                                [key: string]: unknown;
+                            } | null;
+                            chunks: unknown[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.documents.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.jobs.index": {
+        parameters: {
+            query?: {
+                collection_id?: number | null;
+                /** @description queued, running, retrying, paused, succeeded, failed or cancelled. */
+                status?: string | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.rag.jobs.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job ID */
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            parent_id: string | null;
+                            type: string;
+                            status: string;
+                            stage: string | null;
+                            progress_done: number;
+                            progress_total: number | null;
+                            attempts: number;
+                            units: {
+                                [key: string]: number;
+                            } | string;
+                            timings: {
+                                [key: string]: number;
+                            } | string;
+                            estimate: {
+                                tokens?: number;
+                                cost?: string | null;
+                                documents?: number;
+                            } | null;
+                            cost: string | null;
+                            max_cost: string | null;
+                            error: string | null;
+                            error_type: string | null;
+                            trigger: string;
+                            warnings: string | string[];
+                            source_id: number | null;
+                            document_id: number | null;
+                            children: number;
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchKnowledge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            run_id: string;
+                            method: string;
+                            hits: unknown[];
+                            latency_ms: number;
+                            embedding_ms: number;
+                            /** @constant */
+                            search_ms: 0;
+                            cost: string | null;
+                            /** @constant */
+                            context_tokens: 0;
+                            diagnostics: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.rag.sources.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The collection ID */
+                collection: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSource"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            collection_id: number;
+                            type: string;
+                            name: string;
+                            config: {
+                                [key: string]: unknown;
+                            };
+                            acl: string[] | null;
+                            status: string;
+                            schedule: string | null;
+                            next_sync_at: string | null;
+                            last_sync_at: string | null;
+                            last_error: string | null;
+                            documents: number;
+                            chunks: number;
+                            size: number;
+                            failed: number;
+                            cost: string | null;
+                            last_job: {
+                                id: string;
+                                parent_id: string | null;
+                                type: string;
+                                status: string;
+                                stage: string | null;
+                                progress_done: number;
+                                progress_total: number | null;
+                                attempts: number;
+                                units: {
+                                    [key: string]: number;
+                                } | string;
+                                timings: {
+                                    [key: string]: number;
+                                } | string;
+                                estimate: {
+                                    tokens?: number;
+                                    cost?: string | null;
+                                    documents?: number;
+                                } | null;
+                                cost: string | null;
+                                max_cost: string | null;
+                                error: string | null;
+                                error_type: string | null;
+                                trigger: string;
+                                warnings: string | string[];
+                                source_id: number | null;
+                                document_id: number | null;
+                                children: number;
+                                started_at: string | null;
+                                finished_at: string | null;
+                                created_at: string;
+                            } | null;
+                            open_job: {
+                                id: string;
+                                parent_id: string | null;
+                                type: string;
+                                status: string;
+                                stage: string | null;
+                                progress_done: number;
+                                progress_total: number | null;
+                                attempts: number;
+                                units: {
+                                    [key: string]: number;
+                                } | string;
+                                timings: {
+                                    [key: string]: number;
+                                } | string;
+                                estimate: {
+                                    tokens?: number;
+                                    cost?: string | null;
+                                    documents?: number;
+                                } | null;
+                                cost: string | null;
+                                max_cost: string | null;
+                                error: string | null;
+                                error_type: string | null;
+                                trigger: string;
+                                warnings: string | string[];
+                                source_id: number | null;
+                                document_id: number | null;
+                                children: number;
+                                started_at: string | null;
+                                finished_at: string | null;
+                                created_at: string;
+                            } | null;
+                        };
+                        job_id: string | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.rag.sources.sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The source ID */
+                source: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @default false */
+                    force?: boolean;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                        data: {
+                            id: string;
+                            parent_id: string | null;
+                            type: string;
+                            status: string;
+                            stage: string | null;
+                            progress_done: number;
+                            progress_total: number | null;
+                            attempts: number;
+                            units: {
+                                [key: string]: number;
+                            } | string;
+                            timings: {
+                                [key: string]: number;
+                            } | string;
+                            estimate: {
+                                tokens?: number;
+                                cost?: string | null;
+                                documents?: number;
+                            } | null;
+                            cost: string | null;
+                            max_cost: string | null;
+                            error: string | null;
+                            error_type: string | null;
+                            trigger: string;
+                            warnings: string | string[];
+                            source_id: number | null;
+                            document_id: number | null;
+                            children: number;
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.rag.jobs.cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job ID */
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            parent_id: string | null;
+                            type: string;
+                            status: string;
+                            stage: string | null;
+                            progress_done: number;
+                            progress_total: number | null;
+                            attempts: number;
+                            units: {
+                                [key: string]: number;
+                            } | string;
+                            timings: {
+                                [key: string]: number;
+                            } | string;
+                            estimate: {
+                                tokens?: number;
+                                cost?: string | null;
+                                documents?: number;
+                            } | null;
+                            cost: string | null;
+                            max_cost: string | null;
+                            error: string | null;
+                            error_type: string | null;
+                            trigger: string;
+                            warnings: string | string[];
+                            source_id: number | null;
+                            document_id: number | null;
+                            children: number;
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.jobs.retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job ID */
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            parent_id: string | null;
+                            type: string;
+                            status: string;
+                            stage: string | null;
+                            progress_done: number;
+                            progress_total: number | null;
+                            attempts: number;
+                            units: {
+                                [key: string]: number;
+                            } | string;
+                            timings: {
+                                [key: string]: number;
+                            } | string;
+                            estimate: {
+                                tokens?: number;
+                                cost?: string | null;
+                                documents?: number;
+                            } | null;
+                            cost: string | null;
+                            max_cost: string | null;
+                            error: string | null;
+                            error_type: string | null;
+                            trigger: string;
+                            warnings: string | string[];
+                            source_id: number | null;
+                            document_id: number | null;
+                            children: number;
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.jobs.resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job ID */
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            parent_id: string | null;
+                            type: string;
+                            status: string;
+                            stage: string | null;
+                            progress_done: number;
+                            progress_total: number | null;
+                            attempts: number;
+                            units: {
+                                [key: string]: number;
+                            } | string;
+                            timings: {
+                                [key: string]: number;
+                            } | string;
+                            estimate: {
+                                tokens?: number;
+                                cost?: string | null;
+                                documents?: number;
+                            } | null;
+                            cost: string | null;
+                            max_cost: string | null;
+                            error: string | null;
+                            error_type: string | null;
+                            trigger: string;
+                            warnings: string | string[];
+                            source_id: number | null;
+                            document_id: number | null;
+                            children: number;
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
         };
     };
     "v1.ai.transcriptions.store": {

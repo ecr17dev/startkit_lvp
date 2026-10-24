@@ -30,6 +30,19 @@ class ConfiguredAgent implements Agent, Conversational, HasTools
     protected AgentConfig $config;
 
     /**
+     * Rules added by the server for this turn (trusted, appended to the
+     * system prompt), e.g. how to cite retrieved knowledge.
+     */
+    protected ?string $extraInstructions = null;
+
+    /**
+     * Untrusted context for this turn (retrieved passages). It is sent as
+     * a separate data message before the prompt, never as instructions,
+     * and is not stored in the conversation.
+     */
+    protected ?string $context = null;
+
+    /**
      * @param  array<string, string|int|float|null>  $variables
      * @param  list<Tool>  $tools
      */
@@ -41,9 +54,26 @@ class ConfiguredAgent implements Agent, Conversational, HasTools
         $this->config = $version->settings();
     }
 
+    /**
+     * Ground this turn: extra trusted instructions, an untrusted context
+     * message and extra tools (for example knowledge_search).
+     *
+     * @param  list<Tool>  $tools
+     */
+    public function ground(?string $instructions, ?string $context = null, array $tools = []): static
+    {
+        $this->extraInstructions = $instructions;
+        $this->context = $context;
+        $this->tools = [...$this->tools, ...$tools];
+
+        return $this;
+    }
+
     public function instructions(): Stringable|string
     {
-        return $this->config->render($this->variables);
+        $rendered = $this->config->render($this->variables);
+
+        return $this->extraInstructions !== null ? $rendered."\n\n".$this->extraInstructions : $rendered;
     }
 
     /**
@@ -92,6 +122,10 @@ class ConfiguredAgent implements Agent, Conversational, HasTools
             }
 
             $messages[] = $message;
+        }
+
+        if ($this->context !== null) {
+            $messages[] = new UserMessage($this->context);
         }
 
         return $messages;

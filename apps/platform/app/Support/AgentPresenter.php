@@ -11,6 +11,8 @@ use Starter\Ai\Enums\Capability;
 use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AgentVersion;
 use Starter\Ai\Models\AiModel;
+use Starter\Knowledge\Knowledge;
+use Starter\Knowledge\Models\Collection;
 
 /**
  * Shapes agents and their versions for the panel and the API.
@@ -138,6 +140,18 @@ class AgentPresenter
             'surfaces' => AgentConfig::SURFACES,
             'image_types' => AgentConfig::IMAGE_TYPES,
             'document_types' => AgentConfig::DOCUMENT_TYPES,
+            'knowledge' => [
+                'feature' => (bool) config('starter.features.rag'),
+                'available' => app(Knowledge::class)->available(),
+                'collections' => config('starter.features.rag')
+                    ? Collection::query()->where('status', Collection::ACTIVE)->orderBy('name')->get(['id', 'name', 'slug', 'acl'])->map(fn (Collection $collection) => [
+                        'id' => $collection->id,
+                        'name' => $collection->name,
+                        'slug' => $collection->slug,
+                        'acl' => $collection->acl,
+                    ])->values()
+                    : [],
+            ],
         ];
     }
 }

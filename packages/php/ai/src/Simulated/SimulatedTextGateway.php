@@ -42,6 +42,12 @@ use function Laravel\Ai\ulid;
  */
 class SimulatedTextGateway implements StepTextGateway
 {
+    /**
+     * Start of the knowledge context the application sends before a
+     * grounded prompt (and returns from the knowledge_search tool).
+     */
+    public const KNOWLEDGE_MARKER = '[Knowledge context]';
+
     public function generateTextStep(
         TextProvider $provider,
         string $model,
@@ -130,6 +136,15 @@ class SimulatedTextGateway implements StepTextGateway
             return new StepResponse($text, [], FinishReason::Stop, new TextUsage($input, $this->estimateTokens($text)), $meta);
         }
 
+        // Grounded turn: answer extractively from the passages, citing them...
+        $context = count($messages) >= 2 ? $messages[count($messages) - 2] : null;
+
+        if ($context instanceof UserMessage && str_starts_with((string) $context->content, self::KNOWLEDGE_MARKER)) {
+            $text = $this->extractive((string) $context->content);
+
+            return new StepResponse($text, [], FinishReason::Stop, new TextUsage($input, $this->estimateTokens($text)), $meta);
+        }
+
         $text = (string) __('[Simulated answer] No real AI provider was called. You wrote: ":message" (:words words).', [
             'message' => Str::limit($prompt, 200),
             'words' => str_word_count($prompt),
@@ -139,10 +154,36 @@ class SimulatedTextGateway implements StepTextGateway
     }
 
     /**
+     * First sentences of the first passages with their citation markers.
+     */
+    protected function extractive(string $context): string
+    {
+        preg_match_all('/^\[(\d+)\][^\n]*\n(.+?)(?=\n\n\[\d+\]|\z)/ms', $context, $passages, PREG_SET_ORDER);
+
+        if ($passages === []) {
+            return (string) __('[Simulated answer] The sources do not contain information about this question.');
+        }
+
+        $lines = array_map(function (array $passage) {
+            $sentence = Str::limit(trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/^#+\s.*$/m', '', $passage[2]))), 220);
+
+            return $sentence.' ['.$passage[1].']';
+        }, array_slice($passages, 0, 2));
+
+        return (string) __('[Simulated answer based on the sources]')."\n\n".implode("\n\n", $lines);
+    }
+
+    /**
      * @param  Collection<int, ToolResult>  $results
      */
     protected function summarize(Collection $results): string
     {
+        $knowledge = $results->first(fn (ToolResult $result) => is_string($result->result) && str_starts_with($result->result, self::KNOWLEDGE_MARKER));
+
+        if ($knowledge !== null) {
+            return $this->extractive((string) $knowledge->result);
+        }
+
         $lines = $results->map(fn (ToolResult $result) => '- '.$result->name.': '.Str::limit(is_string($result->result) ? $result->result : (string) json_encode($result->result), 600));
 
         return (string) __('[Simulated summary] Tool results:')."\n".$lines->implode("\n");

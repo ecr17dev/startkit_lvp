@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\AiService;
+use App\Ai\Knowledge\Abstention;
+use App\Ai\Knowledge\KnowledgeGrounding;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Group;
@@ -59,7 +61,7 @@ class AiController extends Controller
      * Pass the returned `conversation_id` in the next request to keep the context.
      * Requires the `ai.chat` permission and a token with the `ai` ability.
      */
-    public function chat(Request $request): JsonResponse
+    public function chat(Request $request, KnowledgeGrounding $grounding, Abstention $abstention): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -89,6 +91,27 @@ class AiController extends Controller
 
         try {
             $version = $this->agents->resolve($user, $validated['agent'] ?? null, 'api');
+            $knowledge = $grounding->prepare($user, $version, $validated['message'], 'api', $validated['conversation_id'] ?? null);
+
+            // Evidence required and nothing authorized matched: no model call...
+            if ($knowledge !== null && $knowledge->abstain) {
+                $stored = $abstention->store($user, $validated['message'], $validated['conversation_id'] ?? null);
+
+                return response()->json([
+                    'text' => $stored['text'],
+                    'conversation_id' => $stored['conversation_id'],
+                    'request_id' => null,
+                    'agent' => $version->agent->slug,
+                    'agent_version' => $version->number,
+                    'provider' => null,
+                    'model' => null,
+                    'usage' => ['input_tokens' => 0, 'output_tokens' => 0],
+                    'cost' => '0',
+                    'cost_status' => 'calculated',
+                    'knowledge' => $grounding->finish($knowledge, $stored['text'], $stored['message_id'], null, $stored['conversation_id']),
+                    'proposals' => [],
+                ]);
+            }
 
             ['response' => $response, 'request' => $ledger] = $this->ai->chat(
                 $user,
@@ -96,6 +119,7 @@ class AiController extends Controller
                 $validated['message'],
                 model: $canChooseModel && isset($validated['model_id']) ? AiModel::query()->find((int) $validated['model_id']) : null,
                 conversationId: $validated['conversation_id'] ?? null,
+                grounding: $knowledge,
             );
         } catch (AgentNotAvailableException $exception) {
             return response()->json(['message' => $exception->getMessage()], 404);
@@ -134,6 +158,8 @@ class AiController extends Controller
             'cost' => $ledger->cost !== null ? (string) $ledger->cost : null,
             /** @var 'calculated'|'unknown'|'pending'|'estimated'|'reconciled' */
             'cost_status' => $ledger->cost_status->value,
+            /** Knowledge used to answer: outcome (answered, general, unsupported, abstained) and validated citations; null without RAG. */
+            'knowledge' => $knowledge !== null ? $grounding->finish($knowledge, $response->text, $response->assistantMessageId, $ledger->id, $response->conversationId) : null,
             /** Changes waiting for your confirmation (see /admin/action-proposals). */
             'proposals' => ActionProposal::query()
                 ->where('ai_request_id', $ledger->id)

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\Knowledge\CollectionController as KnowledgeCollec
 use App\Http\Controllers\Admin\Knowledge\DocumentController as KnowledgeDocumentController;
 use App\Http\Controllers\Admin\Knowledge\JobController as KnowledgeJobController;
 use App\Http\Controllers\Admin\Knowledge\KnowledgeController;
+use App\Http\Controllers\Admin\Knowledge\LabController as KnowledgeLabController;
 use App\Http\Controllers\Admin\Knowledge\SourceController as KnowledgeSourceController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -157,5 +158,8 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
         Route::post('jobs/{job}/cancel', [KnowledgeJobController::class, 'cancel'])->name('jobs.cancel');
         Route::post('jobs/{job}/retry', [KnowledgeJobController::class, 'retry'])->name('jobs.retry');
         Route::post('jobs/{job}/resume', [KnowledgeJobController::class, 'resume'])->name('jobs.resume');
+
+        Route::get('lab', [KnowledgeLabController::class, 'index'])->name('lab');
+        Route::post('lab', [KnowledgeLabController::class, 'search'])->middleware('throttle:30,1')->name('lab.search');
     });
 });

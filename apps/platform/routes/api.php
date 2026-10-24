@@ -11,6 +11,10 @@ use App\Http\Controllers\Api\V1\Ai\UsageController as AiUsageController;
 use App\Http\Controllers\Api\V1\AiController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\Rag\CollectionController as RagCollectionController;
+use App\Http\Controllers\Api\V1\Rag\DocumentController as RagDocumentController;
+use App\Http\Controllers\Api\V1\Rag\JobController as RagJobController;
+use App\Http\Controllers\Api\V1\Rag\SearchController as RagSearchController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +70,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         // Changes prepared by agent tools, confirmed or cancelled by their actor...
+        // Knowledge (RAG)...
+        Route::prefix('rag')->name('rag.')->group(function () {
+            Route::middleware('ability:read')->group(function () {
+                Route::get('status', [RagCollectionController::class, 'status'])->name('status');
+                Route::get('collections', [RagCollectionController::class, 'index'])->name('collections.index');
+                Route::get('collections/{collection}', [RagCollectionController::class, 'show'])->name('collections.show');
+                Route::get('collections/{collection}/documents', [RagDocumentController::class, 'index'])->name('documents.index');
+                Route::get('documents/{document}', [RagDocumentController::class, 'show'])->name('documents.show');
+                Route::get('jobs', [RagJobController::class, 'index'])->name('jobs.index');
+                Route::get('jobs/{job}', [RagJobController::class, 'show'])->whereUuid('job')->name('jobs.show');
+                Route::post('search', RagSearchController::class)->middleware('throttle:ai')->name('search');
+            });
+
+            Route::middleware('ability:write')->group(function () {
+                Route::post('collections/{collection}/sources', [RagCollectionController::class, 'storeSource'])->middleware('throttle:30,1')->name('sources.store');
+                Route::post('sources/{source}/sync', [RagCollectionController::class, 'sync'])->middleware('throttle:30,1')->name('sources.sync');
+                Route::delete('documents/{document}', [RagDocumentController::class, 'destroy'])->name('documents.destroy');
+                Route::post('jobs/{job}/cancel', [RagJobController::class, 'cancel'])->whereUuid('job')->name('jobs.cancel');
+                Route::post('jobs/{job}/retry', [RagJobController::class, 'retry'])->whereUuid('job')->name('jobs.retry');
+                Route::post('jobs/{job}/resume', [RagJobController::class, 'resume'])->whereUuid('job')->name('jobs.resume');
+            });
+        });
+
         Route::middleware(['ability:ai', 'can:ai.chat'])->prefix('admin/action-proposals')->name('admin.action-proposals.')->group(function () {
             Route::get('/', [ActionProposalController::class, 'index'])->name('index');
             Route::get('{proposal}', [ActionProposalController::class, 'show'])->whereUuid('proposal')->name('show');

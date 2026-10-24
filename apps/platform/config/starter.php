@@ -141,6 +141,8 @@ return [
             'max_document_chars' => 2000000,
         ],
         'exact_search_below' => (int) env('STARTER_RAG_EXACT_SEARCH_BELOW', 20000),
+        // Retrieval traces (queries, hits, outcomes) kept for analytics...
+        'retrieval_retention_days' => (int) env('STARTER_RAG_RETRIEVAL_RETENTION_DAYS', 90),
         'fetch' => [
             'connect_timeout' => 5,
             'timeout' => (int) env('STARTER_RAG_FETCH_TIMEOUT', 15),

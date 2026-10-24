@@ -18,12 +18,21 @@ use Laravel\Ai\Responses\EmbeddingsResponse;
 class SimulatedEmbeddingGateway implements EmbeddingGateway
 {
     /**
+     * Frequent Spanish and English words that carry no topic.
+     */
+    protected const STOPWORDS = [
+        'que', 'qué', 'los', 'las', 'del', 'con', 'por', 'para', 'una', 'uno', 'unos', 'unas', 'como', 'cómo', 'cual', 'cuál', 'son', 'sus', 'mas', 'más',
+        'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'hay', 'sin', 'sobre', 'entre', 'cuando', 'donde', 'dónde', 'tiene', 'puede', 'pero', 'también',
+        'the', 'and', 'for', 'with', 'that', 'this', 'are', 'was', 'from', 'how', 'what', 'which', 'when', 'where', 'can', 'not', 'you', 'your', 'its',
+    ];
+
+    /**
      * @param  array<int, mixed>  $inputs
      * @param  array<string, mixed>  $providerOptions
      */
     public function generateEmbeddings(EmbeddingProvider $provider, string $model, array $inputs, int $dimensions, int $timeout = 30, array $providerOptions = []): EmbeddingsResponse
     {
-        $dimensions = $dimensions > 0 ? $dimensions : 256;
+        $dimensions = $dimensions > 0 ? $dimensions : 1024;
         $tokens = 0;
         $embeddings = [];
 
@@ -44,9 +53,13 @@ class SimulatedEmbeddingGateway implements EmbeddingGateway
         $vector = array_fill(0, $dimensions, 0.0);
         $normalized = mb_strtolower(self::stripAccents($text));
 
-        preg_match_all('/[\p{L}\p{N}]{2,}/u', $normalized, $matches);
+        preg_match_all('/[\p{L}\p{N}]{3,}/u', $normalized, $matches);
 
         foreach ($matches[0] as $word) {
+            if (in_array($word, self::STOPWORDS, true)) {
+                continue;
+            }
+
             foreach (array_unique([$word, mb_substr($word, 0, 4)]) as $feature) {
                 $hash = crc32($feature);
                 $index = $hash % $dimensions;

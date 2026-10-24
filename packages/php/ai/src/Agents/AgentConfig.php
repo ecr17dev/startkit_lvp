@@ -31,6 +31,18 @@ final class AgentConfig
     public const DOCUMENT_TYPES = ['application/pdf', 'text/plain', 'text/markdown', 'text/csv'];
 
     /**
+     * Retrieval of the agent: off, before every message ("always") or when
+     * the model decides with the knowledge_search tool ("tool").
+     */
+    public const RAG_MODES = ['off', 'always', 'tool'];
+
+    /**
+     * Without enough evidence: abstain ("required") or answer in general
+     * terms, clearly identified as not based on the sources ("general").
+     */
+    public const RAG_EVIDENCE = ['required', 'general'];
+
+    /**
      * @param  array<string, mixed>  $data
      */
     private function __construct(private readonly array $data) {}
@@ -57,7 +69,7 @@ final class AgentConfig
             'multimedia' => ['images' => false, 'documents' => false, 'max_files' => 3, 'max_file_mb' => 5, 'mime_types' => [...self::IMAGE_TYPES, 'application/pdf']],
             'microphone' => ['enabled' => false, 'transcription_model_id' => null, 'language' => null, 'max_seconds' => 120, 'auto_send' => false],
             'tools' => ['allowed' => [], 'max_steps' => 5, 'confirm_writes' => false],
-            'rag' => ['mode' => 'off'],
+            'rag' => ['mode' => 'off', 'collections' => [], 'method' => null, 'top_k' => 6, 'max_context_tokens' => 2000, 'min_score' => null, 'evidence' => 'required', 'min_hits' => 1],
             'access' => ['roles' => [], 'surfaces' => self::SURFACES],
             'limits' => ['requests_per_minute' => 20, 'concurrent_per_user' => 2],
         ];
@@ -114,7 +126,15 @@ final class AgentConfig
             'tools.max_steps' => ['required', 'integer', 'min:1', 'max:20'],
             'tools.confirm_writes' => ['required', 'boolean'],
             'rag' => ['required', 'array'],
-            'rag.mode' => ['required', Rule::in(['off'])],
+            'rag.mode' => ['required', Rule::in(self::RAG_MODES)],
+            'rag.collections' => ['present', 'array', 'max:20'],
+            'rag.collections.*' => ['integer', 'distinct'],
+            'rag.method' => ['nullable', Rule::in(['vector', 'text', 'hybrid'])],
+            'rag.top_k' => ['required', 'integer', 'min:1', 'max:20'],
+            'rag.max_context_tokens' => ['required', 'integer', 'min:200', 'max:32000'],
+            'rag.min_score' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'rag.evidence' => ['required', Rule::in(self::RAG_EVIDENCE)],
+            'rag.min_hits' => ['required', 'integer', 'min:1', 'max:10'],
             'access' => ['required', 'array'],
             'access.roles' => ['present', 'array'],
             'access.roles.*' => ['string', 'distinct', Rule::exists('roles', 'name')],
@@ -299,6 +319,31 @@ final class AgentConfig
     public function maxFileKilobytes(): int
     {
         return (int) $this->get('multimedia.max_file_mb', 5) * 1024;
+    }
+
+    public function ragMode(): string
+    {
+        $mode = (string) $this->get('rag.mode', 'off');
+
+        return in_array($mode, self::RAG_MODES, true) ? $mode : 'off';
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function ragCollections(): array
+    {
+        return array_values(array_map('intval', (array) $this->get('rag.collections', [])));
+    }
+
+    public function ragEnabled(): bool
+    {
+        return $this->ragMode() !== 'off' && $this->ragCollections() !== [];
+    }
+
+    public function evidenceRequired(): bool
+    {
+        return $this->get('rag.evidence', 'required') !== 'general';
     }
 
     public function microphoneEnabled(): bool

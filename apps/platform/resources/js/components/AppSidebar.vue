@@ -13,6 +13,7 @@ import {
     MonitorSmartphone,
     PiggyBank,
     Plug,
+    Search,
     Settings2,
     ShieldCheck,
     Sparkles,
@@ -45,7 +46,10 @@ import { index as models } from '@/routes/admin/ai/models';
 import { index as prices } from '@/routes/admin/ai/prices';
 import { index as agents } from '@/routes/admin/ai/agents';
 import { index as labIndex } from '@/routes/admin/ai/lab';
-import { index as knowledgeIndex } from '@/routes/admin/knowledge';
+import {
+    index as knowledgeIndex,
+    lab as knowledgeLab,
+} from '@/routes/admin/knowledge';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';

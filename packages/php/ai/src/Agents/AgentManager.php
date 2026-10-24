@@ -138,6 +138,22 @@ class AgentManager
     }
 
     /**
+     * Checks added by other modules (for example the knowledge module
+     * validates the collections of the RAG settings).
+     *
+     * @var array<string, \Closure(AgentConfig): array{errors?: list<string>, warnings?: list<string>}>
+     */
+    protected static array $checks = [];
+
+    /**
+     * @param  \Closure(AgentConfig): array{errors?: list<string>, warnings?: list<string>}  $check
+     */
+    public static function extendChecks(string $key, \Closure $check): void
+    {
+        self::$checks[$key] = $check;
+    }
+
+    /**
      * Check settings against the catalog: errors block publication,
      * warnings are shown to the administrator.
      *
@@ -203,6 +219,12 @@ class AgentManager
 
         foreach (array_diff($config->tools(), $this->tools->names()) as $missing) {
             $errors[] = __('The tool :tool is not registered.', ['tool' => $missing]);
+        }
+
+        foreach (self::$checks as $check) {
+            $extra = $check($config);
+            $errors = [...$errors, ...($extra['errors'] ?? [])];
+            $warnings = [...$warnings, ...($extra['warnings'] ?? [])];
         }
 
         if (($unknown = $config->unknownVariables()) !== []) {

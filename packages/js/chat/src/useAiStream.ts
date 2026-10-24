@@ -52,6 +52,28 @@ export type ChatProposal = {
     conversation_id: string | null;
 };
 
+/** A passage cited by an answer, validated against the retrieved set. */
+export type KnowledgeCitation = {
+    n: number;
+    document_id: number | null;
+    chunk_id: number;
+    title: string | null;
+    location: string | null;
+    uri: string | null;
+    score: number;
+};
+
+/** Knowledge used by an answer (agents with RAG). */
+export type StreamKnowledge = {
+    mode: string | null;
+    used?: boolean;
+    /** answered, general (not based on the sources), unsupported (no valid citation) or abstained. */
+    outcome: 'answered' | 'general' | 'unsupported' | 'abstained' | null;
+    hits?: number;
+    citations: KnowledgeCitation[];
+    invalid: number;
+};
+
 export type ToolActivity = {
     id: string;
     name: string;
@@ -72,6 +94,7 @@ type StreamEvent = {
     denied?: boolean;
     preliminary?: boolean;
     approvals?: { id: string; tool: string }[];
+    knowledge?: StreamKnowledge;
 } & Partial<StreamSummary>;
 
 export type StreamHandlers = {
@@ -80,6 +103,7 @@ export type StreamHandlers = {
     onUsage?: (usage: StreamUsage) => void;
     onSummary?: (summary: StreamSummary) => void;
     onProposal?: (proposal: ChatProposal) => void;
+    onKnowledge?: (knowledge: StreamKnowledge) => void;
     onTool?: (activity: ToolActivity) => void;
     onError?: (message: string) => void;
 };
@@ -135,6 +159,12 @@ export function useAiStream() {
             case 'proposal':
                 if (payload.proposal) {
                     handlers.onProposal?.(payload.proposal);
+                }
+
+                break;
+            case 'knowledge':
+                if (payload.knowledge) {
+                    handlers.onKnowledge?.(payload.knowledge);
                 }
 
                 break;

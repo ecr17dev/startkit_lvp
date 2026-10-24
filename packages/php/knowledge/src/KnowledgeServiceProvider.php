@@ -19,6 +19,7 @@ use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\Document;
 use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\RagConnection;
+use Starter\Knowledge\Models\RetrievalRun;
 use Starter\Knowledge\Models\Source;
 use Starter\Knowledge\Pipeline\Completion;
 use Starter\Knowledge\Pipeline\Deletions;
@@ -32,6 +33,7 @@ use Starter\Knowledge\Pipeline\Purger;
 use Starter\Knowledge\Pipeline\RagJobs;
 use Starter\Knowledge\Pipeline\Reindexer;
 use Starter\Knowledge\Pipeline\SourceSync;
+use Starter\Knowledge\Retrieval\Retriever;
 use Starter\Knowledge\Store\Provisioner;
 use Starter\Knowledge\Store\VectorStore;
 
@@ -45,7 +47,7 @@ class KnowledgeServiceProvider extends ServiceProvider
         foreach ([Knowledge::class, Provisioner::class, VectorStore::class, Embedder::class, SafeFetcher::class, HostResolver::class,
             Normalizer::class, Chunker::class, SourceDrivers::class, DocumentIngestor::class, IndexVersions::class, IngestionBudget::class,
             Estimator::class, RagJobs::class, SourceSync::class, DocumentIndexer::class, Purger::class, Reindexer::class,
-            Completion::class, Deletions::class, JobRunner::class] as $service) {
+            Completion::class, Deletions::class, JobRunner::class, Retriever::class] as $service) {
             $this->app->scoped($service);
         }
 
@@ -67,6 +69,7 @@ class KnowledgeServiceProvider extends ServiceProvider
             'rag_collection' => Collection::class,
             'rag_source' => Source::class,
             'rag_document' => Document::class,
+            'rag_retrieval_run' => RetrievalRun::class,
         ]);
 
         if ($this->app->runningInConsole()) {
@@ -75,6 +78,11 @@ class KnowledgeServiceProvider extends ServiceProvider
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('starter:rag-maintain')->everyMinute()->name('starter:rag-maintain')->onOneServer()->withoutOverlapping();
+            $schedule->command('model:prune', ['--model' => [RetrievalRun::class]])
+                ->dailyAt('04:23')
+                ->name('starter:prune-retrieval-runs')
+                ->onOneServer()
+                ->withoutOverlapping();
         });
     }
 }

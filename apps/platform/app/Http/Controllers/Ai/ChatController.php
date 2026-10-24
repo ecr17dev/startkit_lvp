@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Ai;
 use App\Ai\AiService;
 use App\Ai\ChatAttachments;
 use App\Ai\ChatPresenter;
+use App\Ai\Knowledge\Abstention;
+use App\Ai\Knowledge\Grounding;
+use App\Ai\Knowledge\KnowledgeGrounding;
 use App\Ai\ProposalResumer;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -98,7 +101,7 @@ class ChatController extends Controller
      * Stream the assistant answer as server-sent events. The input is either
      * a message or the decision on a proposal (which resumes the paused run).
      */
-    public function stream(Request $request, ProposalResumer $resumer, ActionProposals $proposals, ChatAttachments $attachments, AttachmentStore $store): StreamedResponse|RedirectResponse
+    public function stream(Request $request, ProposalResumer $resumer, ActionProposals $proposals, ChatAttachments $attachments, AttachmentStore $store, KnowledgeGrounding $grounding, Abstention $abstention): StreamedResponse|RedirectResponse
     {
         $user = $this->actor($request);
 
@@ -143,6 +146,13 @@ class ChatController extends Controller
                 $uploaded = $attachments->accept($files, $user, $version, $model);
             }
 
+            // Retrieve authorized knowledge before answering (agents with RAG)...
+            $knowledge = $grounding->prepare($user, $version, $input, $surface, $conversationId);
+
+            if ($knowledge !== null && $knowledge->abstain && is_string($input)) {
+                return $this->abstainStream($user, $version->number, $input, $conversationId, $knowledge, $grounding, $abstention);
+            }
+
             ['response' => $stream, 'request' => $ledger, 'release' => $release] = $this->ai->stream(
                 $user,
                 $version,
@@ -151,6 +161,7 @@ class ChatController extends Controller
                 model: $model,
                 conversationId: $conversationId,
                 surface: $surface,
+                grounding: $knowledge,
             );
         } catch (AgentNotAvailableException|AgentLimitExceededException|BudgetExceededException|ModelNotUsableException|ProposalNotPendingException $e) {
             return $this->errorStream($e->getMessage());
@@ -166,7 +177,7 @@ class ChatController extends Controller
         $isNew = $decided === null && ($validated['conversation_id'] ?? null) === null;
         $firstMessage = (string) ($validated['message'] ?? '');
 
-        return response()->stream(function () use ($stream, $ledger, $release, $user, $decided, $proposals, $version, $stored, $store, $isNew, $firstMessage) {
+        return response()->stream(function () use ($stream, $ledger, $release, $user, $decided, $proposals, $version, $stored, $store, $isNew, $firstMessage, $knowledge, $grounding) {
             try {
                 foreach ($stream as $event) {
                     yield 'data: '.$event."\n\n";
@@ -190,6 +201,11 @@ class ChatController extends Controller
                 }
 
                 $store->link($stored, $ledger->id, $stream->conversationId);
+
+                // Validate the citations against the retrieved passages...
+                if ($knowledge !== null) {
+                    yield 'data: '.json_encode(['type' => 'knowledge', 'knowledge' => $grounding->finish($knowledge, (string) $stream->text, $stream->assistantMessageId, $ledger->id, $stream->conversationId)])."\n\n";
+                }
 
                 // The decided proposal ends executed, failed or rejected...
                 if ($decided !== null) {
@@ -273,6 +289,35 @@ class ChatController extends Controller
     {
         /** @var User */
         return $request->user();
+    }
+
+    /**
+     * Deterministic abstention: no model call, the exchange is stored and
+     * the retrieval trace records the outcome.
+     */
+    protected function abstainStream(User $user, int $versionNumber, string $question, ?string $conversationId, Grounding $knowledge, KnowledgeGrounding $grounding, Abstention $abstention): StreamedResponse
+    {
+        $stored = $abstention->store($user, $question, $conversationId);
+        $summary = $grounding->finish($knowledge, $stored['text'], $stored['message_id'], null, $stored['conversation_id']);
+
+        return response()->stream(function () use ($stored, $summary, $versionNumber) {
+            yield 'data: '.json_encode(['type' => 'text_delta', 'delta' => $stored['text']])."\n\n";
+            yield 'data: '.json_encode(['type' => 'knowledge', 'knowledge' => $summary])."\n\n";
+            yield 'data: '.json_encode([
+                'type' => 'summary',
+                'conversation_id' => $stored['conversation_id'],
+                'request_id' => null,
+                'cost' => '0',
+                'cost_status' => 'calculated',
+                'model' => null,
+                'agent_version' => $versionNumber,
+            ])."\n\n";
+            yield "data: [DONE]\n\n";
+        }, headers: [
+            'Cache-Control' => 'no-cache, no-transform',
+            'Content-Type' => 'text/event-stream',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     protected function errorStream(string $message): StreamedResponse

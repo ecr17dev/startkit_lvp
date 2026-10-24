@@ -2,6 +2,7 @@
 
 namespace App\Ai;
 
+use App\Ai\Knowledge\Grounding;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -51,14 +52,14 @@ class AiService
      * @param  list<File>  $attachments
      * @return array{response: AgentResponse, request: AiRequest}
      */
-    public function chat(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'api'): array
+    public function chat(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'api', ?Grounding $grounding = null): array
     {
         $release = $this->limiter->acquire($version, $user);
 
         try {
             $model = $this->resolveModel($version, $model);
             $context = new ToolContext($user, $version, $surface, $conversationId);
-            $agent = $this->agent($user, $version, $conversationId, $surface, $context);
+            $agent = $this->agent($user, $version, $conversationId, $surface, $context, $grounding);
             $providers = $this->providers($version, $model);
             $ledger = null;
 
@@ -72,7 +73,7 @@ class AiService
 
                     return $agent->prompt($input, $attachments, provider: $providers);
                 },
-                $this->options($version, $input, $conversationId),
+                $this->options($version, $input, $conversationId, $grounding),
             );
         } finally {
             $release();
@@ -89,14 +90,14 @@ class AiService
      * @param  list<File>  $attachments
      * @return array{response: StreamableAgentResponse, request: AiRequest, release: Closure(): void}
      */
-    public function stream(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'page'): array
+    public function stream(User $user, AgentVersion $version, string|Decisions $input, array $attachments = [], ?AiModel $model = null, ?string $conversationId = null, string $surface = 'page', ?Grounding $grounding = null): array
     {
         $release = $this->limiter->acquire($version, $user);
 
         try {
             $model = $this->resolveModel($version, $model);
             $context = new ToolContext($user, $version, $surface, $conversationId);
-            $agent = $this->agent($user, $version, $conversationId, $surface, $context);
+            $agent = $this->agent($user, $version, $conversationId, $surface, $context, $grounding);
             $providers = $this->providers($version, $model);
             $ledger = null;
 
@@ -110,7 +111,7 @@ class AiService
 
                     return $agent->stream($input, $attachments, provider: $providers);
                 },
-                $this->options($version, $input, $conversationId),
+                $this->options($version, $input, $conversationId, $grounding),
             );
         } catch (Throwable $exception) {
             $release();
@@ -160,11 +161,15 @@ class AiService
     /**
      * Build the SDK agent for a user, remembering the conversation.
      */
-    public function agent(User $user, AgentVersion $version, ?string $conversationId = null, string $surface = 'page', ?ToolContext $context = null): ConfiguredAgent
+    public function agent(User $user, AgentVersion $version, ?string $conversationId = null, string $surface = 'page', ?ToolContext $context = null, ?Grounding $grounding = null): ConfiguredAgent
     {
         $context ??= new ToolContext($user, $version, $surface, $conversationId);
 
         $agent = new ConfiguredAgent($version, $this->variables($user), $this->tools->resolve($version->settings()->tools(), $context));
+
+        if ($grounding !== null) {
+            $agent->ground($grounding->instructions, $grounding->context, $grounding->tools);
+        }
 
         return $agent->continueOrStart($conversationId, $user);
     }
@@ -276,17 +281,19 @@ class AiService
     /**
      * @return array{input_chars: int, max_output_tokens: int|null, agent: string, agent_version_id: int, conversation_id: string|null, metadata: array<string, mixed>}
      */
-    protected function options(AgentVersion $version, string|Decisions $input, ?string $conversationId): array
+    protected function options(AgentVersion $version, string|Decisions $input, ?string $conversationId, ?Grounding $grounding = null): array
     {
         $config = $version->settings();
 
         return [
-            'input_chars' => (is_string($input) ? mb_strlen($input) : 0) + mb_strlen($config->systemPrompt()),
+            'input_chars' => (is_string($input) ? mb_strlen($input) : 0) + mb_strlen($config->systemPrompt()) + mb_strlen((string) $grounding?->context),
             'max_output_tokens' => $config->maxTokens(),
             'agent' => $version->agent->slug,
             'agent_version_id' => $version->id,
             'conversation_id' => $conversationId,
-            'metadata' => ['agent_version' => $version->number] + ($input instanceof Decisions ? ['approval' => true] : []),
+            'metadata' => ['agent_version' => $version->number]
+                + ($input instanceof Decisions ? ['approval' => true] : [])
+                + ($grounding !== null ? ['rag' => ['mode' => $grounding->mode, 'passages' => count($grounding->passages)]] : []),
         ];
     }
 

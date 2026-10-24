@@ -121,7 +121,7 @@ const pickModel = (value: unknown) => {
     );
 
     if (model?.simulated) {
-        profileForm.dimensions = 256;
+        profileForm.dimensions = 1024;
     }
 
     if (model && !profileForm.name) {

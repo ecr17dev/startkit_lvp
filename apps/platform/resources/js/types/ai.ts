@@ -184,7 +184,16 @@ export type AgentConfig = {
         auto_send: boolean;
     };
     tools: { allowed: string[]; max_steps: number; confirm_writes: boolean };
-    rag: { mode: string };
+    rag: {
+        mode: 'off' | 'always' | 'tool';
+        collections: number[];
+        method: 'vector' | 'text' | 'hybrid' | null;
+        top_k: number;
+        max_context_tokens: number;
+        min_score: number | null;
+        evidence: 'required' | 'general';
+        min_hits: number;
+    };
     access: { roles: string[]; surfaces: string[] };
     limits: {
         requests_per_minute: number | null;
@@ -234,6 +243,16 @@ export type AgentOptions = {
     surfaces: string[];
     image_types: string[];
     document_types: string[];
+    knowledge: {
+        feature: boolean;
+        available: boolean;
+        collections: {
+            id: number;
+            name: string;
+            slug: string;
+            acl: string[];
+        }[];
+    };
 };
 
 export type AgentTestResult =

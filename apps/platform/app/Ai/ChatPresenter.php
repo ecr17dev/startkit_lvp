@@ -2,6 +2,7 @@
 
 namespace App\Ai;
 
+use App\Ai\Knowledge\KnowledgeGrounding;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Ai\Models\Conversation;
@@ -95,8 +96,12 @@ class ChatPresenter
     public function conversation(User $user, Conversation $conversation): array
     {
         $messages = [];
+        $records = ConversationMessage::query()->where('conversation_id', $conversation->getKey())->whereIn('role', ['user', 'assistant'])
+            // Same-second turns: the ids are time ordered (UUIDv7)...
+            ->orderBy('created_at')->orderBy('id')->get();
+        $knowledge = KnowledgeGrounding::forMessages(array_values($records->where('role', 'assistant')->map(fn ($message) => (string) $message->getKey())->all()));
 
-        foreach (ConversationMessage::query()->where('conversation_id', $conversation->getKey())->whereIn('role', ['user', 'assistant'])->oldest()->get() as $message) {
+        foreach ($records as $message) {
             $meta = (array) $message->getAttribute('meta');
             $attachments = json_decode((string) $message->getRawOriginal('attachments'), true);
 
@@ -110,6 +115,7 @@ class ChatPresenter
                     'name' => is_array($file) ? ($file['name'] ?? null) : null,
                     'type' => is_array($file) ? ($file['type'] ?? null) : null,
                 ], $attachments)) : [],
+                'knowledge' => $knowledge[(string) $message->getKey()] ?? ($meta['knowledge'] ?? null),
                 'created_at' => $message->getAttribute('created_at'),
             ];
         }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Ai\Knowledge\KnowledgeGrounding;
 use App\Ai\OperatorTools;
 use App\Knowledge\ProjectDocsAdapter;
 use App\Models\User;
@@ -48,6 +49,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Operator tools that agents may be allowed to use...
         $this->callAfterResolving(ToolRegistry::class, fn (ToolRegistry $registry) => OperatorTools::register($registry));
+
+        // Publication checks of the RAG settings of agents...
+        KnowledgeGrounding::registerChecks();
 
         // Internal content adapters offered as knowledge sources...
         $this->callAfterResolving(AdapterRegistry::class, fn (AdapterRegistry $adapters) => $adapters->register(new ProjectDocsAdapter));
