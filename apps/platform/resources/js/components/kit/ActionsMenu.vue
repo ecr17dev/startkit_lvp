@@ -60,11 +60,15 @@ withDefaults(
     { label: '', align: 'end' },
 );
 
+// The action waiting for confirmation stays set while the dialog closes:
+// the dialog can report "closed" before the confirm button's click runs...
 const pending = ref<MenuAction | null>(null);
+const confirming = ref(false);
 
 function run(item: MenuAction) {
     if (item.confirm) {
         pending.value = item;
+        confirming.value = true;
 
         return;
     }
@@ -73,8 +77,10 @@ function run(item: MenuAction) {
 }
 
 function confirmPending() {
-    pending.value?.onSelect?.();
-    pending.value = null;
+    const item = pending.value;
+
+    confirming.value = false;
+    item?.onSelect?.();
 }
 </script>
 
@@ -122,10 +128,7 @@ function confirmPending() {
         </DropdownMenuContent>
     </DropdownMenu>
 
-    <AlertDialog
-        :open="pending !== null"
-        @update:open="(open) => !open && (pending = null)"
-    >
+    <AlertDialog v-model:open="confirming">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>{{

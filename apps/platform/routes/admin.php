@@ -20,6 +20,9 @@ use App\Http\Controllers\Admin\Knowledge\JobController as KnowledgeJobController
 use App\Http\Controllers\Admin\Knowledge\KnowledgeController;
 use App\Http\Controllers\Admin\Knowledge\LabController as KnowledgeLabController;
 use App\Http\Controllers\Admin\Knowledge\SourceController as KnowledgeSourceController;
+use App\Http\Controllers\Admin\Mail\MailAutomationController;
+use App\Http\Controllers\Admin\Mail\MailDeliveryController;
+use App\Http\Controllers\Admin\Mail\MailTemplateController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
@@ -57,6 +60,34 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
 
     // Audit trail...
     Route::get('audit', [AuditController::class, 'index'])->name('audit.index');
+
+    // Mail: templates, automations and their sends...
+    Route::prefix('mail')->name('mail.')->group(function () {
+        Route::redirect('/', '/admin/mail/templates')->name('index');
+
+        Route::middleware('can:mail.read')->group(function () {
+            Route::get('templates', [MailTemplateController::class, 'index'])->name('templates.index');
+            Route::get('templates/{key}/edit', [MailTemplateController::class, 'edit'])->name('templates.edit');
+            Route::post('templates/{key}/preview', [MailTemplateController::class, 'preview'])->middleware('throttle:60,1')->name('templates.preview');
+            Route::get('automations', [MailAutomationController::class, 'index'])->name('automations.index');
+            Route::get('deliveries', [MailDeliveryController::class, 'index'])->name('deliveries.index');
+        });
+
+        Route::middleware('can:mail.manage')->group(function () {
+            Route::post('templates', [MailTemplateController::class, 'store'])->name('templates.store');
+            Route::put('templates/{key}', [MailTemplateController::class, 'update'])->name('templates.update');
+            Route::delete('templates/{key}', [MailTemplateController::class, 'destroy'])->name('templates.destroy');
+            Route::post('templates/{key}/generate', [MailTemplateController::class, 'generate'])->middleware('throttle:10,1')->name('templates.generate');
+            Route::post('templates/{key}/test', [MailTemplateController::class, 'test'])->middleware('throttle:5,1')->name('templates.test');
+            Route::get('automations/create', [MailAutomationController::class, 'create'])->name('automations.create');
+            Route::post('automations', [MailAutomationController::class, 'store'])->name('automations.store');
+            Route::get('automations/{automation}/edit', [MailAutomationController::class, 'edit'])->name('automations.edit');
+            Route::put('automations/{automation}', [MailAutomationController::class, 'update'])->name('automations.update');
+            Route::patch('automations/{automation}/toggle', [MailAutomationController::class, 'toggle'])->name('automations.toggle');
+            Route::delete('automations/{automation}', [MailAutomationController::class, 'destroy'])->name('automations.destroy');
+            Route::post('deliveries/{delivery}/retry', [MailDeliveryController::class, 'retry'])->name('deliveries.retry');
+        });
+    });
 
     // System settings...
     Route::prefix('settings')->name('settings.')->group(function () {

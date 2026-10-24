@@ -70,7 +70,9 @@ propietario. Guía completa: [docs/dokploy.md](../../docs/dokploy.md).
    extensiones de PHP, instala Composer y pnpm y compila Vite (5–15 min); los siguientes usan la
    caché (1–2 min). Con `autoDeploy`, cada push a la rama redespliega: **no hagas push ni
    redespliegues mientras otro despliegue del mismo servicio está en curso**, porque Dokploy los
-   ejecuta en paralelo.
+   ejecuta en paralelo. Tras un push, el despliegue automático aparece en
+   `deployment-allByCompose` uno o dos minutos después: espera a ver uno nuevo en `done` antes de
+   probar el cambio (no basta con que la URL responda; puede ser la versión anterior).
 7. **Verifica**: `curl -fsS https://<dominio>/up` (o el de sslip.io) responde 200 y
    `/login` carga.
 8. **Acceso**: con `MAIL_MAILER=log`, pide un código en `/login` con el correo del propietario y

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\AiManager;
+use Starter\Administration\Mail\MailTemplates;
 use Starter\Ai\Agents\ActionProposals;
 use Starter\Ai\Agents\AgentLimiter;
 use Starter\Ai\Agents\AgentManager;
@@ -39,6 +40,7 @@ use Starter\Ai\Models\Attachment;
 use Starter\Ai\Models\Budget;
 use Starter\Ai\Models\Connection;
 use Starter\Ai\Models\LabRun;
+use Starter\Ai\Notifications\AiMailTemplates;
 use Starter\Ai\Pricing\CostCalculator;
 use Starter\Ai\Pricing\CostEstimator;
 use Starter\Ai\Pricing\PriceBook;
@@ -72,6 +74,9 @@ class AiServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         Event::subscribe(RecordSdkUsage::class);
+
+        // The budget alert is editable in Admin → Mail → Templates...
+        $this->callAfterResolving(MailTemplates::class, fn (MailTemplates $templates) => AiMailTemplates::register($templates));
 
         $this->callAfterResolving(AiManager::class, function (AiManager $manager) {
             $manager->extend(SimulatedProvider::DRIVER, fn ($app, array $config) => new SimulatedProvider($config, $app->make(Dispatcher::class)));

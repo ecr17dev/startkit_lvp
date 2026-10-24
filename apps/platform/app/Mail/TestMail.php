@@ -2,31 +2,15 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
+use Starter\Administration\Mail\TemplateMail;
 
-class TestMail extends Mailable
+/**
+ * Test email of the mail settings (template mail.test).
+ */
+class TestMail extends TemplateMail
 {
-    use Queueable, SerializesModels;
-
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
+    public function __construct(string $mailer = '')
     {
-        return new Envelope(
-            subject: __('Test email from :app', ['app' => config('app.name')]),
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(markdown: 'mail.test');
+        parent::__construct('mail.test', ['mailer' => $mailer ?: (string) config('mail.default')]);
     }
 }

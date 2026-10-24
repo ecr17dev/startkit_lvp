@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use Starter\Administration\Audit\Auditor;
 use Starter\Administration\Health\HealthChecker;
+use Starter\Administration\Mail\MailTemplates;
 use Starter\Administration\Models\AuditEvent;
 use Starter\Administration\Settings\Branding;
 use Starter\Administration\Settings\RuntimeConfiguration;
@@ -23,6 +24,7 @@ class AdministrationServiceProvider extends ServiceProvider
         $this->app->singleton(RuntimeConfiguration::class);
         $this->app->singleton(Branding::class);
         $this->app->singleton(HealthChecker::class);
+        $this->app->singleton(MailTemplates::class);
         $this->app->scoped(Auditor::class);
     }
 
@@ -32,6 +34,7 @@ class AdministrationServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'starter-admin');
         $this->loadRoutesFrom(__DIR__.'/../routes/health.php');
 
         // The readiness check warns when the scheduler stops beating...

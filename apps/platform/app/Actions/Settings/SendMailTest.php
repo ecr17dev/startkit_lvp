@@ -34,7 +34,7 @@ class SendMailTest
         Validator::make(['email' => $email], ['email' => ['required', 'email', 'max:255']])->validate();
 
         $mail = $values === null ? $this->settings->group('mail') : $this->update->prepare($values)[1];
-        $mailable = new TestMail;
+        $mailable = new TestMail((string) ($mail['mailer'] ?? 'env'));
 
         if (($mail['mailer'] ?? 'env') !== 'env') {
             $mailable->from((string) $mail['from_address'], (string) $mail['from_name']);

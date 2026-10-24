@@ -38,6 +38,7 @@ compilados y, para la ingesta de conocimiento, un worker (`php artisan queue:wor
 | `ai.spec.ts` | conexiones, catálogo, agentes y costos |
 | `rag.spec.ts` | laboratorio de recuperación sobre la colección sembrada (se omite si RAG está apagado) |
 | `postgrest.spec.ts` | PostgREST apagado por defecto y sin prueba disponible |
+| `mail.spec.ts` | editor de plantillas: variables, vista previa, aviso de variables desconocidas, borrador con IA simulada y guardado; automatización de bienvenida creada, pausada y eliminada |
 | `contracts.spec.ts` | el OpenAPI servido coincide con `tooling/contracts/openapi.json`; el visor lo incluye |
 | `projects.spec.ts` | módulo generado Proyectos: crear, buscar, ordenar en el servidor, editar y eliminar desde el menú de acciones |
 | `ui-kit.spec.ts` | catálogo `/ui-kit`: wizard con validación por paso y error del servidor, tabla (búsqueda, orden, selección, tarjetas), modal y paleta de comandos |

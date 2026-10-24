@@ -1,7 +1,7 @@
 # Correo
 
-El correo lleva los códigos de acceso, las invitaciones, la recuperación de contraseña y las
-notificaciones. Sin correo no se puede iniciar sesión, así que el starter nunca activa un
+El correo lleva los códigos de acceso, las invitaciones, la recuperación de contraseña, las
+notificaciones y las automatizaciones; cada correo sale de una plantilla editable. Sin correo no se puede iniciar sesión, así que el starter nunca activa un
 proveedor que no tenga su clave.
 
 ## Proveedores
@@ -99,6 +99,78 @@ panel tiene prioridad sobre el `.env`.
   proveedor si falla (por ejemplo, "API key is invalid" o un dominio sin verificar). El resultado
   queda como «Última prueba» en la pantalla y en la auditoría (`settings.mail_tested`).
 
+## Plantillas
+
+**Administración → Correo → Plantillas** lista todos los correos que envía la plataforma y abre un
+editor con vista previa en vivo:
+
+| Plantilla | Clave | Variables propias |
+| --- | --- | --- |
+| Código de acceso, confirmación de correo, código de invitación, confirmación de acción | `auth.login_code`, `auth.register_code`, `auth.invitation_code`, `auth.confirm_code` | `code`, `expires_minutes` |
+| Invitación | `auth.invitation` | `inviter_name`, `accept_url`, `expires_on` |
+| Recuperación de contraseña | `auth.password_reset` | `reset_url`, `expires_minutes` |
+| Alerta de presupuesto de IA | `ai.budget_threshold` | `budget_name`, `percent`, `period`, `spent`, `limit`, … |
+| Correo de prueba | `mail.test` | `mailer` |
+| Bienvenida, Te extrañamos, Anuncio, Evento del sistema (bases de las automatizaciones) | `automation.*` | `days_inactive`, `role`, `event_name`, `event_details`, `actor_name` |
+
+Todas aceptan además `app_name`, `app_url`, `login_url`, `recipient_name`, `recipient_email` y
+`year`.
+
+- **Sintaxis**: `{{ variable }}` se reemplaza por el valor escapado; `[[Texto|{{ login_url }}]]` en
+  su propia línea es un botón (solo enlaces `http(s)` y `mailto:`). El contenido **nunca se compila
+  como Blade**: un administrador no puede ejecutar código desde una plantilla.
+- **Formatos**: *Simple* (Markdown con el tema de correo de Laravel) o *HTML* (se envía tal cual,
+  sin `<script>`, `<iframe>`, formularios, manejadores `on*` ni enlaces `javascript:`). El texto
+  plano se genera solo.
+- **Idiomas**: cada plantilla se personaliza por idioma; lo que no se personaliza usa el contenido
+  por defecto traducido. **Restaurar original** borra la personalización de ese idioma.
+- **Editor**: botones de variables (se insertan donde está el cursor), título, negrita, lista y
+  botón; vista previa con valores de ejemplo en ancho de computador o teléfono; aviso de variables
+  desconocidas (guardar las rechaza); **Enviarme una prueba** manda el contenido sin guardarlo.
+- **Generar con IA**: describe el correo y el modelo de texto por defecto escribe asunto y cuerpo
+  (Markdown o HTML con diseño) usando solo las variables de la plantilla. Pasa por `AiGateway`
+  (libro de consumo y presupuestos) y no guarda nada. Con el proveedor simulado arma un borrador
+  local marcado como simulado.
+- **Plantillas propias** (`custom.<nombre>`): se crean desde otra plantilla y se usan en las
+  automatizaciones; no se pueden borrar mientras una automatización las use.
+- Permisos: `mail.read` (ver) y `mail.manage` (editar, probar, generar). Todo queda auditado
+  (`mail.template_*`).
+
+En código, envía cualquier plantilla con `new TemplateMail('clave', [...variables])` o
+`app(MailTemplates::class)->render('clave', $variables)->toMailMessage()` en una notificación.
+Un paquete define las suyas en su service provider:
+
+```php
+$this->callAfterResolving(MailTemplates::class, fn (MailTemplates $templates) => $templates->define(new MailTemplateDefinition(
+    key: 'billing.invoice', category: 'system', name: 'Invoice', description: 'Sent with each invoice.',
+    variables: ['invoice_url' => ['description' => 'Link to the invoice', 'sample' => 'https://…']],
+    default: fn () => ['subject' => __('Your invoice'), 'body' => "# ".__('Hello!')."\n\n[[".__('View invoice')."|{{ invoice_url }}]]"],
+)));
+```
+
+## Automatizaciones
+
+**Administración → Correo → Automatizaciones** envía una plantilla sola, sin programar nada:
+
+| Disparador | Cuándo | Destinatarios |
+| --- | --- | --- |
+| Bienvenida | al crear una cuenta, de inmediato o con espera (minutos) | la cuenta nueva |
+| Inactividad | tras N días sin entrar (`last_login_at` o fecha de creación) | todos los activos o un rol |
+| Envío programado | una vez (fecha), cada semana (día) o cada mes (día 1–28), a una hora y zona horaria | todos los activos o un rol |
+| Evento del sistema | usuario creado, registro, invitación aceptada, cuenta desactivada/reactivada, cambio de rol, umbral de presupuesto de IA | la persona involucrada o un rol |
+
+- Cada correo es una fila de `mail_deliveries` con una **clave única** (automatización + persona +
+  ocurrencia): repetir una ejecución nunca duplica un envío. La inactividad se envía una vez por
+  período inactivo; vuelve a salir solo si la persona entra y otra vez se ausenta.
+- El envío lo hace la cola `mail` (`App\Jobs\DeliverMail`, 3 intentos). Se omite si la cuenta está
+  desactivada o la automatización en pausa; si falla queda el error del proveedor.
+- `starter:mail-automations` revisa inactividad y envíos programados; el scheduler lo corre cada 5
+  minutos. Los eventos usan la auditoría y la bienvenida la creación del usuario.
+- **Envíos** muestra cada correo (pendiente, enviado, fallido u omitido) con su error y permite
+  **Reintentar** los fallidos.
+
+Necesitas el worker (`queue:work` con la cola `mail`) y el scheduler; en Docker y Dokploy ya están.
+
 ## Archivos
 
 | Qué | Dónde |
@@ -108,3 +180,9 @@ panel tiene prioridad sobre el `.env`.
 | Claves: cifrado, referencias y respaldo del `.env` | `packages/php/administration/src/Settings/MailCredentials.php` |
 | Aplicación en cada solicitud y trabajo | `packages/php/administration/src/Settings/RuntimeConfiguration.php` |
 | Transportes | `config/mail.php`, `config/services.php` (`resend/resend-php`, `symfony/postmark-mailer`, `symfony/mailgun-mailer`) |
+| Plantillas: registro, render seguro y mailables | `packages/php/administration/src/Mail/` (`MailTemplates`, `TemplateMail`) |
+| Plantillas de cada módulo | `IdentityMailTemplates`, `AiMailTemplates`, `apps/platform/app/Mail/AppMailTemplates.php` |
+| Acciones de plantillas y automatizaciones | `apps/platform/app/Actions/Mail/` |
+| Motor de automatizaciones y envío | `apps/platform/app/Mail/Automation/MailAutomations.php`, `app/Jobs/DeliverMail.php` |
+| Redacción con IA | `apps/platform/app/Ai/Mail/MailTemplateWriter.php` |
+| Pantallas | `apps/platform/resources/js/pages/admin/mail/` |

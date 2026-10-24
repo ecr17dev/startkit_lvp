@@ -4,6 +4,7 @@ namespace Starter\Identity\Notifications;
 
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Starter\Administration\Mail\MailTemplates;
 use Starter\Identity\Models\Invitation;
 
 class InvitationNotification extends Notification
@@ -24,15 +25,13 @@ class InvitationNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = (string) settings('branding.app_name', config('app.name'));
+        $appName = (string) (settings('branding.app_name') ?: config('app.name'));
 
-        return (new MailMessage)
-            ->subject(__('You have been invited to :app', ['app' => $appName]))
-            ->line($this->inviterName
-                ? __(':name invited you to join :app.', ['name' => $this->inviterName, 'app' => $appName])
-                : __('You have been invited to join :app.', ['app' => $appName]))
-            ->action(__('Accept invitation'), $this->url)
-            ->line(__('The invitation expires on :date.', ['date' => $this->invitation->expires_at->toFormattedDayDateString()]))
-            ->line(__('If you were not expecting this invitation, you can ignore this email.'));
+        return app(MailTemplates::class)->render('auth.invitation', [
+            'inviter_name' => $this->inviterName ?: __('The :app team', ['app' => $appName]),
+            'accept_url' => $this->url,
+            'expires_on' => $this->invitation->expires_at->isoFormat('LL'),
+            ...IdentityMailTemplates::recipient($notifiable),
+        ])->toMailMessage();
     }
 }

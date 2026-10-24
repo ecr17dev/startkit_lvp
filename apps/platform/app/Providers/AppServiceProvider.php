@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Ai\Knowledge\KnowledgeGrounding;
 use App\Ai\OperatorTools;
 use App\Knowledge\ProjectDocsAdapter;
+use App\Mail\AppMailTemplates;
+use App\Mail\Automation\MailAutomations;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
@@ -14,7 +16,9 @@ use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Dedoc\Scramble\Support\Generator\Server;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -27,6 +31,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 use Starter\Administration\Health\HealthChecker;
+use Starter\Administration\Mail\MailTemplates;
+use Starter\Administration\Models\AuditEvent;
 use Starter\Ai\Agents\ToolRegistry;
 use Starter\Identity\Models\Invitation;
 use Starter\Knowledge\Ingestion\Sources\AdapterRegistry;
@@ -38,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(MailAutomations::class);
     }
 
     /**
@@ -63,6 +69,24 @@ class AppServiceProvider extends ServiceProvider
             fn () => app(PostgRest::class)->health(),
             fn () => (bool) config('starter.features.postgrest'),
         ));
+
+        // Templates of the application and the password reset email...
+        $this->callAfterResolving(MailTemplates::class, fn (MailTemplates $templates) => AppMailTemplates::register($templates));
+        ResetPassword::toMailUsing(fn (User $notifiable, string $token) => app(MailTemplates::class)->render('auth.password_reset', [
+            'reset_url' => url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false)),
+            'expires_minutes' => (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
+            'recipient_name' => $notifiable->name,
+            'recipient_email' => (string) $notifiable->getEmailForPasswordReset(),
+        ])->toMailMessage());
+
+        // Mail automations: welcome, system events, inactivity and scheduled sends...
+        User::created(fn (User $user) => app(MailAutomations::class)->userCreated($user));
+        AuditEvent::created(fn (AuditEvent $event) => app(MailAutomations::class)->audited($event));
+        $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('starter:mail-automations')
+            ->everyFiveMinutes()
+            ->name('starter:mail-automations')
+            ->onOneServer()
+            ->withoutOverlapping());
 
         // Internal content adapters offered as knowledge sources...
         $this->callAfterResolving(AdapterRegistry::class, fn (AdapterRegistry $adapters) => $adapters->register(new ProjectDocsAdapter));

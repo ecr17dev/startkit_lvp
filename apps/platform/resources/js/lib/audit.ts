@@ -23,6 +23,17 @@ const labels: Record<string, string> = {
     'settings.updated': 'Settings updated',
     'api_tokens.created': 'API token created',
     'api_tokens.revoked': 'API token revoked',
+    'auth.fixed_code_used': 'Logged in with the fixed code',
+    'settings.mail_tested': 'Mail server tested',
+    'mail.template_saved': 'Mail template saved',
+    'mail.template_created': 'Mail template created',
+    'mail.template_reset': 'Mail template restored',
+    'mail.template_deleted': 'Mail template deleted',
+    'mail.template_tested': 'Mail template tested',
+    'mail.template_generated': 'Mail template drafted with AI',
+    'mail.automation_saved': 'Mail automation saved',
+    'mail.automation_deleted': 'Mail automation deleted',
+    'mail.delivery_retried': 'Mail send retried',
 };
 
 /**

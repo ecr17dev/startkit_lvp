@@ -43,6 +43,10 @@ final class Permissions
             'settings.read' => 'View system settings',
             'settings.update' => 'Update system settings',
         ],
+        'mail' => [
+            'mail.read' => 'View mail templates, automations and sends',
+            'mail.manage' => 'Manage mail templates and automations',
+        ],
         'ai' => [
             'ai.chat' => 'Use the AI chat',
             'ai.providers.manage' => 'Manage AI provider connections',

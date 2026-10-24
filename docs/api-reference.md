@@ -263,7 +263,7 @@ Cuerpo (JSON):
 | Campo | Tipo | Requerido | Descripción |
 | --- | --- | --- | --- |
 | `name` | string | sí |  |
-| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
+| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `mail.read` \| `mail.manage` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
 
 Respuestas: `201` `RoleResource` · `401` Unauthenticated · `422` Validation error.
 
@@ -296,7 +296,7 @@ Cuerpo (JSON):
 | Campo | Tipo | Requerido | Descripción |
 | --- | --- | --- | --- |
 | `name` | string | sí |  |
-| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
+| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `mail.read` \| `mail.manage` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
 
 Respuestas: `200` `RoleResource` · `404` Not found · `401` Unauthenticated · `422` Validation error.
 

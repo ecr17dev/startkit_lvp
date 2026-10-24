@@ -1,5 +1,6 @@
 import { createInertiaApp, usePage } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
+import MailLayout from '@/layouts/admin/MailLayout.vue';
 import AdminSettingsLayout from '@/layouts/admin/SettingsLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -25,6 +26,8 @@ void createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('admin/settings/'):
                 return [AppLayout, AdminSettingsLayout];
+            case name.startsWith('admin/mail/'):
+                return [AppLayout, MailLayout];
             case name.startsWith('ui-kit/'):
                 return [AppLayout, UiKitLayout];
             default:

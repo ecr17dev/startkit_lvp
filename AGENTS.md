@@ -31,7 +31,7 @@ Docker, organizado como monorepo Composer + pnpm. La especificación completa es
 | Pantallas: listados, formularios, wizards, gráficos, modales | `skills/build-ui/SKILL.md`, `docs/ui-kit.md` | catálogo en `/ui-kit` |
 | IA: conexiones, modelos, tarifas, presupuestos, agentes | `skills/configure-ai/SKILL.md`, `docs/ai.md` | proveedor simulado sin claves |
 | Conocimiento (RAG) | `skills/manage-rag/SKILL.md`, `docs/knowledge.md` | `STARTER_FEATURE_RAG` |
-| Correo (Resend, SMTP, Postmark, Mailgun) | `docs/mail.md` | Panel → Configuración del sistema |
+| Correo (Resend, SMTP, Postmark, Mailgun), plantillas y automatizaciones | `docs/mail.md` | Panel → Correo |
 | Login, roles, permisos, auditoría | `docs/identity.md` | `starter:permissions` |
 | API REST y cliente TS | `docs/api-reference.md` | `starter:api-docs` |
 
@@ -90,7 +90,11 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   Mailgun, log o el `.env`. Se cambia solo con `App\Actions\Settings\UpdateMailSettings` (panel y
   `config-apply`); las claves pasan por `Starter\Administration\Settings\MailCredentials`
   (cifradas, `env:` permitidas o la variable del `.env`). Nunca actives un proveedor sin clave:
-  sin correo nadie puede entrar. Ver `docs/mail.md`.
+  sin correo nadie puede entrar. Todo correo sale de una plantilla de
+  `Starter\Administration\Mail\MailTemplates` (`{{ variable }}` escapadas, nunca Blade): para uno
+  nuevo define una `MailTemplateDefinition` y envíalo con `TemplateMail`; los envíos automáticos van
+  por `App\Mail\Automation\MailAutomations` (una fila en `mail_deliveries` por envío, cola `mail`).
+  Ver `docs/mail.md`.
 - **Agentes**: el chat siempre usa la versión publicada y autorizada de un agente
   (`Starter\Ai\Agents\AgentManager::resolve()`); nunca aceptes system prompt,
   herramientas ni colecciones desde el cliente. Las herramientas se registran en

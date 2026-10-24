@@ -1519,7 +1519,7 @@ export interface components {
         /** RoleRequest */
         RoleRequest: {
             name: string;
-            permissions?: ("users.read" | "users.create" | "users.invite" | "users.update" | "users.disable" | "users.delete" | "roles.read" | "roles.manage" | "permissions.read" | "permissions.manage" | "settings.read" | "settings.update" | "ai.chat" | "ai.providers.manage" | "ai.models.manage" | "ai.agents.manage" | "ai.usage.read" | "ai.budgets.manage" | "rag.collections.read" | "rag.collections.manage" | "rag.sources.manage" | "rag.documents.read" | "rag.documents.delete" | "rag.jobs.manage" | "rag.playground.use" | "rag.analytics.read" | "audit.read" | "api.docs.read" | "api.tokens.create" | "projects.read" | "projects.create" | "projects.update" | "projects.delete")[];
+            permissions?: ("users.read" | "users.create" | "users.invite" | "users.update" | "users.disable" | "users.delete" | "roles.read" | "roles.manage" | "permissions.read" | "permissions.manage" | "settings.read" | "settings.update" | "mail.read" | "mail.manage" | "ai.chat" | "ai.providers.manage" | "ai.models.manage" | "ai.agents.manage" | "ai.usage.read" | "ai.budgets.manage" | "rag.collections.read" | "rag.collections.manage" | "rag.sources.manage" | "rag.documents.read" | "rag.documents.delete" | "rag.jobs.manage" | "rag.playground.use" | "rag.analytics.read" | "audit.read" | "api.docs.read" | "api.tokens.create" | "projects.read" | "projects.create" | "projects.update" | "projects.delete")[];
         };
         /** RoleResource */
         RoleResource: {

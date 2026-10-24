@@ -16104,6 +16104,8 @@
                                 "permissions.manage",
                                 "settings.read",
                                 "settings.update",
+                                "mail.read",
+                                "mail.manage",
                                 "ai.chat",
                                 "ai.providers.manage",
                                 "ai.models.manage",

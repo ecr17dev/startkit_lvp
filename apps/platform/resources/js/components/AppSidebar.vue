@@ -12,6 +12,7 @@ import {
     History,
     Library,
     LayoutGrid,
+    Mail,
     MessageSquareText,
     MonitorSmartphone,
     PiggyBank,
@@ -58,6 +59,7 @@ import {
 import { index as knowledgeConnections } from '@/routes/admin/knowledge/connections';
 import { index as knowledgeEvaluations } from '@/routes/admin/knowledge/evaluations';
 import { index as audit } from '@/routes/admin/audit';
+import { index as mailTemplates } from '@/routes/admin/mail/templates';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
 import integrations from '@/routes/admin/integrations';
@@ -132,6 +134,13 @@ const sections = computed<NavSection[]>(() => {
                     href: audit(),
                     icon: History,
                     can: 'audit.read',
+                },
+                {
+                    title: t('Mail'),
+                    href: mailTemplates(),
+                    icon: Mail,
+                    can: 'mail.read',
+                    isActive: currentUrl.value.startsWith('/admin/mail'),
                 },
                 ...(systemSettings
                     ? [
