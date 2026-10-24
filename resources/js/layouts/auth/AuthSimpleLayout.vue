@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import BrandMark from '@/components/BrandMark.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { home } from '@/routes';
 
 defineProps<{
@@ -11,8 +13,11 @@ defineProps<{
 
 <template>
     <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+        class="relative flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
     >
+        <div class="absolute top-4 right-4">
+            <LanguageSwitcher />
+        </div>
         <div class="w-full max-w-sm">
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-4">
@@ -23,9 +28,7 @@ defineProps<{
                         <div
                             class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
                         >
-                            <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
-                            />
+                            <BrandMark />
                         </div>
                         <span class="sr-only">{{ title }}</span>
                     </Link>
@@ -39,5 +42,6 @@ defineProps<{
                 <slot />
             </div>
         </div>
+        <Toaster />
     </div>
 </template>

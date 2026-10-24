@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { computed } from 'vue';
+import BrandMark from '@/components/BrandMark.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { home } from '@/routes';
 
 const page = usePage();
-const name = page.props.name;
+const branding = computed(() => page.props.branding);
 
 defineProps<{
     title?: string;
@@ -17,18 +20,29 @@ defineProps<{
         class="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0"
     >
         <div
-            class="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r"
+            class="relative hidden h-full flex-col bg-primary p-10 text-primary-foreground lg:flex"
         >
-            <div class="absolute inset-0 bg-zinc-900" />
             <Link
                 :href="home()"
-                class="relative z-20 flex items-center text-lg font-medium"
+                class="relative z-20 flex items-center gap-2 text-lg font-medium"
             >
-                <AppLogoIcon class="mr-2 size-8 fill-current text-white" />
-                {{ name }}
+                <span
+                    class="flex size-9 items-center justify-center rounded-md bg-background p-1 text-foreground"
+                >
+                    <BrandMark size="size-7" />
+                </span>
+                {{ branding.appName }}
             </Link>
+            <div v-if="branding.tagline" class="relative z-20 mt-auto">
+                <p class="text-2xl leading-snug font-semibold">
+                    {{ branding.tagline }}
+                </p>
+            </div>
         </div>
-        <div class="lg:p-8">
+        <div class="relative lg:p-8">
+            <div class="absolute -top-16 right-0 lg:top-0 lg:right-4">
+                <LanguageSwitcher />
+            </div>
             <div
                 class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]"
             >
@@ -43,5 +57,6 @@ defineProps<{
                 <slot />
             </div>
         </div>
+        <Toaster />
     </div>
 </template>

@@ -9,9 +9,12 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        var(--app-font-sans), ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-heading:
+        var(--app-font-heading), var(--app-font-sans), ui-sans-serif, system-ui,
+        sans-serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -79,17 +82,21 @@
     }
 }
 
-@layer utilities {
-    body,
-    html {
-        --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-            'Noto Color Emoji';
+@layer base {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-heading);
     }
 }
 
 :root {
+    /* Overridden at runtime by the branding settings (resources/views/app.blade.php) */
+    --app-font-sans: 'Instrument Sans';
+    --app-font-heading: var(--app-font-sans);
     --background: hsl(0 0% 100%);
     --foreground: hsl(0 0% 3.9%);
     --card: hsl(0 0% 100%);
@@ -168,5 +175,71 @@
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+/* Rendered Markdown (AI answers) */
+@layer components {
+    .markdown {
+        @apply text-sm leading-relaxed break-words;
+    }
+
+    .markdown > * + * {
+        @apply mt-3;
+    }
+
+    .markdown h1,
+    .markdown h2,
+    .markdown h3 {
+        @apply font-semibold;
+    }
+
+    .markdown h1 {
+        @apply text-lg;
+    }
+
+    .markdown h2 {
+        @apply text-base;
+    }
+
+    .markdown ul {
+        @apply list-disc pl-5;
+    }
+
+    .markdown ol {
+        @apply list-decimal pl-5;
+    }
+
+    .markdown li + li {
+        @apply mt-1;
+    }
+
+    .markdown a {
+        @apply text-primary underline underline-offset-2;
+    }
+
+    .markdown code {
+        @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em];
+    }
+
+    .markdown pre {
+        @apply overflow-x-auto rounded-md bg-muted p-3;
+    }
+
+    .markdown pre code {
+        @apply bg-transparent p-0;
+    }
+
+    .markdown blockquote {
+        @apply border-l-2 pl-3 text-muted-foreground;
+    }
+
+    .markdown table {
+        @apply w-full border-collapse text-left text-xs;
+    }
+
+    .markdown th,
+    .markdown td {
+        @apply border px-2 py-1;
     }
 }

@@ -1,3 +1,7 @@
+@php
+    $brand = app(\App\Settings\Branding::class);
+    $brandData = $brand->toArray();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
@@ -30,15 +34,27 @@
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        {{-- Branding: colors, radius and fonts configured from Admin → Branding --}}
+        <style id="branding">{!! $brand->css() !!}</style>
+
+        @if ($brandData['faviconUrl'])
+            <link rel="icon" href="{{ $brandData['faviconUrl'] }}">
+        @else
+            <link rel="icon" href="/favicon.ico" sizes="any">
+            <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @endif
 
         @fonts
 
+        @if ($fontsUrl = $brand->fontsUrl())
+            <link rel="preconnect" href="https://fonts.bunny.net">
+            <link rel="stylesheet" href="{{ $fontsUrl }}">
+        @endif
+
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ $brandData['appName'] }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

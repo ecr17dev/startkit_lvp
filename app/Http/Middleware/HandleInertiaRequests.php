@@ -2,7 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Settings\Branding;
+use App\Support\Translations;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,12 +39,31 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        /** @var User|null $user */
+        $user = $request->user();
+        $locale = app()->getLocale();
+        $branding = app(Branding::class)->toArray();
+
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            'name' => $branding['appName'],
+            'branding' => $branding,
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    ...$user->only(['id', 'name', 'email', 'email_verified_at', 'locale', 'created_at', 'updated_at']),
+                    'roles' => $user->getRoleNames()->values()->all(),
+                ] : null,
+                'permissions' => $user?->permissionNames() ?? [],
             ],
+            'features' => [
+                'passwordLogin' => (bool) settings('auth.password_login', true),
+                'codeLogin' => (bool) settings('auth.code_login', true),
+                'registration' => (bool) settings('auth.registration', true),
+            ],
+            'locale' => $locale,
+            'locales' => config('settings.locales'),
+            'translations' => Inertia::once(fn () => Translations::for($locale))
+                ->as('translations.'.Translations::version($locale)),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
