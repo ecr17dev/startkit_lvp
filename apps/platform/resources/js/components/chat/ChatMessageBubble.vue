@@ -6,14 +6,18 @@ import {
     Clock,
     ExternalLink,
     Paperclip,
+    ThumbsDown,
+    ThumbsUp,
     User as UserIcon,
     Wrench,
     X,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { requestJson } from '@starter/chat';
+import { computed, ref, watch } from 'vue';
 import type { ChatMessageItem } from '@/composables/useChat';
 import { usePermissions } from '@/composables/usePermissions';
 import { show as documentShow } from '@/routes/admin/knowledge/documents';
+import { feedback as feedbackRoute } from '@/routes/ai/chat';
 import { costStatusLabels, formatCost } from '@/lib/ai';
 import { formatDate, formatNumber, t } from '@/lib/i18n';
 import { renderMarkdown } from '@/lib/markdown';
@@ -44,6 +48,37 @@ const outcomeNotices: Record<string, string> = {
         'No evidence in the authorized sources: no answer was generated.',
     general: 'General answer: not based on the organization sources.',
     unsupported: 'The answer did not cite the retrieved sources.',
+};
+
+// Feedback on grounded answers feeds the knowledge quality indicators...
+const rating = ref<number | null>(props.message.knowledge?.feedback ?? null);
+const ratingError = ref(false);
+
+watch(
+    () => props.message.knowledge?.feedback,
+    (value) => (rating.value = value ?? null),
+);
+
+const rate = async (value: 1 | -1) => {
+    const messageId = props.message.knowledge?.message_id;
+
+    if (!messageId || rating.value === value) {
+        return;
+    }
+
+    const previous = rating.value;
+    rating.value = value;
+    ratingError.value = false;
+
+    try {
+        await requestJson(feedbackRoute(messageId).url, {
+            method: 'POST',
+            body: { rating: value },
+        });
+    } catch {
+        rating.value = previous;
+        ratingError.value = true;
+    }
 };
 
 const toolLabels: Record<string, string> = {
@@ -220,6 +255,44 @@ const toolLabels: Record<string, string> = {
                             )
                         }}
                     </p>
+                    <div
+                        v-if="message.knowledge.message_id"
+                        class="flex items-center gap-1 text-muted-foreground"
+                        data-test="chat-feedback"
+                    >
+                        <span>{{ t('Was this answer useful?') }}</span>
+                        <button
+                            type="button"
+                            class="rounded p-1 hover:bg-muted hover:text-foreground"
+                            :class="
+                                rating === 1 &&
+                                'text-emerald-600 dark:text-emerald-400'
+                            "
+                            :aria-pressed="rating === 1"
+                            :aria-label="t('Useful')"
+                            data-test="chat-feedback-up"
+                            @click="rate(1)"
+                        >
+                            <ThumbsUp class="size-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded p-1 hover:bg-muted hover:text-foreground"
+                            :class="rating === -1 && 'text-destructive'"
+                            :aria-pressed="rating === -1"
+                            :aria-label="t('Not useful')"
+                            data-test="chat-feedback-down"
+                            @click="rate(-1)"
+                        >
+                            <ThumbsDown class="size-3.5" />
+                        </button>
+                        <span v-if="rating !== null">{{
+                            t('Thanks for your feedback.')
+                        }}</span>
+                        <span v-if="ratingError" class="text-destructive">{{
+                            t('The feedback could not be saved.')
+                        }}</span>
+                    </div>
                 </div>
                 <p v-if="message.error" class="text-sm text-destructive">
                     {{ message.error }}

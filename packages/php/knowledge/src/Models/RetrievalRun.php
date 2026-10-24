@@ -33,6 +33,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $outcome
  * @property int $citations_count
  * @property int $invalid_citations
+ * @property int|null $feedback
+ * @property string|null $feedback_note
+ * @property CarbonInterface|null $feedback_at
  * @property CarbonInterface|null $created_at
  */
 class RetrievalRun extends Model
@@ -74,6 +77,8 @@ class RetrievalRun extends Model
             'used' => 'boolean',
             'citations_count' => 'integer',
             'invalid_citations' => 'integer',
+            'feedback' => 'integer',
+            'feedback_at' => 'datetime',
         ];
     }
 

@@ -229,6 +229,69 @@ top-k, umbral y presupuesto de contexto; muestra los pasajes autorizados con ran
 puntajes (RRF, coseno, ts_rank), sección, latencias (vectorización y búsqueda) y costo, y
 permite comparar vectorial, texto e híbrida lado a lado. Cada búsqueda queda trazada.
 
+Cada pasaje puede marcarse como relevante o no (👍/👎): el juicio se guarda en el hit de la
+traza (`judgement`, `judged_by`) y solo puede emitirlo quien hizo la búsqueda. «Guardar como
+pregunta de evaluación» lleva la consulta y los documentos marcados a un conjunto.
+
+## Operación y calidad
+
+Los indicadores operativos y los de calidad semántica se muestran por separado y todos se
+derivan de eventos guardados (documentos y versiones, trabajos con sus tiempos por etapa,
+el libro de consumo de IA y las trazas de recuperación); no hay contadores paralelos.
+
+### Panel de conocimiento
+
+Admin → Conocimiento → Panel (`rag.analytics.read`), con período (7, 30 o 90 días) y
+colección; solo considera colecciones visibles para quien consulta.
+
+| Visualización | Origen |
+| --- | --- |
+| Documentos por estado y fuente | `rag_documents` (total, procesados y consultables por separado) |
+| Ingesta por día | `indexed_at` de documentos y versiones nuevas |
+| Fragmentos y volumen por colección | versión activa del índice y tamaño de originales |
+| Cola y duración por etapa | `rag_jobs.status` y `timings` (promedio por etapa) |
+| Errores por parser y proveedor | documentos `failed`/`empty`, trabajos fallidos por `error_type`, llamadas fallidas del libro |
+| Costo de embeddings e indexación | libro de consumo (`embedding` y `rag`); el costo desconocido se cuenta aparte |
+| Consultas y latencias | `rag_retrieval_runs` (promedio y p95 por día) |
+| Consultas sin resultados y abstenciones | trazas sin hits o con `outcome = abstained` (top 10 normalizado) |
+| Citas y feedback por agente | trazas con versión de agente: citas, descartadas, sin citas, 👍/👎 |
+| Antigüedad y cambios por fuente | última sincronización y unidades del último trabajo |
+| Calidad de recuperación | última ejecución completada de cada conjunto de evaluación |
+
+La proyección 2D de embeddings que la especificación menciona como ampliación opcional **no
+está implementada**.
+
+### Conjuntos de evaluación
+
+Admin → Conocimiento → Evaluaciones (`rag.playground.use`). Un conjunto agrupa colecciones
+visibles y preguntas con los documentos que una buena búsqueda debe devolver (solo
+documentos legibles de esas colecciones). Cada ejecución guarda su configuración (método,
+top-k, similitud mínima, presupuesto de contexto; vacío = configuración de la colección),
+busca cada pregunta **como quien la inició** (rigen sus listas de acceso) en un trabajo en
+cola y calcula:
+
+- **recall@k**: proporción de documentos esperados entre los recuperados;
+- **MRR**: promedio de 1 / posición del primer documento esperado;
+- **tasa de acierto**: preguntas con al menos un documento esperado;
+- tasa sin resultados, latencia promedio y p95, y costo (desconocido si alguna llamada lo es).
+
+Son métricas de recuperación sobre preguntas etiquetadas, no un juicio de la respuesta
+generada. Las búsquedas de evaluación quedan trazadas con `surface = evaluation`.
+
+### Feedback de respuestas
+
+Bajo cada respuesta con conocimiento el chat ofrece «¿Te fue útil?» (👍/👎). Se guarda en
+las trazas de esa respuesta (`feedback`, `feedback_note`, `feedback_at`) y solo puede
+darlo el usuario que la recibió (`POST /ai/chat/messages/{id}/feedback`).
+
+### Tareas programadas
+
+| Comando | Frecuencia | Uso |
+| --- | --- | --- |
+| `starter:rag-maintain` | cada minuto | recupera trabajos sin latido y despacha sincronizaciones programadas |
+| `starter:rag-retention` | cada hora | aplica `retention_days` de cada colección: borra versiones de documento que no son la consultable ni la última, con sus originales si no se comparten |
+| `model:prune` (`RetrievalRun`) | diario | elimina trazas más antiguas que `STARTER_RAG_RETRIEVAL_RETENTION_DAYS` |
+
 ## API
 
 | Método y ruta | Uso |
@@ -241,6 +304,10 @@ permite comparar vectorial, texto e híbrida lado a lado. Cada búsqueda queda t
 | `POST /api/v1/rag/sources/{id}/sync` | sincronizar (devuelve el trabajo abierto si existe) |
 | `GET /api/v1/rag/jobs` · `/{id}` · `POST …/cancel` · `…/retry` · `…/resume` | trabajos |
 | `POST /api/v1/rag/search` | búsqueda autorizada con trazas |
+| `GET /api/v1/rag/analytics` | mismo informe del panel (`days`, `collection`) |
+| `GET /api/v1/rag/evaluation-sets` | conjuntos con su última ejecución |
+| `POST /api/v1/rag/evaluation-sets/{id}/evaluate` | ejecutar con una configuración (202 con la ejecución) |
+| `GET /api/v1/rag/evaluations/{uuid}` | métricas y resultados por pregunta |
 
 Lectura con la habilidad `read`, cambios con `write`; además rigen los permisos `rag.*` y
 las listas de acceso. La configuración de cada tipo de fuente (`config.urls`, `config.url`,
@@ -257,7 +324,8 @@ la tabla de fuentes de este documento.
 | `rag.documents.read` | Ver documentos, fragmentos y originales (además de cumplir las listas de acceso) |
 | `rag.documents.delete` | Eliminar documentos |
 | `rag.jobs.manage` | Cancelar, reintentar, confirmar presupuesto y reindexar |
-| `rag.playground.use` | Laboratorio y `POST /api/v1/rag/search` |
+| `rag.playground.use` | Laboratorio, juicios, evaluaciones y `POST /api/v1/rag/search` |
+| `rag.analytics.read` | Panel de conocimiento y `GET /api/v1/rag/analytics` |
 | `settings.update` | Activar, diagnosticar y desactivar RAG |
 
 ## Configuración

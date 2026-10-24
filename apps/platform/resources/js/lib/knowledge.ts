@@ -113,6 +113,34 @@ export const scheduleLabels: Record<string, string> = {
     weekly: 'Every week',
 };
 
+export const outcomeLabels: Record<string, string> = {
+    answered: 'Answered with citations',
+    general: 'General answer',
+    unsupported: 'Without valid citations',
+    abstained: 'Abstained (no evidence)',
+};
+
+export const evaluationStatusVariant: Record<string, Variant> = {
+    queued: 'outline',
+    running: 'secondary',
+    completed: 'default',
+    failed: 'destructive',
+};
+
+export const evaluationStatusLabels: Record<string, string> = {
+    queued: 'Queued',
+    running: 'Running',
+    completed: 'Completed',
+    failed: 'Failed',
+};
+
+/** A 0–1 ratio as a percentage. */
+export function formatRatio(value: number | null | undefined): string {
+    return value === null || value === undefined
+        ? '—'
+        : `${(value * 100).toFixed(1)}%`;
+}
+
 export function formatBytes(bytes: number | null | undefined): string {
     const value = Number(bytes ?? 0);
 

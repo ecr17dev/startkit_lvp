@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { FlaskConical, Search } from '@lucide/vue';
-import { ref } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import {
+    FlaskConical,
+    ListPlus,
+    Search,
+    ThumbsDown,
+    ThumbsUp,
+} from '@lucide/vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@starter/ui/components/badge';
@@ -14,6 +20,14 @@ import {
     CardTitle,
 } from '@starter/ui/components/card';
 import { Checkbox } from '@starter/ui/components/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@starter/ui/components/dialog';
 import { Input } from '@starter/ui/components/input';
 import { Label } from '@starter/ui/components/label';
 import {
@@ -30,6 +44,7 @@ import { formatDate, formatNumber, t } from '@/lib/i18n';
 import { formatMs, methodLabels } from '@/lib/knowledge';
 import knowledge from '@/routes/admin/knowledge';
 import { show as documentShow } from '@/routes/admin/knowledge/documents';
+import evaluations from '@/routes/admin/knowledge/evaluations';
 import lab from '@/routes/admin/knowledge/lab';
 import type {
     LabCollectionOption,
@@ -67,6 +82,9 @@ const form = useForm({
 const results = ref<RetrievalResultData[]>([]);
 const searched = ref('');
 const expanded = ref<Record<string, boolean>>({});
+const sets = ref<{ id: number; name: string }[]>([]);
+// Relevance judgements of the stored hits (1 relevant, -1 not relevant)...
+const judgements = ref<Record<number, number>>({});
 
 const toggleCollection = (id: number, checked: boolean | string) => {
     form.collection_ids = checked
@@ -96,8 +114,88 @@ const submit = () =>
                     | undefined;
                 results.value = search?.results ?? [];
                 searched.value = search?.query ?? '';
+                sets.value =
+                    (
+                        (flash as Record<string, unknown>).search as
+                            | { sets?: { id: number; name: string }[] }
+                            | undefined
+                    )?.sets ?? [];
                 expanded.value = {};
+                judgements.value = {};
             },
+        });
+
+const judge = (hitId: number, value: 1 | -1) => {
+    const next = judgements.value[hitId] === value ? 0 : value;
+    const previous = judgements.value[hitId];
+    judgements.value = { ...judgements.value, [hitId]: next };
+
+    router.post(
+        lab.judge(hitId).url,
+        { judgement: next },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () =>
+                (judgements.value = { ...judgements.value, [hitId]: previous }),
+        },
+    );
+};
+
+// Documents found by the search: candidates for the expected answer...
+const foundDocuments = computed(() => {
+    const documents = new Map<number, string>();
+
+    for (const result of results.value) {
+        for (const hit of result.hits) {
+            documents.set(hit.document_id, hit.title);
+        }
+    }
+
+    return [...documents].map(([id, title]) => ({ id, title }));
+});
+
+const saveOpen = ref(false);
+const saveForm = useForm({
+    set: '' as string,
+    question: '',
+    expected_document_ids: [] as number[],
+});
+
+const openSave = () => {
+    const relevant = new Set<number>();
+
+    for (const result of results.value) {
+        for (const hit of result.hits) {
+            if (hit.hit_id && judgements.value[hit.hit_id] === 1) {
+                relevant.add(hit.document_id);
+            }
+        }
+    }
+
+    saveForm.clearErrors();
+    saveForm.set = sets.value[0] ? String(sets.value[0].id) : '';
+    saveForm.question = searched.value;
+    saveForm.expected_document_ids = [...relevant];
+    saveOpen.value = true;
+};
+
+const toggleExpected = (id: number, checked: boolean | string) => {
+    saveForm.expected_document_ids = checked
+        ? [...new Set([...saveForm.expected_document_ids, id])]
+        : saveForm.expected_document_ids.filter((item) => item !== id);
+};
+
+const saveQuestion = () =>
+    saveForm
+        .transform((data) => ({
+            question: data.question,
+            expected_document_ids: data.expected_document_ids,
+        }))
+        .post(evaluations.items.store(Number(saveForm.set)).url, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => (saveOpen.value = false),
         });
 
 const scoreLabel: Record<string, string> = {
@@ -192,13 +290,13 @@ const scoreLabel: Record<string, string> = {
                             </p>
                         </div>
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="grid gap-2">
+                            <div class="grid gap-2 sm:col-span-2">
                                 <Label>{{ t('Method') }}</Label>
                                 <Select
                                     v-model="form.method"
                                     :disabled="form.compare"
                                 >
-                                    <SelectTrigger
+                                    <SelectTrigger class="w-full min-w-0"
                                         ><SelectValue
                                     /></SelectTrigger>
                                     <SelectContent>
@@ -282,7 +380,28 @@ const scoreLabel: Record<string, string> = {
                     {{ t('The passages will appear here.') }}
                 </p>
                 <div
-                    v-else
+                    v-if="results.length && can('rag.playground.use')"
+                    class="flex flex-wrap items-center justify-between gap-2"
+                >
+                    <p class="text-xs text-muted-foreground">
+                        {{
+                            t(
+                                'Mark each passage as relevant or not: the judgements are kept with the trace and help to build evaluation sets.',
+                            )
+                        }}
+                    </p>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        data-test="lab-save-question"
+                        @click="openSave"
+                    >
+                        <ListPlus class="size-4" />
+                        {{ t('Save as evaluation question') }}
+                    </Button>
+                </div>
+                <div
+                    v-if="results.length"
                     class="grid gap-4"
                     :class="results.length > 1 ? 'lg:grid-cols-3' : ''"
                 >
@@ -354,6 +473,43 @@ const scoreLabel: Record<string, string> = {
                                     <span v-else class="font-medium">{{
                                         hit.title
                                     }}</span>
+                                    <span
+                                        v-if="hit.hit_id"
+                                        class="ml-auto flex items-center gap-0.5"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            :class="
+                                                judgements[hit.hit_id] === 1 &&
+                                                'text-emerald-600 dark:text-emerald-400'
+                                            "
+                                            :aria-pressed="
+                                                judgements[hit.hit_id] === 1
+                                            "
+                                            :aria-label="t('Relevant')"
+                                            :data-test="`judge-up-${hit.rank}`"
+                                            @click="judge(hit.hit_id, 1)"
+                                        >
+                                            <ThumbsUp class="size-3.5" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            :class="
+                                                judgements[hit.hit_id] === -1 &&
+                                                'text-destructive'
+                                            "
+                                            :aria-pressed="
+                                                judgements[hit.hit_id] === -1
+                                            "
+                                            :aria-label="t('Not relevant')"
+                                            :data-test="`judge-down-${hit.rank}`"
+                                            @click="judge(hit.hit_id, -1)"
+                                        >
+                                            <ThumbsDown class="size-3.5" />
+                                        </button>
+                                    </span>
                                 </div>
                                 <div class="text-xs text-muted-foreground">
                                     <span v-if="hit.location"
@@ -458,5 +614,105 @@ const scoreLabel: Record<string, string> = {
                 </Card>
             </div>
         </div>
+
+        <Dialog v-model:open="saveOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{{
+                        t('Save as evaluation question')
+                    }}</DialogTitle>
+                    <DialogDescription>{{
+                        t(
+                            'The question and the documents that should be found are added to an evaluation set.',
+                        )
+                    }}</DialogDescription>
+                </DialogHeader>
+                <p
+                    v-if="!sets.length"
+                    class="rounded-md border border-dashed p-3 text-sm text-muted-foreground"
+                >
+                    {{ t('Create an evaluation set first.') }}
+                    <Link
+                        :href="evaluations.index()"
+                        class="font-medium text-foreground hover:underline"
+                        >{{ t('Evaluations') }}</Link
+                    >
+                </p>
+                <form
+                    v-else
+                    id="save-question"
+                    class="grid gap-4"
+                    @submit.prevent="saveQuestion"
+                >
+                    <div class="grid gap-2">
+                        <Label>{{ t('Evaluation set') }}</Label>
+                        <Select v-model="saveForm.set">
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="set in sets"
+                                    :key="set.id"
+                                    :value="String(set.id)"
+                                    >{{ set.name }}</SelectItem
+                                >
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="save-question-text">{{
+                            t('Question')
+                        }}</Label>
+                        <Textarea
+                            id="save-question-text"
+                            v-model="saveForm.question"
+                            rows="2"
+                            required
+                        />
+                        <InputError :message="saveForm.errors.question" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label>{{ t('Documents that should be found') }}</Label>
+                        <Label
+                            v-for="document in foundDocuments"
+                            :key="document.id"
+                            class="flex items-center gap-2 text-sm font-normal"
+                        >
+                            <Checkbox
+                                :model-value="
+                                    saveForm.expected_document_ids.includes(
+                                        document.id,
+                                    )
+                                "
+                                @update:model-value="
+                                    (checked) =>
+                                        toggleExpected(document.id, checked)
+                                "
+                            />
+                            {{ document.title }}
+                        </Label>
+                        <InputError
+                            :message="saveForm.errors.expected_document_ids"
+                        />
+                    </div>
+                </form>
+                <DialogFooter>
+                    <Button variant="outline" @click="saveOpen = false">{{
+                        t('Cancel')
+                    }}</Button>
+                    <Button
+                        v-if="sets.length"
+                        type="submit"
+                        form="save-question"
+                        :disabled="
+                            saveForm.processing ||
+                            !saveForm.set ||
+                            !saveForm.expected_document_ids.length
+                        "
+                        data-test="lab-save-question-submit"
+                        >{{ t('Save') }}</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

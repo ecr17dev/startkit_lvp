@@ -68,6 +68,7 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
         Route::post('chat/stream', [ChatController::class, 'stream'])->middleware('throttle:ai')->name('chat.stream');
         Route::post('transcriptions', TranscriptionController::class)->middleware('throttle:ai')->name('transcriptions.store');
         Route::patch('chat/{conversation}', [ChatController::class, 'update'])->name('chat.update');
+        Route::post('chat/messages/{message}/feedback', [ChatController::class, 'feedback'])->middleware('throttle:60,1')->name('chat.feedback');
         Route::delete('chat/{conversation}', [ChatController::class, 'destroy'])->name('chat.destroy');
     });
 });

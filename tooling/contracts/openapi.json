@@ -1567,6 +1567,12 @@
                                                         },
                                                         "invalid": {
                                                             "type": "integer"
+                                                        },
+                                                        "message_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "feedback": {
+                                                            "type": "null"
                                                         }
                                                     },
                                                     "required": [
@@ -1575,7 +1581,9 @@
                                                         "outcome",
                                                         "hits",
                                                         "citations",
-                                                        "invalid"
+                                                        "invalid",
+                                                        "message_id",
+                                                        "feedback"
                                                     ]
                                                 },
                                                 "proposals": {
@@ -1839,6 +1847,12 @@
                                                         },
                                                         "invalid": {
                                                             "type": "integer"
+                                                        },
+                                                        "message_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "feedback": {
+                                                            "type": "null"
                                                         }
                                                     },
                                                     "required": [
@@ -1847,7 +1861,9 @@
                                                         "outcome",
                                                         "hits",
                                                         "citations",
-                                                        "invalid"
+                                                        "invalid",
+                                                        "message_id",
+                                                        "feedback"
                                                     ]
                                                 },
                                                 "proposals": {
@@ -12083,6 +12099,520 @@
                 }
             }
         },
+        "/v1/rag/analytics": {
+            "get": {
+                "operationId": "v1.rag.analytics",
+                "summary": "Knowledge analytics derived from real events: documents by status,\ningestion, queue and stage durations, errors, embedding and query\ncosts, retrieval latencies, outcomes, citations, feedback, freshness\nand the latest evaluations. Requires `rag.analytics.read`",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "parameters": [
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "description": "Window in days: 7, 30 or 90.",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "enum": [
+                                "7",
+                                "30",
+                                "90",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "collection_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "window": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "from": {
+                                                            "type": "string"
+                                                        },
+                                                        "to": {
+                                                            "type": "string"
+                                                        },
+                                                        "days": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "from",
+                                                        "to",
+                                                        "days"
+                                                    ]
+                                                },
+                                                "totals": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "collections": {
+                                                            "type": "integer"
+                                                        },
+                                                        "sources": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        },
+                                                        "documents": {
+                                                            "type": "integer",
+                                                            "description": "Total, processed (finished, whatever the result) and eligible (searchable)...",
+                                                            "minimum": 0
+                                                        },
+                                                        "processed": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        },
+                                                        "indexed": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        },
+                                                        "chunks": {
+                                                            "type": "integer"
+                                                        },
+                                                        "bytes": {
+                                                            "type": "integer"
+                                                        },
+                                                        "queries": {
+                                                            "type": "integer"
+                                                        },
+                                                        "avg_latency_ms": {
+                                                            "type": "integer"
+                                                        },
+                                                        "p95_latency_ms": {
+                                                            "type": "integer"
+                                                        },
+                                                        "no_result_rate": {
+                                                            "type": "number"
+                                                        },
+                                                        "abstention_rate": {
+                                                            "type": "number"
+                                                        },
+                                                        "embedding_cost": {
+                                                            "type": "string"
+                                                        },
+                                                        "query_cost": {
+                                                            "type": "string"
+                                                        },
+                                                        "unknown_cost_calls": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "collections",
+                                                        "sources",
+                                                        "documents",
+                                                        "processed",
+                                                        "indexed",
+                                                        "chunks",
+                                                        "bytes",
+                                                        "queries",
+                                                        "avg_latency_ms",
+                                                        "p95_latency_ms",
+                                                        "no_result_rate",
+                                                        "abstention_rate",
+                                                        "embedding_cost",
+                                                        "query_cost",
+                                                        "unknown_cost_calls"
+                                                    ]
+                                                },
+                                                "documents_by_status": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "ingestion_daily": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "collections": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "queue": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "by_status": {
+                                                            "type": "object",
+                                                            "additionalProperties": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "open": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        },
+                                                        "stages": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "by_status",
+                                                        "open",
+                                                        "stages"
+                                                    ]
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "by_type": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "by_job": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "by_provider": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "by_type",
+                                                        "by_job",
+                                                        "by_provider"
+                                                    ]
+                                                },
+                                                "costs_daily": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "queries_daily": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "outcomes": {
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "unanswered": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "agents": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "freshness": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "evaluations": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "window",
+                                                "totals",
+                                                "documents_by_status",
+                                                "ingestion_daily",
+                                                "collections",
+                                                "queue",
+                                                "errors",
+                                                "costs_daily",
+                                                "queries_daily",
+                                                "outcomes",
+                                                "unanswered",
+                                                "agents",
+                                                "freshness",
+                                                "evaluations"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/evaluation-sets": {
+            "get": {
+                "operationId": "v1.rag.evaluation-sets.index",
+                "summary": "Evaluation sets with their latest run",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "collection_ids": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "latest": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "settings": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "method": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "top_k": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "min_score": {
+                                                                        "type": [
+                                                                            "number",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "max_context_tokens": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "metrics": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "additionalProperties": {}
+                                                            },
+                                                            "error": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string"
+                                                            },
+                                                            "finished_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "label",
+                                                            "settings",
+                                                            "status",
+                                                            "metrics",
+                                                            "error",
+                                                            "created_at",
+                                                            "finished_at"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "collection_ids",
+                                                    "items",
+                                                    "latest"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/evaluations/{run}": {
+            "get": {
+                "operationId": "v1.rag.evaluations.show",
+                "summary": "An evaluation run with its metrics and per question results",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "parameters": [
+                    {
+                        "name": "run",
+                        "in": "path",
+                        "required": true,
+                        "description": "The run ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "results": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "item_id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "question": {
+                                                                "type": "string"
+                                                            },
+                                                            "expected_document_ids": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "retrieved_document_ids": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "first_relevant_rank": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "recall": {
+                                                                "type": "number"
+                                                            },
+                                                            "reciprocal_rank": {
+                                                                "type": "number"
+                                                            },
+                                                            "latency_ms": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "item_id",
+                                                            "question",
+                                                            "expected_document_ids",
+                                                            "retrieved_document_ids",
+                                                            "first_relevant_rank",
+                                                            "recall",
+                                                            "reciprocal_rank",
+                                                            "latency_ms"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "results"
+                                            ],
+                                            "additionalProperties": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/rag/collections/{collection}/sources": {
             "post": {
                 "operationId": "v1.rag.sources.store",
@@ -13542,6 +14072,130 @@
                                                 "started_at",
                                                 "finished_at",
                                                 "created_at"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/rag/evaluation-sets/{set}/evaluate": {
+            "post": {
+                "operationId": "v1.rag.evaluate",
+                "summary": "Evaluate a set with retrieval settings (method, top_k, min_score,\nmax_context_tokens). Responds 202 with the run id; metrics: recall@k,\nMRR, hit rate, no result rate, latency and cost",
+                "tags": [
+                    "Knowledge (RAG)"
+                ],
+                "parameters": [
+                    {
+                        "name": "set",
+                        "in": "path",
+                        "required": true,
+                        "description": "The set ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "label": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "settings": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "method": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "top_k": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "min_score": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "max_context_tokens": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "metrics": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "additionalProperties": {}
+                                                },
+                                                "error": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": "string"
+                                                },
+                                                "finished_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "label",
+                                                "settings",
+                                                "status",
+                                                "metrics",
+                                                "error",
+                                                "created_at",
+                                                "finished_at"
                                             ]
                                         }
                                     },

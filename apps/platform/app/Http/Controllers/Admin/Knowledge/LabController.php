@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Knowledge;
 
+use App\Actions\Knowledge\RateKnowledge;
 use App\Actions\Knowledge\SearchKnowledge;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,8 @@ use Starter\Knowledge\Enums\SearchMethod;
 use Starter\Knowledge\Exceptions\RagUnavailableException;
 use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\Collection;
+use Starter\Knowledge\Models\EvaluationSet;
+use Starter\Knowledge\Models\RetrievalHit;
 use Starter\Knowledge\Models\RetrievalRun;
 
 /**
@@ -48,6 +51,16 @@ class LabController extends Controller
         ]);
     }
 
+    /**
+     * Relevance judgement of a retrieved passage (human evaluation).
+     */
+    public function judge(Request $request, RetrievalHit $hit, RateKnowledge $action): RedirectResponse
+    {
+        $action->hit($this->actor($request), $hit, $request->all());
+
+        return back();
+    }
+
     public function search(Request $request, SearchKnowledge $action): RedirectResponse
     {
         $user = $this->actor($request);
@@ -71,7 +84,14 @@ class LabController extends Controller
 
         Inertia::flash('search', [
             'query' => (string) $request->input('query'),
-            'results' => array_map(fn ($result) => $result->toArray(), $results),
+            'results' => array_map(function ($result) {
+                $ids = $result->run?->hits()->pluck('id', 'rank') ?? collect();
+                $data = $result->toArray();
+                $data['hits'] = array_map(fn (array $hit) => [...$hit, 'hit_id' => $ids[$hit['rank']] ?? null], $data['hits']);
+
+                return $data;
+            }, $results),
+            'sets' => EvaluationSet::query()->orderBy('name')->get(['id', 'name']),
         ]);
 
         return back();

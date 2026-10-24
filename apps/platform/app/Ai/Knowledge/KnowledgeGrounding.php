@@ -191,6 +191,8 @@ class KnowledgeGrounding
             'hits' => count($grounding->passages),
             'citations' => $citations,
             'invalid' => $invalid,
+            'message_id' => $messageId,
+            'feedback' => null,
         ];
     }
 
@@ -198,7 +200,7 @@ class KnowledgeGrounding
      * Citations stored for a conversation message (reload).
      *
      * @param  list<string>  $messageIds
-     * @return array<string, array{mode: string|null, outcome: string|null, citations: list<array<string, mixed>>, invalid: int}>
+     * @return array<string, array{mode: string|null, outcome: string|null, citations: list<array<string, mixed>>, invalid: int, message_id: string, feedback: int|null}>
      */
     public static function forMessages(array $messageIds): array
     {
@@ -231,7 +233,7 @@ class KnowledgeGrounding
             }
 
             $last = $runs->last();
-            $result[(string) $messageId] = ['mode' => null, 'outcome' => $last->outcome, 'citations' => $citations, 'invalid' => (int) $last->invalid_citations];
+            $result[(string) $messageId] = ['mode' => null, 'outcome' => $last->outcome, 'citations' => $citations, 'invalid' => (int) $last->invalid_citations, 'message_id' => (string) $messageId, 'feedback' => $last->feedback];
         }
 
         return $result;

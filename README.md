@@ -55,7 +55,7 @@ implementado y verificado de lo pendiente.
 | 2. Identidad: OTP, registro/invitaciones, roles, permisos, auditoría, sesiones | Implementada |
 | 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Implementada (recomendador y laboratorio pasan a la etapa 4) |
 | 4. Agentes versionados, chat flotante con herramientas, multimedia, recomendador y laboratorio | Implementada (sin búsqueda web de catálogo ni voz de salida, fuera de alcance) |
-| 5–6. RAG interno y operación | Etapa 5 implementada (activación, fuentes, pipeline durable, recuperación híbrida con ACL, citas validadas, laboratorio y API); operación (etapa 6) en curso |
+| 5–6. RAG interno y operación | Implementadas: activación, fuentes, pipeline durable, recuperación híbrida con ACL, citas validadas, laboratorio con juicios, API, panel de conocimiento, conjuntos de evaluación (recall@k, MRR), feedback de respuestas y retención de versiones |
 | 7. PostgreSQL externo, retrieval API y PostgREST | Pendiente |
 | 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Pendiente (OpenAPI y cliente tipado ya generados) |
 

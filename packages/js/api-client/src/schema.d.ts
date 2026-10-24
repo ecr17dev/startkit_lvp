@@ -991,6 +991,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/rag/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Knowledge analytics derived from real events: documents by status,
+         *     ingestion, queue and stage durations, errors, embedding and query
+         *     costs, retrieval latencies, outcomes, citations, feedback, freshness
+         *     and the latest evaluations. Requires `rag.analytics.read`
+         */
+        get: operations["v1.rag.analytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/evaluation-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluation sets with their latest run */
+        get: operations["v1.rag.evaluation-sets.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/evaluations/{run}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An evaluation run with its metrics and per question results */
+        get: operations["v1.rag.evaluations.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/rag/collections/{collection}/sources": {
         parameters: {
             query?: never;
@@ -1075,6 +1131,27 @@ export interface paths {
         put?: never;
         /** Resume a paused ingestion with a confirmed maximum cost (`max_cost`, USD) */
         post: operations["v1.rag.jobs.resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/evaluation-sets/{set}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate a set with retrieval settings (method, top_k, min_score,
+         *     max_context_tokens). Responds 202 with the run id; metrics: recall@k,
+         *     MRR, hit rate, no result rate, latency and cost
+         */
+        post: operations["v1.rag.evaluate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2084,6 +2161,8 @@ export interface operations {
                                 score: number;
                             }[];
                             invalid: number;
+                            message_id: string;
+                            feedback: null;
                         } | null;
                         /** @description Changes waiting for your confirmation (see /admin/action-proposals). */
                         proposals: {
@@ -2148,6 +2227,8 @@ export interface operations {
                                 score: number;
                             }[];
                             invalid: number;
+                            message_id: string;
+                            feedback: null;
                         };
                         proposals: string[];
                     };
@@ -5256,6 +5337,167 @@ export interface operations {
             };
         };
     };
+    "v1.rag.analytics": {
+        parameters: {
+            query?: {
+                /** @description Window in days: 7, 30 or 90. */
+                days?: "7" | "30" | "90" | null;
+                collection_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            window: {
+                                from: string;
+                                to: string;
+                                days: number;
+                            };
+                            totals: {
+                                collections: number;
+                                sources: number;
+                                /** @description Total, processed (finished, whatever the result) and eligible (searchable)... */
+                                documents: number;
+                                processed: number;
+                                indexed: number;
+                                chunks: number;
+                                bytes: number;
+                                queries: number;
+                                avg_latency_ms: number;
+                                p95_latency_ms: number;
+                                no_result_rate: number;
+                                abstention_rate: number;
+                                embedding_cost: string;
+                                query_cost: string;
+                                unknown_cost_calls: number;
+                            };
+                            documents_by_status: unknown[];
+                            ingestion_daily: unknown[];
+                            collections: unknown[];
+                            queue: {
+                                by_status: {
+                                    [key: string]: number;
+                                };
+                                open: number;
+                                stages: unknown[];
+                            };
+                            errors: {
+                                by_type: unknown[];
+                                by_job: unknown[];
+                                by_provider: unknown[];
+                            };
+                            costs_daily: unknown[];
+                            queries_daily: unknown[];
+                            outcomes: {
+                                [key: string]: number;
+                            };
+                            unanswered: unknown[];
+                            agents: unknown[];
+                            freshness: unknown[];
+                            evaluations: unknown[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.rag.evaluation-sets.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            collection_ids: number[];
+                            items: string;
+                            latest: {
+                                id: string;
+                                label: string | null;
+                                settings: {
+                                    method?: string | null;
+                                    top_k?: number | null;
+                                    min_score?: number | null;
+                                    max_context_tokens?: number | null;
+                                };
+                                status: string;
+                                metrics: {
+                                    [key: string]: unknown;
+                                } | null;
+                                error: string | null;
+                                created_at: string;
+                                finished_at: string | null;
+                            } | null;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.rag.evaluations.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The run ID */
+                run: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            results: {
+                                item_id: number;
+                                question: string;
+                                expected_document_ids: number[];
+                                retrieved_document_ids: number[];
+                                first_relevant_rank: number | null;
+                                recall: number;
+                                reciprocal_rank: number;
+                                latency_ms: number;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
     "v1.rag.sources.store": {
         parameters: {
             query?: never;
@@ -5625,6 +5867,48 @@ export interface operations {
                             finished_at: string | null;
                             created_at: string;
                         };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.rag.evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The set ID */
+                set: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            label: string | null;
+                            settings: {
+                                method?: string | null;
+                                top_k?: number | null;
+                                min_score?: number | null;
+                                max_context_tokens?: number | null;
+                            };
+                            status: string;
+                            metrics: {
+                                [key: string]: unknown;
+                            } | null;
+                            error: string | null;
+                            created_at: string;
+                            finished_at: string | null;
+                        } | null;
                     };
                 };
             };

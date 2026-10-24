@@ -289,6 +289,8 @@ export type RetrievalHitRow = {
     text_score?: number;
     token_count: number;
     content?: string;
+    /** Stored trace hit (lab), for relevance judgements. */
+    hit_id?: number | null;
 };
 
 export type RetrievalResultData = {
@@ -321,4 +323,148 @@ export type RetrievalRunSummary = {
     latency_ms: number;
     cost: string | null;
     created_at: string | null;
+};
+
+export type EvaluationMetrics = {
+    questions: number;
+    recall_at_k: number;
+    mrr: number;
+    hit_rate: number;
+    no_result_rate: number;
+    avg_latency_ms: number;
+    p95_latency_ms: number;
+    cost: string | null;
+};
+
+export type EvaluationRunSummary = {
+    id: string;
+    label: string | null;
+    settings: {
+        method?: 'vector' | 'text' | 'hybrid';
+        top_k?: number;
+        min_score?: number;
+        max_context_tokens?: number;
+    };
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    metrics: EvaluationMetrics | null;
+    error: string | null;
+    created_at: string;
+    finished_at: string | null;
+};
+
+export type EvaluationSetSummary = {
+    id: number;
+    name: string;
+    description: string | null;
+    items: number;
+    collections: string[];
+    latest: EvaluationRunSummary | null;
+};
+
+export type DocumentRef = { id: number; title: string };
+
+export type EvaluationItemRow = {
+    id: number;
+    question: string;
+    expected_answer: string | null;
+    expected: DocumentRef[];
+};
+
+export type EvaluationItemResult = {
+    retrieved: DocumentRef[];
+    first_relevant_rank: number | null;
+    recall: number;
+    reciprocal_rank: number;
+    latency_ms: number;
+};
+
+export type KnowledgeReport = {
+    window: { from: string; to: string; days: number };
+    totals: {
+        collections: number;
+        sources: number;
+        documents: number;
+        processed: number;
+        indexed: number;
+        chunks: number;
+        bytes: number;
+        queries: number;
+        avg_latency_ms: number;
+        p95_latency_ms: number;
+        no_result_rate: number;
+        abstention_rate: number;
+        embedding_cost: string;
+        query_cost: string;
+        unknown_cost_calls: number;
+    };
+    documents_by_status: {
+        source_id: number;
+        source: string;
+        collection: string;
+        counts: Record<string, number>;
+        total: number;
+    }[];
+    ingestion_daily: { day: string; indexed: number; versions: number }[];
+    collections: {
+        id: number;
+        name: string;
+        documents: number;
+        chunks: number;
+        tokens: number;
+        bytes: number;
+    }[];
+    queue: {
+        by_status: Record<string, number>;
+        open: number;
+        stages: { stage: string; avg_ms: number; jobs: number }[];
+    };
+    errors: {
+        by_type: { label: string; total: number }[];
+        by_job: { label: string; total: number }[];
+        by_provider: { label: string; total: number }[];
+    };
+    costs_daily: {
+        day: string;
+        embedding: number;
+        rag: number;
+        unknown: number;
+    }[];
+    queries_daily: {
+        day: string;
+        queries: number;
+        avg_latency_ms: number;
+        p95_latency_ms: number;
+        empty: number;
+        abstained: number;
+    }[];
+    outcomes: Record<string, number>;
+    unanswered: { query: string; total: number; last_at: string }[];
+    agents: {
+        agent: string;
+        answers: number;
+        avg_citations: number;
+        invalid: number;
+        unsupported: number;
+        abstained: number;
+        positive: number;
+        negative: number;
+    }[];
+    freshness: {
+        source: string;
+        collection: string;
+        type: string;
+        schedule: string | null;
+        last_sync_at: string | null;
+        age_hours: number | null;
+        changed: number;
+        deleted: number;
+        unchanged: number;
+    }[];
+    evaluations: {
+        set: string;
+        set_id: number;
+        label: string | null;
+        metrics: EvaluationMetrics | null;
+        finished_at: string | null;
+    }[];
 };

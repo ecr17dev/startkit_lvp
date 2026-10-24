@@ -72,6 +72,10 @@ export type StreamKnowledge = {
     hits?: number;
     citations: KnowledgeCitation[];
     invalid: number;
+    /** Assistant message the answer was stored as (for feedback). */
+    message_id?: string | null;
+    /** Feedback already given: 1 useful, -1 not useful. */
+    feedback?: number | null;
 };
 
 export type ToolActivity = {

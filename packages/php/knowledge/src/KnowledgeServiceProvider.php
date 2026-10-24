@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Starter\Knowledge\Console\DiagnoseCommand;
 use Starter\Knowledge\Console\MaintainCommand;
+use Starter\Knowledge\Console\RetentionCommand;
 use Starter\Knowledge\Embeddings\Embedder;
+use Starter\Knowledge\Evaluation\Evaluator;
 use Starter\Knowledge\Ingestion\Chunker;
 use Starter\Knowledge\Ingestion\Fetch\HostResolver;
 use Starter\Knowledge\Ingestion\Fetch\SafeFetcher;
@@ -47,7 +49,7 @@ class KnowledgeServiceProvider extends ServiceProvider
         foreach ([Knowledge::class, Provisioner::class, VectorStore::class, Embedder::class, SafeFetcher::class, HostResolver::class,
             Normalizer::class, Chunker::class, SourceDrivers::class, DocumentIngestor::class, IndexVersions::class, IngestionBudget::class,
             Estimator::class, RagJobs::class, SourceSync::class, DocumentIndexer::class, Purger::class, Reindexer::class,
-            Completion::class, Deletions::class, JobRunner::class, Retriever::class] as $service) {
+            Completion::class, Deletions::class, JobRunner::class, Retriever::class, Evaluator::class] as $service) {
             $this->app->scoped($service);
         }
 
@@ -73,11 +75,12 @@ class KnowledgeServiceProvider extends ServiceProvider
         ]);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([MaintainCommand::class, DiagnoseCommand::class]);
+            $this->commands([MaintainCommand::class, RetentionCommand::class, DiagnoseCommand::class]);
         }
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('starter:rag-maintain')->everyMinute()->name('starter:rag-maintain')->onOneServer()->withoutOverlapping();
+            $schedule->command('starter:rag-retention')->hourlyAt(17)->name('starter:rag-retention')->onOneServer()->withoutOverlapping();
             $schedule->command('model:prune', ['--model' => [RetrievalRun::class]])
                 ->dailyAt('04:23')
                 ->name('starter:prune-retrieval-runs')

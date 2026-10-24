@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Actions\Knowledge\RateKnowledge;
 use App\Ai\AiService;
 use App\Ai\ChatAttachments;
 use App\Ai\ChatPresenter;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -253,6 +255,17 @@ class ChatController extends Controller
     protected function proposalsFor(User $user, array $toolCallIds): Collection
     {
         return ActionProposal::query()->where('user_id', $user->id)->whereIn('tool_call_id', $toolCallIds)->orderBy('created_at')->get();
+    }
+
+    /**
+     * Feedback on a grounded answer (useful or not), for the knowledge
+     * quality indicators.
+     */
+    public function feedback(Request $request, string $message, RateKnowledge $action): HttpResponse
+    {
+        $action->answer($this->actor($request), $message, $request->all());
+
+        return response()->noContent();
     }
 
     /**

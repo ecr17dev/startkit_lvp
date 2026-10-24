@@ -11,7 +11,9 @@ use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\Knowledge\CollectionController as KnowledgeCollectionController;
+use App\Http\Controllers\Admin\Knowledge\DashboardController as KnowledgeDashboardController;
 use App\Http\Controllers\Admin\Knowledge\DocumentController as KnowledgeDocumentController;
+use App\Http\Controllers\Admin\Knowledge\EvaluationController as KnowledgeEvaluationController;
 use App\Http\Controllers\Admin\Knowledge\JobController as KnowledgeJobController;
 use App\Http\Controllers\Admin\Knowledge\KnowledgeController;
 use App\Http\Controllers\Admin\Knowledge\LabController as KnowledgeLabController;
@@ -161,5 +163,17 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
 
         Route::get('lab', [KnowledgeLabController::class, 'index'])->name('lab');
         Route::post('lab', [KnowledgeLabController::class, 'search'])->middleware('throttle:30,1')->name('lab.search');
+        Route::post('lab/hits/{hit}/judge', [KnowledgeLabController::class, 'judge'])->name('lab.judge');
+
+        Route::get('dashboard', KnowledgeDashboardController::class)->name('dashboard');
+
+        Route::get('evaluations', [KnowledgeEvaluationController::class, 'index'])->name('evaluations.index');
+        Route::post('evaluations', [KnowledgeEvaluationController::class, 'store'])->name('evaluations.store');
+        Route::get('evaluations/{set}', [KnowledgeEvaluationController::class, 'show'])->name('evaluations.show');
+        Route::put('evaluations/{set}', [KnowledgeEvaluationController::class, 'update'])->name('evaluations.update');
+        Route::delete('evaluations/{set}', [KnowledgeEvaluationController::class, 'destroy'])->name('evaluations.destroy');
+        Route::post('evaluations/{set}/items', [KnowledgeEvaluationController::class, 'storeItem'])->name('evaluations.items.store');
+        Route::delete('evaluations/{set}/items/{item}', [KnowledgeEvaluationController::class, 'destroyItem'])->name('evaluations.items.destroy');
+        Route::post('evaluations/{set}/runs', [KnowledgeEvaluationController::class, 'run'])->middleware('throttle:10,1')->name('evaluations.run');
     });
 });

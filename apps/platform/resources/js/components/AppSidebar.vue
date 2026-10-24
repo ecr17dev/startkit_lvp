@@ -5,6 +5,7 @@ import {
     Bot,
     Brain,
     ChartColumn,
+    ClipboardCheck,
     FlaskConical,
     History,
     Library,
@@ -48,8 +49,10 @@ import { index as agents } from '@/routes/admin/ai/agents';
 import { index as labIndex } from '@/routes/admin/ai/lab';
 import {
     index as knowledgeIndex,
+    dashboard as knowledgeDashboard,
     lab as knowledgeLab,
 } from '@/routes/admin/knowledge';
+import { index as knowledgeEvaluations } from '@/routes/admin/knowledge/evaluations';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
@@ -197,7 +200,28 @@ const sections = computed<NavSection[]>(() => {
                               ) &&
                               !currentUrl.value.startsWith(
                                   '/admin/knowledge/dashboard',
+                              ) &&
+                              !currentUrl.value.startsWith(
+                                  '/admin/knowledge/evaluations',
                               ),
+                      },
+                      {
+                          title: t('Dashboard'),
+                          href: knowledgeDashboard(),
+                          icon: ChartColumn,
+                          can: 'rag.analytics.read',
+                      },
+                      {
+                          title: t('Retrieval lab'),
+                          href: knowledgeLab(),
+                          icon: FlaskConical,
+                          can: 'rag.playground.use',
+                      },
+                      {
+                          title: t('Evaluations'),
+                          href: knowledgeEvaluations(),
+                          icon: ClipboardCheck,
+                          can: 'rag.playground.use',
                       },
                   ])
                 : [],

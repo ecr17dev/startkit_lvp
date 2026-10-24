@@ -8,6 +8,10 @@ import { formatDate, t } from '@/lib/i18n';
 const props = defineProps<{
     points: { date: string; value: number }[];
     format: (value: number) => string;
+    /** Accessible name of the chart (the cumulative cost by default). */
+    ariaLabel?: string;
+    /** Text under the middle of the axis (the top value by default). */
+    summary?: (max: number) => string;
 }>();
 
 const width = 600;
@@ -61,7 +65,7 @@ const label = (date: string) =>
                 preserveAspectRatio="none"
                 class="h-40 w-full overflow-visible"
                 role="img"
-                :aria-label="t('Cumulative cost')"
+                :aria-label="ariaLabel ?? t('Cumulative cost')"
                 @pointermove="onMove"
                 @pointerleave="active = null"
             >
@@ -117,7 +121,7 @@ const label = (date: string) =>
             class="flex justify-between text-[11px] text-muted-foreground"
         >
             <span>{{ label(points[0].date) }}</span>
-            <span>{{ format(max) }}</span>
+            <span>{{ summary ? summary(max) : format(max) }}</span>
             <span>{{ label(points[points.length - 1].date) }}</span>
         </div>
     </figure>

@@ -2,6 +2,7 @@
 
 namespace Starter\Knowledge\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -20,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $cited
  * @property string|null $title
  * @property array<string, mixed>|null $location
+ * @property int|null $judgement
+ * @property int|null $judged_by
+ * @property CarbonInterface|null $judged_at
  */
 class RetrievalHit extends Model
 {
@@ -45,6 +49,8 @@ class RetrievalHit extends Model
             'token_count' => 'integer',
             'cited' => 'boolean',
             'location' => 'array',
+            'judgement' => 'integer',
+            'judged_at' => 'datetime',
         ];
     }
 
