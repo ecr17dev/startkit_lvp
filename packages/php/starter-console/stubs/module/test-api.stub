@@ -1,0 +1,23 @@
+
+    public function test_the_api_requires_permissions_and_token_abilities(): void
+    {
+        ${{ model }} = {{ Model }}::factory()->create();
+        $editor = $this->userWithRole('editor');
+
+        Sanctum::actingAs($editor, ['read']);
+        $this->getJson(route('api.v1.{{ slug }}.index'))->assertOk()->assertJsonPath('data.0.id', ${{ model }}->id);
+        $this->getJson(route('api.v1.{{ slug }}.show', ${{ model }}))->assertOk()->assertJsonPath('data.id', ${{ model }}->id);
+        $this->postJson(route('api.v1.{{ slug }}.store'), $this->payload())->assertForbidden();
+
+        Sanctum::actingAs($editor, ['read', 'write']);
+        $id = $this->postJson(route('api.v1.{{ slug }}.store'), $this->payload())->assertCreated()->json('data.id');
+        $this->patchJson(route('api.v1.{{ slug }}.update', $id), ['{{ titleField }}' => {{ titleSample }}])
+            ->assertOk()
+            ->assertJsonPath('data.{{ titleField }}', {{ titleSample }});
+        $this->postJson(route('api.v1.{{ slug }}.store'), ['{{ titleField }}' => ''])->assertUnprocessable();
+        $this->deleteJson(route('api.v1.{{ slug }}.destroy', $id))->assertOk();
+        $this->assertDatabaseMissing('{{ table }}', ['id' => $id]);
+
+        Sanctum::actingAs($this->userWithRole('reader'), ['read', 'write']);
+        $this->deleteJson(route('api.v1.{{ slug }}.destroy', ${{ model }}))->assertForbidden();
+    }

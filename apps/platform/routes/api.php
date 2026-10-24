@@ -153,6 +153,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('lab-runs/{run}/cancel', [AiLabController::class, 'cancel'])->name('lab-runs.cancel');
             });
         });
+
+        // Modules generated with `php artisan starter:make-module` (routes/modules/*.api.php)...
+        foreach (glob(__DIR__.'/modules/*.api.php') ?: [] as $routes) {
+            require $routes;
+        }
     });
 });
 

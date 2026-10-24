@@ -1,0 +1,38 @@
+# Módulo {{ LabelsDoc }}
+
+Generado con `php artisan starter:make-module` (especificación en
+`{{ specPath }}`). Sigue el patrón del starter: las **Actions** autorizan
+(Policies), validan (sus `rules()` las reutiliza el Form Request) y auditan; el panel,
+la API y las herramientas IA llaman a las mismas Actions.
+
+## Campos
+
+| Campo | Tipo | Requerido | Notas |
+| --- | --- | --- | --- |
+{{ fieldRows }}
+
+Además: `created_by` (usuario que lo creó, `nullOnDelete`) y `created_at`/`updated_at` (UTC).
+
+## Permisos
+
+| Permiso | Uso | Roles por defecto |
+| --- | --- | --- |
+| `{{ permission }}.read` | ver la lista y el detalle | owner, admin, editor, reader |
+| `{{ permission }}.create` | crear | owner, admin, editor |
+| `{{ permission }}.update` | editar | owner, admin, editor |
+| `{{ permission }}.delete` | eliminar | owner, admin, editor |
+
+Se registran en `App\Providers\Modules\{{ Models }}ServiceProvider`; aplica el catálogo con
+`php artisan starter:permissions`.
+
+## Archivos
+
+{{ fileList }}
+
+## Rutas
+
+- Panel: `/{{ slug }}` (`{{ slug }}.*`), cargadas por `routes/web.php` desde `routes/modules/{{ slug }}.web.php`.
+{{ apiDocs }}{{ aiDocs }}
+## Auditoría
+
+`{{ permission }}.created`, `{{ permission }}.updated` (campos cambiados) y `{{ permission }}.deleted`.

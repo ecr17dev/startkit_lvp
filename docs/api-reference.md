@@ -19,6 +19,7 @@ El contrato completo (para clientes y validación) está en `tooling/contracts/o
 - [AI agents](#ai-agents) (8)
 - [AI catalog](#ai-catalog) (5)
 - [AI usage and budgets](#ai-usage-and-budgets) (6)
+- [Projects](#projects) (5)
 - [Knowledge (RAG)](#knowledge-rag) (21)
 - [Retrieval API (contract v1)](#retrieval-api-contract-v1) (4)
 - [PostgREST](#postgrest) (1)
@@ -262,7 +263,7 @@ Cuerpo (JSON):
 | Campo | Tipo | Requerido | Descripción |
 | --- | --- | --- | --- |
 | `name` | string | sí |  |
-| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create`[] | no |  |
+| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
 
 Respuestas: `201` `RoleResource` · `401` Unauthenticated · `422` Validation error.
 
@@ -295,7 +296,7 @@ Cuerpo (JSON):
 | Campo | Tipo | Requerido | Descripción |
 | --- | --- | --- | --- |
 | `name` | string | sí |  |
-| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create`[] | no |  |
+| `permissions` | `users.read` \| `users.create` \| `users.invite` \| `users.update` \| `users.disable` \| `users.delete` \| `roles.read` \| `roles.manage` \| `permissions.read` \| `permissions.manage` \| `settings.read` \| `settings.update` \| `ai.chat` \| `ai.providers.manage` \| `ai.models.manage` \| `ai.agents.manage` \| `ai.usage.read` \| `ai.budgets.manage` \| `rag.collections.read` \| `rag.collections.manage` \| `rag.sources.manage` \| `rag.documents.read` \| `rag.documents.delete` \| `rag.jobs.manage` \| `rag.playground.use` \| `rag.analytics.read` \| `audit.read` \| `api.docs.read` \| `api.tokens.create` \| `projects.read` \| `projects.create` \| `projects.update` \| `projects.delete`[] | no |  |
 
 Respuestas: `200` `RoleResource` · `404` Not found · `401` Unauthenticated · `422` Validation error.
 
@@ -954,6 +955,110 @@ _Requiere `Authorization: Bearer <token>`._
 | `budget` | path | integer | sí | The budget ID |
 
 Respuestas: `200` · `403` An error · `404` Not found · `401` Unauthenticated.
+
+## Projects
+
+| Método | Ruta | Resumen |
+| --- | --- | --- |
+| `GET` | `/v1/projects` | List projects |
+| `POST` | `/v1/projects` | Create a project |
+| `GET` | `/v1/projects/{project}` | Get a project |
+| `PATCH` | `/v1/projects/{project}` | Update a project |
+| `DELETE` | `/v1/projects/{project}` | Delete a project |
+
+### GET /v1/projects
+
+**List projects**
+
+Requires the `projects.read` permission (token ability `read`).
+
+_Requiere `Authorization: Bearer <token>`._
+
+| Parámetro | En | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- | --- |
+| `search` | query | string \| null | no | Search by name, code. |
+| `status` | query | `planned` \| `active` \| `on_hold` \| `closed` \| null | no |  |
+| `per_page` | query | integer \| null | no |  |
+
+Respuestas: `200` Paginated set of `ProjectResource` · `403` Authorization error · `422` Validation error · `401` Unauthenticated.
+
+### POST /v1/projects
+
+**Create a project**
+
+Requires `projects.create` (token ability `write`). The change is audited.
+
+_Requiere `Authorization: Bearer <token>`._
+
+Cuerpo (JSON):
+
+| Campo | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- |
+| `name` | string | sí |  |
+| `code` | string | sí |  |
+| `description` | string \| null | no |  |
+| `status` | `planned` \| `active` \| `on_hold` \| `closed` | sí |  |
+| `starts_on` | string \| null (date-time) | no |  |
+| `due_on` | string \| null (date-time) | no |  |
+| `budget` | number \| null | no |  |
+| `is_billable` | boolean | no |  |
+
+Respuestas: `201` `ProjectResource` · `401` Unauthenticated · `422` Validation error.
+
+### GET /v1/projects/{project}
+
+**Get a project**
+
+Requires the `projects.read` permission.
+
+_Requiere `Authorization: Bearer <token>`._
+
+| Parámetro | En | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- | --- |
+| `project` | path | integer | sí | The project ID |
+
+Respuestas: `200` `ProjectResource` · `403` Authorization error · `404` Not found · `401` Unauthenticated.
+
+### PATCH /v1/projects/{project}
+
+**Update a project**
+
+Requires `projects.update`. Only the fields sent change.
+
+_Requiere `Authorization: Bearer <token>`._
+
+| Parámetro | En | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- | --- |
+| `project` | path | integer | sí | The project ID |
+
+Cuerpo (JSON):
+
+| Campo | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- |
+| `name` | string | sí |  |
+| `code` | string | sí |  |
+| `description` | string \| null | no |  |
+| `status` | `planned` \| `active` \| `on_hold` \| `closed` | sí |  |
+| `starts_on` | string \| null (date-time) | no |  |
+| `due_on` | string \| null (date-time) | no |  |
+| `budget` | number \| null | no |  |
+| `is_billable` | boolean | no |  |
+
+Respuestas: `200` `ProjectResource` · `404` Not found · `401` Unauthenticated · `422` Validation error.
+
+### DELETE /v1/projects/{project}
+
+**Delete a project**
+
+Requires `projects.delete`.
+
+_Requiere `Authorization: Bearer <token>`._
+
+| Parámetro | En | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- | --- |
+| `project` | path | integer | sí | The project ID |
+
+Respuestas: `200` · `404` Not found · `401` Unauthenticated.
 
 ## Knowledge (RAG)
 

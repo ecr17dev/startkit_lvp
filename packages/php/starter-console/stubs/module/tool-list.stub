@@ -1,0 +1,63 @@
+<?php
+
+namespace App\Ai\Tools;
+
+use App\Ai\Tools\Concerns\InteractsWithDirectory;
+use App\Models\{{ Model }};
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
+use Starter\Ai\Agents\OperatorTool;
+
+class {{ Models }}List extends OperatorTool
+{
+    use InteractsWithDirectory;
+
+    public function description(): string
+    {
+        return 'Search {{ labels }} by {{ searchLabel }}. Returns their ids and fields.';
+    }
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'search' => $schema->string()->max(100)->description('Text to search.'),
+            'limit' => $schema->integer()->min(1)->max(50)->description('Maximum results (default 20).'),
+        ];
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'search' => ['nullable', 'string', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ];
+    }
+
+    protected function execute(array $arguments): array
+    {
+        Gate::forUser($this->actor())->authorize('viewAny', {{ Model }}::class);
+
+        ${{ models }} = {{ Model }}::query()
+            ->when($arguments['search'] ?? null, fn ($query, string $search) => $query->where(
+                fn ($query) => $query{{ searchClauses }}
+            ))
+            ->latest('id')
+            ->limit((int) ($arguments['limit'] ?? 20))
+            ->get();
+
+        return ['{{ models }}' => ${{ models }}->map(fn ({{ Model }} ${{ model }}) => self::present(${{ model }}))->all()];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function present({{ Model }} ${{ model }}): array
+    {
+        return [
+            'id' => ${{ model }}->id,
+{{ present }}
+            'updated_at' => ${{ model }}->updated_at->toIso8601String(),
+            'url' => route('{{ slug }}.edit', ${{ model }}, false),
+        ];
+    }
+}

@@ -22,6 +22,7 @@ import {
 } from '@starter/ui/components/tabs';
 import { Textarea } from '@starter/ui/components/textarea';
 import { t } from '@/lib/i18n';
+import { permissionGroupLabel } from '@/lib/permissions';
 import type { AgentConfig, AgentOptions, AgentToolOption } from '@/types';
 
 export type AgentForm = { config: AgentConfig; notes: string };
@@ -798,7 +799,7 @@ const insertVariable = (name: string) => {
                 class="rounded-lg border"
             >
                 <p class="border-b bg-muted/50 px-4 py-2 text-sm font-semibold">
-                    {{ t(groupLabels[group] ?? group) }}
+                    {{ t(groupLabels[group] ?? permissionGroupLabel(group)) }}
                 </p>
                 <div class="grid gap-2 p-4 sm:grid-cols-2">
                     <Label

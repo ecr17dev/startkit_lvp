@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Actions\{{ Models }};
+
+use App\Models\{{ Model }};
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
+
+class Delete{{ Model }}
+{
+    public function handle(User $actor, {{ Model }} ${{ model }}): void
+    {
+        Gate::forUser($actor)->authorize('delete', ${{ model }});
+
+        $label = ${{ model }}->{{ titleField }};
+        ${{ model }}->delete();
+
+        audit('{{ permission }}.deleted', ${{ model }}, ['{{ titleField }}' => $label], $actor);
+    }
+}

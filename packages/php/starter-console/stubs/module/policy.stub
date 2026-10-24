@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\{{ Model }};
+use App\Models\User;
+
+/**
+ * Permissions of the {{ labels }} module ({{ permission }}.*), registered by
+ * App\Providers\Modules\{{ Models }}ServiceProvider.
+ */
+class {{ Model }}Policy
+{
+    public function viewAny(User $actor): bool
+    {
+        return $actor->can('{{ permission }}.read');
+    }
+
+    public function view(User $actor, {{ Model }} ${{ model }}): bool
+    {
+        return $actor->can('{{ permission }}.read');
+    }
+
+    public function create(User $actor): bool
+    {
+        return $actor->can('{{ permission }}.create');
+    }
+
+    public function update(User $actor, {{ Model }} ${{ model }}): bool
+    {
+        return $actor->can('{{ permission }}.update');
+    }
+
+    public function delete(User $actor, {{ Model }} ${{ model }}): bool
+    {
+        return $actor->can('{{ permission }}.delete');
+    }
+}

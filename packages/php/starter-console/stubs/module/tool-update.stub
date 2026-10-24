@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Ai\Tools;
+
+use App\Actions\{{ Models }}\Create{{ Model }};
+use App\Actions\{{ Models }}\Update{{ Model }};
+use App\Ai\Tools\Concerns\InteractsWithDirectory;
+use App\Models\{{ Model }};
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Starter\Ai\Agents\OperatorTool;
+use Starter\Ai\Agents\ProposalPreview;
+
+class {{ Models }}Update extends OperatorTool
+{
+    use InteractsWithDirectory;
+
+    public function description(): string
+    {
+        return 'Change fields of a {{ label }} found with {{ permission }}_list. Only the fields sent change.';
+    }
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'id' => $schema->integer()->description('Id of the {{ label }}.')->required(),
+{{ toolSchemaUpdate }}
+        ];
+    }
+
+    protected function rules(): array
+    {
+        return ['id' => ['required', 'integer'], ...array_map(fn (array $rules) => ['sometimes', ...$rules], Create{{ Model }}::rules())];
+    }
+
+    protected function preview(array $arguments): ProposalPreview
+    {
+        ${{ model }} = $this->find((int) $arguments['id']);
+        Gate::forUser($this->actor())->authorize('update', ${{ model }});
+        $changes = [];
+
+        foreach (array_diff_key($arguments, ['id' => true]) as $field => $value) {
+            $changes[] = ['field' => $field, 'before' => ${{ model }}->getAttribute($field), 'after' => $value];
+        }
+
+        return new ProposalPreview(
+            title: __('Update the {{ label }} :name', ['name' => (string) ${{ model }}->{{ titleField }}]),
+            resourceType: '{{ permission }}',
+            resourceId: (string) ${{ model }}->id,
+            resourceLabel: (string) ${{ model }}->{{ titleField }},
+            resourceVersion: sha1(${{ model }}->updated_at->toIso8601String()),
+            changes: $changes,
+            url: route('{{ slug }}.edit', ${{ model }}, false),
+        );
+    }
+
+    protected function execute(array $arguments): array
+    {
+        ${{ model }} = app(Update{{ Model }}::class)->handle($this->actor(), $this->find((int) $arguments['id']), array_diff_key($arguments, ['id' => true]));
+
+        return ['message' => '{{ Label }} updated.', '{{ model }}' => {{ Models }}List::present(${{ model }})];
+    }
+
+    protected function find(int $id): {{ Model }}
+    {
+        return {{ Model }}::query()->find($id) ?? throw ValidationException::withMessages(['id' => "{{ Label }} {$id} not found."]);
+    }
+}

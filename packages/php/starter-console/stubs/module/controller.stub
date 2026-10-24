@@ -1,0 +1,137 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Actions\{{ Models }}\Create{{ Model }};
+use App\Actions\{{ Models }}\Delete{{ Model }};
+use App\Actions\{{ Models }}\Update{{ Model }};
+use App\Http\Requests\{{ Model }}Request;
+use App\Http\Resources\{{ Model }}Resource;
+use App\Models\{{ Model }};
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+{{ ruleImport }}use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * {{ Labels }} panel (Inertia). Every change goes through the module
+ * Actions: Policies, validation and audit are the same as in the API and
+ * the AI tools.
+ */
+class {{ Model }}Controller extends Controller
+{
+    /**
+     * Display the {{ labels }}.
+     */
+    public function index(Request $request): Response
+    {
+        Gate::authorize('viewAny', {{ Model }}::class);
+
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+{{ filterRule }}        ]);
+
+        ${{ models }} = {{ Model }}::query()
+            ->with('creator:id,name')
+            ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(
+                fn ($query) => $query{{ searchClauses }}
+            ))
+{{ filterClause }}            ->latest('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return Inertia::render('{{ slug }}/Index', [
+            '{{ models }}' => {{ Model }}Resource::collection(${{ models }}),
+            'filters' => (object) $filters,
+            'options' => $this->options(),
+            'can' => [
+                'create' => $request->user()?->can('create', {{ Model }}::class) ?? false,
+                'update' => $request->user()?->can('{{ permission }}.update') ?? false,
+                'delete' => $request->user()?->can('{{ permission }}.delete') ?? false,
+            ],
+        ]);
+    }
+
+    /**
+     * Show the form to create a {{ label }}.
+     */
+    public function create(): Response
+    {
+        Gate::authorize('create', {{ Model }}::class);
+
+        return Inertia::render('{{ slug }}/Create', ['options' => $this->options()]);
+    }
+
+    /**
+     * Store a newly created {{ label }}.
+     */
+    public function store({{ Model }}Request $request, Create{{ Model }} $action): RedirectResponse
+    {
+        $action->handle($this->actor($request), $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('{{ Label }} created.')]);
+
+        return to_route('{{ slug }}.index');
+    }
+
+    /**
+     * Show the form to edit a {{ label }}.
+     */
+    public function edit(Request $request, {{ Model }} ${{ model }}): Response
+    {
+        Gate::authorize('update', ${{ model }});
+
+        return Inertia::render('{{ slug }}/Edit', [
+            '{{ model }}' => (new {{ Model }}Resource(${{ model }}->load('creator:id,name')))->resolve(),
+            'options' => $this->options(),
+            'canDelete' => $request->user()?->can('delete', ${{ model }}) ?? false,
+        ]);
+    }
+
+    /**
+     * Update the given {{ label }}.
+     */
+    public function update({{ Model }}Request $request, {{ Model }} ${{ model }}, Update{{ Model }} $action): RedirectResponse
+    {
+        $action->handle($this->actor($request), ${{ model }}, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('{{ Label }} updated.')]);
+
+        return to_route('{{ slug }}.index');
+    }
+
+    /**
+     * Delete the given {{ label }}.
+     */
+    public function destroy(Request $request, {{ Model }} ${{ model }}, Delete{{ Model }} $action): RedirectResponse
+    {
+        $action->handle($this->actor($request), ${{ model }});
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('{{ Label }} deleted.')]);
+
+        return to_route('{{ slug }}.index');
+    }
+
+    /**
+     * Values of the choice fields with their translated labels.
+     *
+     * @return array<string, list<array{value: string, label: string}>>
+     */
+    protected function options(): array
+    {
+        $options = fn (array $values) => array_values(array_map(fn (string $value) => ['value' => $value, 'label' => (string) __(Str::headline($value))], $values));
+
+        return [
+{{ optionEntries }}
+        ];
+    }
+
+    protected function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
+    }
+}

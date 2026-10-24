@@ -12,3 +12,11 @@ export type NavItem = {
     icon?: LucideIcon;
     isActive?: boolean;
 };
+
+/**
+ * Sidebar entry of a generated module (resources/js/modules/{slug}/navigation.ts).
+ */
+export type ModuleNavItem = NavItem & {
+    /** Permission(s) required to show the entry (the backend checks again). */
+    can?: string | string[];
+};

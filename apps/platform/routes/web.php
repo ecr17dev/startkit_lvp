@@ -76,6 +76,13 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
 require __DIR__.'/settings.php';
 require __DIR__.'/admin.php';
 
+// Modules generated with `php artisan starter:make-module` (routes/modules/*.web.php)...
+Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
+    foreach (glob(__DIR__.'/modules/*.web.php') ?: [] as $routes) {
+        require $routes;
+    }
+});
+
 // Unknown URLs go through the web middleware (session, locale, shared
 // props) so the not found page is translated and knows the user...
 Route::fallback(fn () => abort(404));

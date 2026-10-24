@@ -1,0 +1,15 @@
+
+    public function test_the_ai_tools_use_the_same_actions(): void
+    {
+        $this->assertContains('{{ permission }}_list', app(ToolRegistry::class)->names());
+        $this->simulatedModel();
+        $this->aiAgent(['tools' => ['allowed' => app(ToolRegistry::class)->names(), 'max_steps' => 5, 'confirm_writes' => false]]);
+        ${{ model }} = {{ Model }}::factory()->create(['{{ titleField }}' => {{ titleSample }}]);
+
+        $stream = $this->actingAs($this->userWithRole('admin'))
+            ->post(route('ai.chat.stream'), ['message' => '/tool {{ permission }}_list {"search": '.json_encode({{ titleSample }}).'}'])
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('\"id\":'.${{ model }}->id, $stream);
+    }

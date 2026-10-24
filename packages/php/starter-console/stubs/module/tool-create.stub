@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Ai\Tools;
+
+use App\Actions\{{ Models }}\Create{{ Model }};
+use App\Ai\Tools\Concerns\InteractsWithDirectory;
+use App\Models\{{ Model }};
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
+use Starter\Ai\Agents\OperatorTool;
+use Starter\Ai\Agents\ProposalPreview;
+
+class {{ Models }}Create extends OperatorTool
+{
+    use InteractsWithDirectory;
+
+    public function description(): string
+    {
+        return 'Create a {{ label }}. Uses the same validation and permissions as the panel.';
+    }
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+{{ toolSchema }}
+        ];
+    }
+
+    protected function rules(): array
+    {
+        return Create{{ Model }}::rules();
+    }
+
+    protected function preview(array $arguments): ProposalPreview
+    {
+        Gate::forUser($this->actor())->authorize('create', {{ Model }}::class);
+
+        return new ProposalPreview(
+            title: __('Create the {{ label }} :name', ['name' => (string) ($arguments['{{ titleField }}'] ?? '')]),
+            resourceType: '{{ permission }}',
+            changes: array_map(fn (string $field) => ['field' => $field, 'before' => null, 'after' => $arguments[$field]], array_keys($arguments)),
+        );
+    }
+
+    protected function execute(array $arguments): array
+    {
+        ${{ model }} = app(Create{{ Model }}::class)->handle($this->actor(), $arguments);
+
+        return ['message' => '{{ Label }} created.', '{{ model }}' => {{ Models }}List::present(${{ model }}->refresh())];
+    }
+}

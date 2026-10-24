@@ -1,0 +1,63 @@
+<?php
+
+namespace App\Ai\Tools;
+
+use App\Actions\{{ Models }}\Delete{{ Model }};
+use App\Ai\Tools\Concerns\InteractsWithDirectory;
+use App\Models\{{ Model }};
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Starter\Ai\Agents\OperatorTool;
+use Starter\Ai\Agents\ProposalPreview;
+
+class {{ Models }}Delete extends OperatorTool
+{
+    use InteractsWithDirectory;
+
+    public function description(): string
+    {
+        return 'Delete a {{ label }} found with {{ permission }}_list. Requires the user\'s confirmation.';
+    }
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'id' => $schema->integer()->description('Id of the {{ label }}.')->required(),
+        ];
+    }
+
+    protected function rules(): array
+    {
+        return ['id' => ['required', 'integer']];
+    }
+
+    protected function preview(array $arguments): ProposalPreview
+    {
+        ${{ model }} = $this->find((int) $arguments['id']);
+        Gate::forUser($this->actor())->authorize('delete', ${{ model }});
+
+        return new ProposalPreview(
+            title: __('Delete the {{ label }} :name', ['name' => (string) ${{ model }}->{{ titleField }}]),
+            resourceType: '{{ permission }}',
+            resourceId: (string) ${{ model }}->id,
+            resourceLabel: (string) ${{ model }}->{{ titleField }},
+            resourceVersion: sha1(${{ model }}->updated_at->toIso8601String()),
+            changes: [['field' => '{{ titleField }}', 'before' => ${{ model }}->{{ titleField }}, 'after' => null]],
+            effects: [__('This cannot be undone.')],
+        );
+    }
+
+    protected function execute(array $arguments): array
+    {
+        ${{ model }} = $this->find((int) $arguments['id']);
+        app(Delete{{ Model }}::class)->handle($this->actor(), ${{ model }});
+
+        return ['message' => '{{ Label }} deleted.'];
+    }
+
+    protected function find(int $id): {{ Model }}
+    {
+        return {{ Model }}::query()->find($id) ?? throw ValidationException::withMessages(['id' => "{{ Label }} {$id} not found."]);
+    }
+}

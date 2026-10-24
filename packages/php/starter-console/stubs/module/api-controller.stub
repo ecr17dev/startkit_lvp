@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Actions\{{ Models }}\Create{{ Model }};
+use App\Actions\{{ Models }}\Delete{{ Model }};
+use App\Actions\{{ Models }}\Update{{ Model }};
+use App\Http\Controllers\Controller;
+use App\Http\Requests\{{ Model }}Request;
+use App\Http\Resources\{{ Model }}Resource;
+use App\Models\{{ Model }};
+use App\Models\User;
+use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
+{{ ruleImport }}
+#[Group('{{ Labels }}', weight: 20)]
+class {{ Model }}Controller extends Controller
+{
+    /**
+     * List {{ labels }}.
+     *
+     * Requires the `{{ permission }}.read` permission (token ability `read`).
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        Gate::authorize('viewAny', {{ Model }}::class);
+
+        $filters = $request->validate([
+            /** Search by {{ searchLabel }}. */
+            'search' => ['nullable', 'string', 'max:100'],
+{{ filterRule }}            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        return {{ Model }}Resource::collection({{ Model }}::query()
+            ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(
+                fn ($query) => $query{{ searchClauses }}
+            ))
+{{ filterClause }}            ->latest('id')
+            ->paginate((int) ($filters['per_page'] ?? 15))
+            ->withQueryString());
+    }
+
+    /**
+     * Get a {{ label }}.
+     *
+     * Requires the `{{ permission }}.read` permission.
+     */
+    public function show({{ Model }} ${{ model }}): {{ Model }}Resource
+    {
+        Gate::authorize('view', ${{ model }});
+
+        return new {{ Model }}Resource(${{ model }}->load('creator:id,name'));
+    }
+
+    /**
+     * Create a {{ label }}.
+     *
+     * Requires `{{ permission }}.create` (token ability `write`). The change is audited.
+     */
+    public function store({{ Model }}Request $request, Create{{ Model }} $action): JsonResponse
+    {
+        ${{ model }} = $action->handle($this->actor($request), $request->validated());
+
+        return (new {{ Model }}Resource(${{ model }}))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Update a {{ label }}.
+     *
+     * Requires `{{ permission }}.update`. Only the fields sent change.
+     */
+    public function update({{ Model }}Request $request, {{ Model }} ${{ model }}, Update{{ Model }} $action): {{ Model }}Resource
+    {
+        return new {{ Model }}Resource($action->handle($this->actor($request), ${{ model }}, $request->validated()));
+    }
+
+    /**
+     * Delete a {{ label }}.
+     *
+     * Requires `{{ permission }}.delete`.
+     */
+    public function destroy(Request $request, {{ Model }} ${{ model }}, Delete{{ Model }} $action): JsonResponse
+    {
+        $action->handle($this->actor($request), ${{ model }});
+
+        return response()->json(['message' => __('{{ Label }} deleted.')]);
+    }
+
+    protected function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
+    }
+}

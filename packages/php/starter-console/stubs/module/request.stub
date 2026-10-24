@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Requests;
+
+use App\Actions\{{ Models }}\Create{{ Model }};
+use App\Models\{{ Model }};
+use Illuminate\Foundation\Http\FormRequest;
+
+/**
+ * Validation of the {{ label }} forms and API calls: the same rules as the
+ * Action (which authorizes and validates again).
+ */
+class {{ Model }}Request extends FormRequest
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        $record = $this->route('{{ model }}');
+        $rules = Create{{ Model }}::rules($record instanceof {{ Model }} ? $record : null);
+
+        if ($this->isMethod('PATCH')) {
+            $rules = array_map(fn (array $rules) => ['sometimes', ...$rules], $rules);
+        }
+
+        return $rules;
+    }
+}

@@ -1,0 +1,51 @@
+<script setup lang="ts">
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import PageHeader from '@/components/PageHeader.vue';
+import { Button } from '@starter/ui/components/button';
+import { Spinner } from '@starter/ui/components/spinner';
+import { t } from '@/lib/i18n';
+import %%Model%%Form from '@/modules/%%slug%%/%%Model%%Form.vue';
+import type { %%Model%%FormData, %%Model%%Options } from '@/modules/%%slug%%/types';
+import { create, index, store } from '@/routes/%%slug%%';
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            { title: '%%Labels%%', href: index() },
+            { title: 'New %%label%%', href: create() },
+        ],
+    },
+});
+
+defineProps<{
+    options: %%Model%%Options;
+}>();
+
+const form = useForm<%%Model%%FormData>({
+%%formDefaults%%});
+
+const submit = () => form.post(store().url);
+</script>
+
+<template>
+    <Head :title="t('New %%label%%')" />
+
+    <form
+        class="flex max-w-3xl flex-col gap-6 p-4 md:p-6"
+        @submit.prevent="submit"
+    >
+        <PageHeader :title="t('New %%label%%')" />
+
+        <%%Model%%Form :form="form" :options="options" />
+
+        <div class="flex items-center gap-2">
+            <Button type="submit" :disabled="form.processing">
+                <Spinner v-if="form.processing" />
+                {{ t('Create %%label%%') }}
+            </Button>
+            <Button variant="ghost" as-child>
+                <Link :href="index()">{{ t('Cancel') }}</Link>
+            </Button>
+        </div>
+    </form>
+</template>

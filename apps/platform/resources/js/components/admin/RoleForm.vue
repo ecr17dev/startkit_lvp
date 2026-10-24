@@ -5,7 +5,7 @@ import { Checkbox } from '@starter/ui/components/checkbox';
 import { Input } from '@starter/ui/components/input';
 import { Label } from '@starter/ui/components/label';
 import { t } from '@/lib/i18n';
-import { permissionGroupLabels as groupLabels } from '@/lib/permissions';
+import { permissionGroupLabel } from '@/lib/permissions';
 import type { PermissionGroup } from '@/types';
 
 export type RoleFormData = {
@@ -103,7 +103,7 @@ const toggleGroup = (
                             "
                         />
                         <span class="font-semibold">{{
-                            t(groupLabels[group.group] ?? group.group)
+                            t(permissionGroupLabel(group.group))
                         }}</span>
                     </Label>
                     <div class="grid gap-3 p-4">

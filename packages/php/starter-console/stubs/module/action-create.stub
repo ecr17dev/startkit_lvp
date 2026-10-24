@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Actions\{{ Models }};
+
+use App\Models\{{ Model }};
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
+{{ actionRuleImport }}
+/**
+ * Create a {{ label }}. Shared by the panel, the API and the AI tools.
+ */
+class Create{{ Model }}
+{
+    /**
+     * Validation rules, reused by the Form Request and Update{{ Model }}.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rules(?{{ Model }} $record = null): array
+    {
+        return [
+{{ rules }}
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    public function handle(User $actor, array $input): {{ Model }}
+    {
+        Gate::forUser($actor)->authorize('create', {{ Model }}::class);
+
+        /** @var array<string, mixed> $data */
+        $data = Validator::make($input, self::rules())->validate();
+
+        ${{ model }} = new {{ Model }}($data);
+        ${{ model }}->created_by = $actor->id;
+        ${{ model }}->save();
+
+        audit('{{ permission }}.created', ${{ model }}, ['{{ titleField }}' => ${{ model }}->{{ titleField }}], $actor);
+
+        return ${{ model }};
+    }
+}

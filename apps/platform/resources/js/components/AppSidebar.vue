@@ -63,7 +63,14 @@ import integrations from '@/routes/admin/integrations';
 import general from '@/routes/admin/settings/general';
 import { index as users } from '@/routes/admin/users';
 import { ui as apiDocs } from '@/routes/scramble/docs';
-import type { NavItem } from '@/types';
+import type { ModuleNavItem, NavItem } from '@/types';
+
+// Entries of the modules generated with starter:make-module...
+const moduleItems = Object.values(
+    import.meta.glob<{ default: ModuleNavItem }>('../modules/*/navigation.ts', {
+        eager: true,
+    }),
+).map((module) => module.default);
 
 const { can } = usePermissions();
 const page = usePage();
@@ -91,6 +98,10 @@ const sections = computed<NavSection[]>(() => {
                     icon: MessageSquareText,
                     can: 'ai.chat',
                 },
+                ...moduleItems.map((item) => ({
+                    ...item,
+                    title: t(item.title),
+                })),
             ]),
         },
         {

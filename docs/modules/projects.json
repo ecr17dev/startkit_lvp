@@ -1,0 +1,88 @@
+{
+    "name": "Project",
+    "api": true,
+    "ai": true,
+    "icon": "FolderKanban",
+    "labels": {
+        "en": {
+            "singular": "project",
+            "plural": "projects"
+        },
+        "es": {
+            "singular": "proyecto",
+            "plural": "proyectos",
+            "gender": "m"
+        }
+    },
+    "fields": [
+        {
+            "name": "name",
+            "type": "string",
+            "max": 150,
+            "label": "Name",
+            "label_es": "Nombre"
+        },
+        {
+            "name": "code",
+            "type": "string",
+            "unique": true,
+            "max": 20,
+            "label": "Code",
+            "label_es": "Código"
+        },
+        {
+            "name": "description",
+            "type": "text",
+            "nullable": true,
+            "label": "Description",
+            "label_es": "Descripción"
+        },
+        {
+            "name": "status",
+            "type": "enum",
+            "options": [
+                "planned",
+                "active",
+                "on_hold",
+                "closed"
+            ],
+            "label": "Status",
+            "label_es": "Estado",
+            "options_es": [
+                "Planificado",
+                "Activo",
+                "En pausa",
+                "Cerrado"
+            ]
+        },
+        {
+            "name": "starts_on",
+            "type": "date",
+            "nullable": true,
+            "label": "Start date",
+            "label_es": "Fecha de inicio"
+        },
+        {
+            "name": "due_on",
+            "type": "date",
+            "nullable": true,
+            "label": "Due date",
+            "label_es": "Fecha de término"
+        },
+        {
+            "name": "budget",
+            "type": "decimal",
+            "nullable": true,
+            "precision": 12,
+            "scale": 2,
+            "label": "Budget",
+            "label_es": "Presupuesto"
+        },
+        {
+            "name": "is_billable",
+            "type": "boolean",
+            "label": "Billable",
+            "label_es": "Facturable"
+        }
+    ]
+}

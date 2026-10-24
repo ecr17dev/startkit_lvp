@@ -1,0 +1,87 @@
+<script setup lang="ts">
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Trash2 } from '@lucide/vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PageHeader from '@/components/PageHeader.vue';
+import { Button } from '@starter/ui/components/button';
+import { Spinner } from '@starter/ui/components/spinner';
+import { formatDate, t } from '@/lib/i18n';
+import %%Model%%Form from '@/modules/%%slug%%/%%Model%%Form.vue';
+import type {
+    %%Model%%,
+    %%Model%%FormData,
+    %%Model%%Options,
+} from '@/modules/%%slug%%/types';
+import { destroy, edit, index, update } from '@/routes/%%slug%%';
+
+const props = defineProps<{
+    %%model%%: %%Model%%;
+    options: %%Model%%Options;
+    canDelete: boolean;
+}>();
+
+defineOptions({
+    layout: (props: { %%model%%: %%Model%% }) => ({
+        breadcrumbs: [
+            { title: '%%Labels%%', href: index() },
+            {
+                title: String(props.%%model%%.%%titleField%% ?? props.%%model%%.id),
+                href: edit(props.%%model%%.id),
+            },
+        ],
+    }),
+});
+
+const form = useForm<%%Model%%FormData>({
+%%formValues%%});
+
+const submit = () =>
+    form.put(update(props.%%model%%.id).url, { preserveScroll: true });
+
+const remove = () => router.delete(destroy(props.%%model%%.id).url);
+</script>
+
+<template>
+    <Head :title="t('Edit %%label%%')" />
+
+    <form
+        class="flex max-w-3xl flex-col gap-6 p-4 md:p-6"
+        @submit.prevent="submit"
+    >
+        <PageHeader :title="t('Edit %%label%%')">
+            <ConfirmDialog
+                v-if="canDelete"
+                :title="t('Delete %%label%%')"
+                :description="
+                    t('The %%label%% will be deleted. This cannot be undone.')
+                "
+                :confirm-text="t('Delete')"
+                @confirm="remove"
+            >
+                <Button type="button" variant="outline" class="text-destructive">
+                    <Trash2 class="size-4" />
+                    {{ t('Delete') }}
+                </Button>
+            </ConfirmDialog>
+        </PageHeader>
+
+        <%%Model%%Form :form="form" :options="options" />
+
+        <p class="text-xs text-muted-foreground">
+            <template v-if="%%model%%.creator"
+                >{{ t('Created by') }} {{ %%model%%.creator.name }} ·
+            </template>
+            {{ t('Last updated') }} {{ formatDate(%%model%%.updated_at) }}
+        </p>
+
+        <div class="flex items-center gap-2">
+            <Button type="submit" :disabled="form.processing">
+                <Spinner v-if="form.processing" />
+                {{ t('Save changes') }}
+            </Button>
+            <Button variant="ghost" as-child>
+                <Link :href="index()">{{ t('Cancel') }}</Link>
+            </Button>
+        </div>
+    </form>
+</template>

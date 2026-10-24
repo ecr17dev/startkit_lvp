@@ -847,6 +847,58 @@ export interface paths {
         patch: operations["v1.ai.budgets.update"];
         trace?: never;
     };
+    "/v1/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List projects
+         * @description Requires the `projects.read` permission (token ability `read`).
+         */
+        get: operations["v1.projects.index"];
+        put?: never;
+        /**
+         * Create a project
+         * @description Requires `projects.create` (token ability `write`). The change is audited.
+         */
+        post: operations["v1.projects.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{project}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a project
+         * @description Requires the `projects.read` permission.
+         */
+        get: operations["v1.projects.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a project
+         * @description Requires `projects.delete`.
+         */
+        delete: operations["v1.projects.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a project
+         * @description Requires `projects.update`. Only the fields sent change.
+         */
+        patch: operations["v1.projects.update"];
+        trace?: never;
+    };
     "/v1/rag/status": {
         parameters: {
             query?: never;
@@ -1408,6 +1460,42 @@ export interface components {
          */
         PriceUnit: "per_million_tokens" | "per_thousand_tokens" | "per_token" | "per_minute" | "per_second" | "per_request" | "per_image" | "per_unit";
         /**
+         * ProjectRequest
+         * @description Validation of the project forms and API calls: the same rules as the
+         *     Action (which authorizes and validates again).
+         */
+        ProjectRequest: {
+            name: string;
+            code: string;
+            description?: string | null;
+            /** @enum {string} */
+            status: "planned" | "active" | "on_hold" | "closed";
+            /** Format: date-time */
+            starts_on?: string | null;
+            /** Format: date-time */
+            due_on?: string | null;
+            budget?: number | null;
+            is_billable?: boolean;
+        };
+        /** ProjectResource */
+        ProjectResource: {
+            id: number;
+            name: string;
+            code: string;
+            description: string | null;
+            status: string;
+            starts_on: string | null;
+            due_on: string | null;
+            budget: string | null;
+            is_billable: boolean;
+            creator?: {
+                id: number;
+                name: string;
+            } | null;
+            created_at: string;
+            updated_at: string;
+        };
+        /**
          * ProposalStatus
          * @enum {string}
          */
@@ -1431,7 +1519,7 @@ export interface components {
         /** RoleRequest */
         RoleRequest: {
             name: string;
-            permissions?: ("users.read" | "users.create" | "users.invite" | "users.update" | "users.disable" | "users.delete" | "roles.read" | "roles.manage" | "permissions.read" | "permissions.manage" | "settings.read" | "settings.update" | "ai.chat" | "ai.providers.manage" | "ai.models.manage" | "ai.agents.manage" | "ai.usage.read" | "ai.budgets.manage" | "rag.collections.read" | "rag.collections.manage" | "rag.sources.manage" | "rag.documents.read" | "rag.documents.delete" | "rag.jobs.manage" | "rag.playground.use" | "rag.analytics.read" | "audit.read" | "api.docs.read" | "api.tokens.create")[];
+            permissions?: ("users.read" | "users.create" | "users.invite" | "users.update" | "users.disable" | "users.delete" | "roles.read" | "roles.manage" | "permissions.read" | "permissions.manage" | "settings.read" | "settings.update" | "ai.chat" | "ai.providers.manage" | "ai.models.manage" | "ai.agents.manage" | "ai.usage.read" | "ai.budgets.manage" | "rag.collections.read" | "rag.collections.manage" | "rag.sources.manage" | "rag.documents.read" | "rag.documents.delete" | "rag.jobs.manage" | "rag.playground.use" | "rag.analytics.read" | "audit.read" | "api.docs.read" | "api.tokens.create" | "projects.read" | "projects.create" | "projects.update" | "projects.delete")[];
         };
         /** RoleResource */
         RoleResource: {
@@ -3179,7 +3267,7 @@ export interface operations {
                             auto_send: boolean;
                         };
                         tools: {
-                            allowed: ("users_list" | "users_get" | "users_create" | "users_invite" | "users_update" | "users_disable" | "users_delete" | "users_assign_role" | "users_remove_role" | "roles_list" | "roles_get" | "roles_create" | "roles_update" | "roles_delete" | "roles_set_permissions" | "permissions_list")[];
+                            allowed: ("projects_list" | "projects_create" | "projects_update" | "projects_delete" | "users_list" | "users_get" | "users_create" | "users_invite" | "users_update" | "users_disable" | "users_delete" | "users_assign_role" | "users_remove_role" | "roles_list" | "roles_get" | "roles_create" | "roles_update" | "roles_delete" | "roles_set_permissions" | "permissions_list")[];
                             max_steps: number;
                             confirm_writes: boolean;
                         };
@@ -4842,6 +4930,176 @@ export interface operations {
                                 unknown_cost_requests: number;
                             };
                         };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.projects.index": {
+        parameters: {
+            query?: {
+                /** @description Search by name, code. */
+                search?: string | null;
+                status?: "planned" | "active" | "on_hold" | "closed" | null;
+                per_page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `ProjectResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            current_page: number;
+                            from: number | null;
+                            last_page: number;
+                            /** @description Generated paginator links. */
+                            links: {
+                                url: string | null;
+                                label: string;
+                                active: boolean;
+                            }[];
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description Number of the last item in the slice. */
+                            to: number | null;
+                            /** @description Total number of items being paginated. */
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.projects.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.projects.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.projects.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        message: "Project deleted.";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.projects.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"];
                     };
                 };
             };

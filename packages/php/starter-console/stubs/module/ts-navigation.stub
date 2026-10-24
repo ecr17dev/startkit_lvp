@@ -1,0 +1,13 @@
+import { %%icon%% } from '@lucide/vue';
+import { index } from '@/routes/%%slug%%';
+import type { ModuleNavItem } from '@/types';
+
+/**
+ * Sidebar entry of the %%labels%% module (collected by AppSidebar).
+ */
+export default {
+    title: '%%Labels%%',
+    href: index(),
+    icon: %%icon%%,
+    can: '%%permission%%.read',
+} satisfies ModuleNavItem;

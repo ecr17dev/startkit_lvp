@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Models;
+
+use Carbon\CarbonInterface;
+use Database\Factories\{{ Model }}Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * @property int $id
+{{ properties }}
+ * @property int|null $created_by
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property-read User|null $creator
+ */
+class {{ Model }} extends Model
+{
+    /** @use HasFactory<{{ Model }}Factory> */
+    use HasFactory;
+{{ constants }}
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+{{ fillable }}
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+{{ casts }}
+        ];
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
