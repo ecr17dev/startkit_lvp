@@ -108,7 +108,8 @@ propietario. Guía completa: [docs/dokploy.md](../../docs/dokploy.md).
 | `APP_KEY is not set` en `app`/`migrate` | falta `APP_KEY` o no tiene el prefijo `base64:` |
 | 404 de Traefik en el dominio | el dominio no apunta a `web:8080`, o el DNS no apunta al servidor del servicio |
 | Certificado inválido | el DNS aún no existe o no apunta al servidor; Traefik reintenta Let's Encrypt solo |
-| 502 o `upstream sent too big header` | revisa que `web` y `app` estén arriba; los buffers ya están ampliados en `nginx.conf` |
+| 502 tras un redespliegue | `web` apuntaba a la IP vieja de `app`: `nginx.conf` ahora resuelve `app` en cada solicitud (DNS de Docker); si ves `connect() failed ... upstream` en los logs de `web` con una imagen antigua, vuelve a desplegar |
+| 502 con `upstream sent too big header` | los buffers FastCGI ya están ampliados en `nginx.conf`; revisa que la imagen `web` esté al día |
 | Redirecciones a `http://` | `TRUSTED_PROXIES` vacío: el compose de Dokploy lo deja en `*` |
 | Otro proyecto responde en `app` | falta `isolatedDeployment: true` |
 | `password authentication failed` tras cambiar `DB_PASSWORD` | PostgreSQL fija la clave al crear el volumen: vuelve a la original o cámbiala dentro de la base |
