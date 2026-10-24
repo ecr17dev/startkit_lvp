@@ -71,6 +71,7 @@ class StarterCommandsTest extends TestCase
         $config['owner']['email'] = 'not-an-email';
         $config['ai']['connections'][0]['credentialRef'] = 'sk-proj-abcdefghijklmnopqrstuvwxyz123456';
         $config['ai']['agent']['systemPrompt'] = 'Use the key AKIAABCDEFGHIJKLMNOP when needed.';
+        $config['project']['name'] = 're_test1234_abcdefghijklmnopqrstuv';
 
         $result = (new ConfigValidator)->validate($config);
 
@@ -81,6 +82,7 @@ class StarterCommandsTest extends TestCase
         $this->assertContains('/ai/connections/0/credentialRef: does not match ^(env:[A-Z][A-Z0-9_]*|file:/.+)$', $result['errors']);
         $this->assertContains('/ai/connections/0/credentialRef: looks like a plain secret (API key); reference it with env:NAME or file:/path', $result['errors']);
         $this->assertContains('/ai/agent/systemPrompt: looks like a plain secret (AWS access key); reference it with env:NAME or file:/path', $result['errors']);
+        $this->assertContains('/project/name: looks like a plain secret (Resend API key); reference it with env:NAME or file:/path', $result['errors']);
     }
 
     public function test_cross_rules_block_incoherent_configurations(): void

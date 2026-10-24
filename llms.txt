@@ -6,6 +6,8 @@
 
 - [INSTALL.md](INSTALL.md): un comando, `./setup.sh --owner=tu@correo.com` (Docker si está disponible; si no, PHP 8.3+, Composer, Node 22 y PostgreSQL). No interactivo, repetible, `--json` para agentes, códigos de salida 0/2–7 con la acción a seguir.
 - Tras instalar: URL <http://localhost:8080> (Docker) o <http://localhost:8000> (local, `composer dev`); códigos de acceso en Mailpit <http://localhost:8025> o en `apps/platform/storage/logs/laravel.log`.
+- Proyecto propio desde la plantilla: `git clone --depth 1 https://github.com/bluesmilecl/startkit_laravel.git mi-app && cd mi-app && ./setup.sh --new-project="Mi App" --owner=tu@correo.com` (historial nuevo, plantilla como remoto `starter`, proyecto de Docker propio).
+- Correo real con Resend (por defecto cuando hay clave): `RESEND_API_KEY=re_… ./setup.sh --mail-from=hola@tudominio.com`.
 - Configurar IA, correo y RAG: `--config=starter.config.json` ([ejemplo](starter.config.example.json)) o el panel.
 
 ## Documentación
@@ -13,6 +15,7 @@
 - [Especificación](docs/especificacion.md): alcance y criterios de aceptación.
 - [Arquitectura](docs/architecture.md): monorepo, módulos y procesos.
 - [Instalación](docs/installation.md): Docker y local.
+- [Correo](docs/mail.md): Resend por defecto (`RESEND_API_KEY=re_… ./setup.sh`), SMTP con servidor propio y ajustes listos (Gmail, SES, Brevo, SendGrid, Zoho), Postmark y Mailgun; desde el panel, el `.env` o `starter.config.json`.
 - [Identidad](docs/identity.md): login OTP, registro e invitaciones, roles, delegación, sesiones y auditoría.
 - [IA](docs/ai.md): conexiones, catálogo, tarifas, libro de consumo, presupuestos, agentes versionados, herramientas con propuestas, chat flotante, multimedia, recomendador, laboratorio y API.
 - [Conocimiento (RAG)](docs/knowledge.md): activación con diagnóstico de pgvector, perfiles de embeddings, colecciones, fuentes (archivos, URLs sin SSRF, sitemap, adaptadores, discos), pipeline durable, versiones del índice, bajas, recuperación vectorial/texto/híbrida con ACL, respuestas con citas validadas, laboratorio con juicios de relevancia, panel de operación y calidad, conjuntos de evaluación (recall@k, MRR), feedback de respuestas, retención, API y permisos.
@@ -28,8 +31,8 @@
 
 ## Para agentes
 
-- [AGENTS.md](AGENTS.md): stack fijo, límites entre paquetes, comandos y reglas.
-- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `build-ui`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`) y cómo instalarlas.
+- [AGENTS.md](AGENTS.md): empieza aquí, qué leer según la tarea, mapa del repositorio, stack fijo, reglas, comandos y verificación. Claude Code lo recibe por [CLAUDE.md](CLAUDE.md) y Gemini CLI por [GEMINI.md](GEMINI.md).
+- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `build-ui`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`, enlazadas en `.claude/skills/` para Claude Code).
 - [Manifiesto de versiones](starter.manifest.json)
 - [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
 - [OpenAPI](tooling/contracts/openapi.json)

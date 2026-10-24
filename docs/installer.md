@@ -67,7 +67,7 @@ validador que `php artisan starter:config-validate`).
    `https://`; `file://` para espejos). Un checksum distinto detiene todo.
 6. **Entorno**: `apps/platform/.env` (permisos `0600`) con `APP_KEY` nueva, banderas
    `STARTER_FEATURE_*`, método de acceso, base de datos (contraseña generada para Docker o
-   `DB_URL` de la referencia), correo (Mailpit, log, SMTP con `MAIL_URL` o Resend), las
+   `DB_URL` de la referencia), correo (Mailpit, log, SMTP con `MAIL_URL`, Resend, Postmark o Mailgun; ver [mail.md](mail.md)), las
    claves IA referenciadas y secretos de PostgREST si se activa; `docker/.env` con los mismos
    valores que interpola Compose; `starter.config.json` sin secretos.
 7. **Instalación**: `composer install` y `pnpm install --frozen-lockfile` respetan los locks;

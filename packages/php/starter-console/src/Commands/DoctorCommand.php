@@ -41,7 +41,7 @@ class DoctorCommand extends Command
         $rows[] = $this->row('db-driver', DB::connection()->getDriverName() === 'pgsql' ? HealthCheck::OK : HealthCheck::WARNING, DB::connection()->getDriverName().' (PostgreSQL is the supported database)', false);
         $rows[] = $this->row('session-driver', config('session.driver') === 'database' ? HealthCheck::OK : HealthCheck::WARNING, (string) config('session.driver'), false);
         $rows[] = $this->row('queue-driver', config('queue.default') === 'database' ? HealthCheck::OK : HealthCheck::WARNING, (string) config('queue.default'), false);
-        $rows[] = $this->row('mail', in_array(config('mail.default'), ['log', 'array'], true) ? HealthCheck::WARNING : HealthCheck::OK, (string) config('mail.default').' (login codes are sent by email)', false);
+        $rows[] = $this->row('mail', ...$this->mail());
         $rows[] = $this->row('pgvector', ...$this->pgvector());
 
         foreach ((array) config('starter.features', []) as $feature => $enabled) {
@@ -69,6 +69,29 @@ class DoctorCommand extends Command
             : $this->components->error('Some required checks failed.');
 
         return $healthy ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * The mailer in use and whether it has what it needs to send.
+     *
+     * @return array{0: string, 1: string, 2: bool}
+     */
+    protected function mail(): array
+    {
+        $mailer = (string) config('mail.default');
+        $key = ['resend' => 'services.resend.key', 'postmark' => 'services.postmark.key', 'mailgun' => 'services.mailgun.secret'][$mailer] ?? null;
+
+        if ($key !== null && blank(config($key))) {
+            return [HealthCheck::WARNING, "{$mailer} without an API key: login codes cannot be sent (Admin → Settings → Mail or the .env)", false];
+        }
+
+        if (in_array($mailer, ['log', 'array'], true)) {
+            return [HealthCheck::WARNING, "{$mailer} (login codes are written to the log, not sent)", false];
+        }
+
+        $sender = (string) config('mail.from.address');
+
+        return [HealthCheck::OK, "{$mailer}, sender {$sender}".($sender === 'onboarding@resend.dev' ? ' (only reaches your Resend account until you verify a domain)' : ''), false];
     }
 
     /**

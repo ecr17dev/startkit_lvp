@@ -2,10 +2,12 @@
 # Laravel Starter: one-command setup, non-interactive and safe to re-run.
 #
 #   ./setup.sh --owner=you@example.com                 # Docker if available, else local
+#   ./setup.sh --new-project="Mi App" --owner=you@example.com   # your own project from this template
 #   ./setup.sh --docker --owner=you@example.com        # no PHP/Node needed on the host
 #   ./setup.sh --local --owner=you@example.com         # PHP 8.3+, Composer, Node 22, PostgreSQL
 #   ./setup.sh --local --db-url=postgresql://user:pass@127.0.0.1:5432/starter
 #   ./setup.sh --config=starter.config.json            # AI connections, agent, RAG, owner
+#   RESEND_API_KEY=re_... ./setup.sh --mail-from=hola@tudominio.com   # real email via Resend
 #   ./setup.sh --json                                  # machine-readable summary on stdout
 #
 # Exit codes: 0 ready · 2 bad arguments · 3 missing prerequisites
@@ -30,11 +32,22 @@ RAG=false
 SKIP_BUILD=false
 JSON=false
 OWNER_FROM_CONFIG=false
+MAIL=auto
+MAIL_FROM=""
+APP_NAME_ARG=""
+FRESH_GIT=false
 
 usage() {
-    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     cat <<'EOF'
 Options:
+  --new-project=NAME     Turn this clone into your own project: --app-name=NAME
+                         and --fresh-git
+  --app-name=NAME        Application name (APP_NAME) and, in Docker, its own
+                         Compose project so several projects can live on one machine
+  --fresh-git            New git history with one initial commit; the template
+                         stays as the remote "starter" (refuses with uncommitted
+                         changes or unpushed commits)
   --docker | --local     Force a mode (default: local when PHP, Composer, Node
                          and PostgreSQL are ready; otherwise Docker)
   --owner=EMAIL          Owner account (logs in with a one-time code)
@@ -43,6 +56,11 @@ Options:
   --db-url=URL           PostgreSQL URL for the local mode (DB_URL)
   --url=URL              Public URL (default http://localhost:8000, Docker :8080)
   --rag                  Enable the knowledge module (needs pgvector)
+  --mail=MAILER          resend, mailpit or log (default: resend when RESEND_API_KEY
+                         is set in the environment or in apps/platform/.env,
+                         otherwise Mailpit, or the log when there is no Mailpit)
+  --mail-from=EMAIL      Sender address (Resend: a verified domain; without one
+                         onboarding@resend.dev, which only reaches your Resend account)
   --skip-build           Local mode: do not compile the front-end assets
   --json                 Print a JSON summary on stdout (logs go to stderr)
   -h, --help             Show this help
@@ -59,6 +77,11 @@ for arg in "$@"; do
         --db-url=*) DB_URL="${arg#*=}" ;;
         --url=*) URL="${arg#*=}" ;;
         --rag) RAG=true ;;
+        --mail=*) MAIL="${arg#*=}" ;;
+        --new-project=*) APP_NAME_ARG="${arg#*=}"; FRESH_GIT=true ;;
+        --app-name=*) APP_NAME_ARG="${arg#*=}" ;;
+        --fresh-git) FRESH_GIT=true ;;
+        --mail-from=*) MAIL_FROM="${arg#*=}" ;;
         --skip-build) SKIP_BUILD=true ;;
         --json) JSON=true ;;
         -h|--help) usage; exit 0 ;;
@@ -181,6 +204,79 @@ database_reachable() {
     port_open "${host:-127.0.0.1}" "${port:-5432}"
 }
 
+# --- Project -----------------------------------------------------------------
+
+slugify() { # Compose project name: lowercase letters, digits and dashes
+    local slug
+    slug=$(printf '%s' "$1" | iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null || printf '%s' "$1")
+    slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+    printf '%s' "${slug:-laravel-starter}"
+}
+
+fresh_git() { # one initial commit; the template stays reachable as "starter"
+    have git || fail 3 "--fresh-git needs git."
+    local template="" revision=""
+    if [ -e "$ROOT/.git" ] && [ ! -d "$ROOT/.git" ]; then
+        fail 2 "--fresh-git does not work inside a git worktree or submodule." "Clone the template into its own folder"
+    fi
+    if [ -d "$ROOT/.git" ]; then
+        if git -C "$ROOT" remote get-url starter >/dev/null 2>&1 && ! git -C "$ROOT" remote get-url origin >/dev/null 2>&1; then
+            ok "Git: already a project of its own (the template is the remote starter)"
+            return
+        fi
+        [ -z "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ] \
+            || fail 2 "--fresh-git needs a clean working tree." "Commit or stash your changes, or run without --fresh-git"
+        if git -C "$ROOT" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1 \
+            && [ "$(git -C "$ROOT" rev-list --count '@{u}..HEAD')" != 0 ]; then
+            fail 2 "--fresh-git would drop local commits that are not pushed." "Push them first, or run without --fresh-git"
+        fi
+        template=$(git -C "$ROOT" remote get-url origin 2>/dev/null || true)
+        revision=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || true)
+        rm -rf "$ROOT/.git"
+    fi
+    git -C "$ROOT" init -q -b main 2>/dev/null || { git -C "$ROOT" init -q && git -C "$ROOT" symbolic-ref HEAD refs/heads/main; }
+    [ -n "$template" ] && git -C "$ROOT" remote add starter "$template"
+    git -C "$ROOT" add -A
+    if git -C "$ROOT" commit -q -m "Start from Laravel Starter${revision:+ $revision}" >/dev/null 2>&1; then
+        ok "Git: new history on main${template:+ (template as remote starter)}"
+    else
+        warn "Git: repository created; commit when your git identity is set (git config user.email ...)"
+    fi
+    info "Publish it: git remote add origin <your repository URL> && git push -u origin main"
+}
+
+# --- Mail --------------------------------------------------------------------
+
+configure_mail() { # Resend when there is a key; otherwise the .env stays as it is
+    [ -n "${RESEND_API_KEY:-}" ] && env_set RESEND_API_KEY "$RESEND_API_KEY"
+    [ -n "$MAIL_FROM" ] && env_set MAIL_FROM_ADDRESS "$MAIL_FROM"
+    if [ "$MAIL" = auto ] && [ -n "$(env_get RESEND_API_KEY)" ]; then MAIL=resend; fi
+    case "$MAIL" in
+        auto) ;;
+        resend)
+            [ -n "$(env_get RESEND_API_KEY)" ] || fail 2 "--mail=resend needs RESEND_API_KEY." \
+                "Run: RESEND_API_KEY=re_... ./setup.sh --mail-from=hola@tudominio.com (or add it to apps/platform/.env)"
+            env_set MAIL_MAILER resend
+            case "$(env_get MAIL_FROM_ADDRESS)" in
+                ""|*@example.com)
+                    env_set MAIL_FROM_ADDRESS onboarding@resend.dev
+                    warn "Sender onboarding@resend.dev: it only reaches the email of your Resend account. Verify your domain and pass --mail-from." ;;
+            esac
+            ok "Mail: Resend, sender $(env_get MAIL_FROM_ADDRESS)"
+            ;;
+        log)
+            env_set MAIL_MAILER log
+            ok "Mail: log (codes in apps/platform/storage/logs/laravel.log)"
+            ;;
+        mailpit)
+            env_set MAIL_MAILER smtp
+            env_set MAIL_HOST 127.0.0.1
+            env_set MAIL_PORT 1025
+            ok "Mail: Mailpit"
+            ;;
+    esac
+}
+
 # --- Local mode --------------------------------------------------------------
 
 ensure_database() { # create DB_DATABASE when missing, in its own process
@@ -227,6 +323,7 @@ setup_local() {
 
     step "Environment"
     prepare_env
+    [ -n "$APP_NAME_ARG" ] && env_set APP_NAME "$APP_NAME_ARG" && ok "APP_NAME=$APP_NAME_ARG"
     if [ -n "$DB_URL" ]; then
         # Separate DB_* values (not DB_URL): Laravel only creates a missing
         # database named by DB_DATABASE...
@@ -248,6 +345,7 @@ setup_local() {
         ok "Database: $database on $host:$port"
     fi
     [ -z "$URL" ] && [ -z "$(env_get APP_URL)" ] && env_set APP_URL http://localhost:8000
+    configure_mail
 
     # Without a mail server the login codes go to the log...
     if [ "$(env_get MAIL_MAILER)" = smtp ] && [ "$(env_get MAIL_PORT)" = 1025 ] \
@@ -304,11 +402,13 @@ setup_local() {
     APP_URL_FINAL=$(env_get APP_URL)
     START="cd apps/platform && composer dev"
     STOP="Ctrl+C in the terminal of composer dev"
-    if [ "$(env_get MAIL_MAILER)" = log ]; then
-        INBOX="apps/platform/storage/logs/laravel.log"
-    else
-        INBOX="http://localhost:8025 (Mailpit) or your mail server"
-    fi
+    MAIL=$(env_get MAIL_MAILER)
+    case "$MAIL" in
+        log) INBOX="apps/platform/storage/logs/laravel.log" ;;
+        resend) INBOX="the owner's inbox (Resend)" ;;
+        smtp) [ "$(env_get MAIL_PORT)" = 1025 ] && MAIL=mailpit; INBOX="http://localhost:8025 (Mailpit) or your mail server" ;;
+        *) INBOX="the owner's inbox ($MAIL)" ;;
+    esac
 }
 
 # --- Docker mode -------------------------------------------------------------
@@ -324,19 +424,31 @@ setup_docker() {
 
     step "Environment"
     prepare_env
+    [ -n "$APP_NAME_ARG" ] && env_set APP_NAME "$APP_NAME_ARG" && ok "APP_NAME=$APP_NAME_ARG"
     [ -z "$URL" ] && env_set APP_URL "http://localhost:${STARTER_HTTP_PORT:-8080}"
     if [ -z "$(env_get APP_KEY)" ]; then
         env_set APP_KEY "$(random_key)"
         ok "Generated APP_KEY"
     fi
-    # Compose reads docker/.env to create the database with the same credentials...
+    configure_mail
+    # Compose project: kept once chosen (it names the database volume); a
+    # new project gets its own so several can live on one machine...
+    PROJECT=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$ROOT/docker/.env" 2>/dev/null | head -n 1)
+    if [ -z "$PROJECT" ]; then
+        if [ -n "$APP_NAME_ARG" ]; then PROJECT=$(slugify "$APP_NAME_ARG"); else PROJECT=laravel-starter; fi
+    fi
+    # Compose reads docker/.env for the project name, to create the database
+    # with the same credentials and to pick the mailer (Mailpit unless
+    # Resend or log)...
     {
+        echo "COMPOSE_PROJECT_NAME=$PROJECT"
         echo "DB_DATABASE=$(env_get DB_DATABASE)"
         echo "DB_USERNAME=$(env_get DB_USERNAME)"
         echo "DB_PASSWORD=$(env_get DB_PASSWORD)"
+        case "$MAIL" in resend|log) echo "MAIL_MAILER=$MAIL" ;; esac
     } > "$ROOT/docker/.env"
     chmod 600 "$ROOT/docker/.env" 2>/dev/null || true
-    ok "docker/.env mirrors the database credentials"
+    ok "docker/.env mirrors the database credentials (Compose project $PROJECT)"
 
     step "Building the images (the first time takes a few minutes)"
     run "${COMPOSE[@]}" build app web || fail 5 "The image build failed." "Check the network (Docker Hub, Packagist, npm) and re-run"
@@ -371,7 +483,11 @@ setup_docker() {
     APP_URL_FINAL=$(env_get APP_URL)
     START="docker compose -f docker/compose.yaml -f docker/compose.local.yaml --profile local-db --profile dev-mail up -d"
     STOP="docker compose -f docker/compose.yaml -f docker/compose.local.yaml --profile local-db --profile dev-mail down"
-    INBOX="http://localhost:${MAILPIT_UI_PORT:-8025} (Mailpit)"
+    case "$MAIL" in
+        resend) INBOX="the owner's inbox (Resend)" ;;
+        log) INBOX="storage/logs/laravel.log inside the app container (docker compose ... exec app tail storage/logs/laravel.log)" ;;
+        *) MAIL=mailpit; INBOX="http://localhost:${MAILPIT_UI_PORT:-8025} (Mailpit)" ;;
+    esac
 }
 
 # --- Main --------------------------------------------------------------------
@@ -381,10 +497,19 @@ cd "$ROOT" || exit 2
 if [ -n "$OWNER" ] && ! printf '%s' "$OWNER" | grep -qE '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'; then
     fail 2 "--owner must be an email address."
 fi
+case "$MAIL" in auto|resend|mailpit|log) ;; *) fail 2 "--mail must be resend, mailpit or log." ;; esac
+if [ -n "$MAIL_FROM" ] && ! printf '%s' "$MAIL_FROM" | grep -qE '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'; then
+    fail 2 "--mail-from must be an email address."
+fi
 CONFIG_PATH=""
 if [ -n "$CONFIG" ]; then
     [ -f "$CONFIG" ] || fail 2 "Config file not found: $CONFIG"
     CONFIG_PATH="$(cd "$(dirname "$CONFIG")" && pwd)/$(basename "$CONFIG")"
+fi
+
+if [ "$FRESH_GIT" = true ]; then
+    step "Git"
+    fresh_git
 fi
 
 if [ "$MODE" = auto ]; then
@@ -428,7 +553,7 @@ info "AI without keys answers with the simulated provider; add real keys in Admi
 info "Check anytime: php apps/platform/artisan starter:verify (Docker: docker compose ... exec app php artisan starter:verify)"
 
 if [ "$JSON" = true ]; then
-    printf '{"status":"ready","mode":"%s","url":"%s","owner":"%s","login_codes":"%s","start":"%s","stop":"%s"}\n' \
-        "$MODE" "$(json_escape "$APP_URL_FINAL")" "$(json_escape "$OWNER")" "$(json_escape "$INBOX")" \
+    printf '{"status":"ready","mode":"%s","url":"%s","owner":"%s","mail":"%s","login_codes":"%s","start":"%s","stop":"%s"}\n' \
+        "$MODE" "$(json_escape "$APP_URL_FINAL")" "$(json_escape "$OWNER")" "$MAIL" "$(json_escape "$INBOX")" \
         "$(json_escape "$START")" "$(json_escape "$STOP")"
 fi

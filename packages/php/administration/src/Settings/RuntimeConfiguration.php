@@ -64,6 +64,8 @@ class RuntimeConfiguration
         // Remember the mailer configured in the .env file before overriding it...
         config(['starter.env_mailer' => config('starter.env_mailer', config('mail.default'))]);
 
+        // API keys go to the services configuration read by the transports;
+        // an empty key keeps the one of the .env file...
         match ($mail['mailer'] ?? 'env') {
             'smtp' => config([
                 'mail.default' => 'smtp',
@@ -71,10 +73,23 @@ class RuntimeConfiguration
                 'mail.mailers.smtp.host' => $mail['host'] ?? null,
                 'mail.mailers.smtp.port' => (int) ($mail['port'] ?? 587),
                 'mail.mailers.smtp.username' => $mail['username'] ?? null,
-                'mail.mailers.smtp.password' => $mail['password'] ?? null,
+                'mail.mailers.smtp.password' => MailCredentials::resolve($mail, 'smtp'),
                 'mail.mailers.smtp.scheme' => ($mail['scheme'] ?? null) ?: null,
             ]),
-            'resend' => config(['mail.default' => 'resend']),
+            'resend' => config([
+                'mail.default' => 'resend',
+                'services.resend.key' => MailCredentials::resolve($mail, 'resend'),
+            ]),
+            'postmark' => config([
+                'mail.default' => 'postmark',
+                'services.postmark.key' => MailCredentials::resolve($mail, 'postmark'),
+            ]),
+            'mailgun' => config([
+                'mail.default' => 'mailgun',
+                'services.mailgun.secret' => MailCredentials::resolve($mail, 'mailgun'),
+                'services.mailgun.domain' => ($mail['mailgun_domain'] ?? null) ?: config('services.mailgun.domain'),
+                'services.mailgun.endpoint' => MailCredentials::MAILGUN_ENDPOINTS[$mail['mailgun_region'] ?? 'us'] ?? MailCredentials::MAILGUN_ENDPOINTS['us'],
+            ]),
             'log' => config(['mail.default' => 'log']),
             default => null,
         };

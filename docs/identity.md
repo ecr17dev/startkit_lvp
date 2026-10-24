@@ -8,7 +8,8 @@ implementado en la etapa 2 y dónde vive cada pieza.
 1. `GET /login` (vista de Fortify) pide el correo.
 2. `POST /login/code` crea un desafío (`login_challenges`) y envía el código con
    Laravel Notifications, **sin cola** (`notifyNow`): el acceso no espera trabajos
-   de indexación.
+   de indexación. Sale por el proveedor de correo configurado (Resend por defecto;
+   ver [mail.md](mail.md)).
 3. `GET /login/verify` muestra el campo OTP; el desafío queda ligado a la sesión
    (su id nunca viaja en la URL).
 4. `POST /login/verify` verifica y consume el código de forma atómica, autentica con

@@ -219,6 +219,9 @@ return [
                 'default_role' => 'reader',
             ],
 
+            // Mailer: env (the MAIL_* variables), resend, smtp, postmark,
+            // mailgun or log. Empty credentials fall back to the .env keys
+            // (RESEND_API_KEY, POSTMARK_API_KEY, MAILGUN_SECRET)...
             'mail' => [
                 'mailer' => 'env',
                 'host' => null,
@@ -226,6 +229,11 @@ return [
                 'username' => null,
                 'password' => null,
                 'scheme' => null,
+                'resend_key' => null,
+                'postmark_token' => null,
+                'mailgun_secret' => null,
+                'mailgun_domain' => env('MAILGUN_DOMAIN'),
+                'mailgun_region' => 'us',
                 'from_address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
                 'from_name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel Starter')),
             ],
@@ -247,6 +255,9 @@ return [
 
         'encrypted' => [
             'mail.password',
+            'mail.resend_key',
+            'mail.postmark_token',
+            'mail.mailgun_secret',
         ],
     ],
 

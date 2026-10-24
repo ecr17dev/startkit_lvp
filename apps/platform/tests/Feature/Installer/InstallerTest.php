@@ -192,6 +192,11 @@ class InstallerTest extends TestCase
         $this->assertDirectoryDoesNotExist("{$target}/node_modules");
         $this->assertFileDoesNotExist("{$target}/.git/HEAD");
 
+        // The agent context comes along: CLAUDE.md and the skill links...
+        $this->assertFileExists("{$target}/CLAUDE.md");
+        $this->assertSame('../../skills/build-ui', readlink("{$target}/.claude/skills/build-ui"));
+        $this->assertFileExists("{$target}/.claude/skills/build-ui/SKILL.md");
+
         $env = EnvFile::fromFile("{$target}/apps/platform/.env");
         $this->assertSame('Mi "Demo"', $env->get('APP_NAME'));
         $this->assertStringContainsString('APP_NAME="Mi \\"Demo\\""', $env->contents());
@@ -256,6 +261,8 @@ class InstallerTest extends TestCase
         File::put("{$source}/apps/platform/artisan", '<?php');
         File::put("{$source}/apps/platform/.env.example", "APP_NAME=Laravel\nAPP_KEY=\n");
         File::put("{$source}/README.md", 'template');
+        File::ensureDirectoryExists("{$source}/skills/demo-skill");
+        File::put("{$source}/skills/demo-skill/SKILL.md", "---\nname: demo-skill\n---\n");
 
         $archive = "{$this->workspace}/laravel-starter-template-0.1.0.tar";
         (new PharData($archive))->buildFromDirectory("{$this->workspace}/build");
@@ -277,6 +284,7 @@ class InstallerTest extends TestCase
         $this->assertSame(ExitCode::OK, $code, json_encode($result) ?: '');
         $this->assertSame('template', (string) file_get_contents("{$this->workspace}/good/README.md"));
         $this->assertNotEmpty(EnvFile::fromFile("{$this->workspace}/good/apps/platform/.env")->get('APP_KEY'));
+        $this->assertSame('../../skills/demo-skill', readlink("{$this->workspace}/good/.claude/skills/demo-skill"));
 
         // Downloads accept https:// or file:// only, and verify the published checksum...
         [$code] = $this->install(['directory' => "{$this->workspace}/http", '--release' => '0.1.0', ...$input]);

@@ -7,8 +7,9 @@ use Symfony\Component\Finder\Finder;
 use Tests\TestCase;
 
 /**
- * The Markdown documentation, skills, AGENTS.md and llms.txt only link to
- * files that exist and only mention starter:* commands that exist.
+ * The Markdown documentation, skills, the agent context files and llms.txt
+ * only link to files that exist and only mention starter:* commands that
+ * exist; every skill is linked where Claude Code loads it.
  */
 class DocumentationTest extends TestCase
 {
@@ -24,7 +25,7 @@ class DocumentationTest extends TestCase
             $files[$file->getRealPath()] = $file->getContents();
         }
 
-        foreach (['README.md', 'INSTALL.md', 'AGENTS.md', 'llms.txt'] as $name) {
+        foreach (['README.md', 'INSTALL.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.github/copilot-instructions.md', 'llms.txt'] as $name) {
             $files[realpath("{$root}/{$name}")] = (string) file_get_contents("{$root}/{$name}");
         }
 
@@ -55,6 +56,27 @@ class DocumentationTest extends TestCase
         }
 
         $this->assertSame([], $broken);
+    }
+
+    public function test_agents_get_the_rules_and_every_skill(): void
+    {
+        $root = base_path('../..');
+
+        foreach (['CLAUDE.md', 'GEMINI.md'] as $name) {
+            $this->assertStringContainsString('@AGENTS.md', (string) file_get_contents("{$root}/{$name}"), "{$name} must import AGENTS.md");
+        }
+
+        $agents = (string) file_get_contents("{$root}/AGENTS.md");
+
+        foreach (glob("{$root}/skills/*/SKILL.md") ?: [] as $skill) {
+            $name = basename(dirname($skill));
+            $link = "{$root}/.claude/skills/{$name}";
+
+            $this->assertMatchesRegularExpression('/^name: '.preg_quote($name, '/').'$/m', (string) file_get_contents($skill));
+            $this->assertTrue(is_link($link), "Missing link: ln -s ../../skills/{$name} .claude/skills/{$name}");
+            $this->assertSame(realpath(dirname($skill)), realpath($link));
+            $this->assertStringContainsString("skills/{$name}/SKILL.md", $agents, "AGENTS.md must say when to read {$name}");
+        }
     }
 
     public function test_documented_starter_commands_exist(): void

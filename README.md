@@ -32,16 +32,25 @@ repetir y con `--json` deja un resumen para agentes. Entra con el correo del pro
 código llega a Mailpit (<http://localhost:8025>) o al log. Todo el detalle, códigos de salida y
 problemas frecuentes en **[INSTALL.md](INSTALL.md)**.
 
-**¿Con un agente de IA?** Dale este mensaje:
+**Tu propio proyecto** (copia completa con historial nuevo):
+`git clone --depth 1 https://github.com/bluesmilecl/startkit_laravel.git mi-app && cd mi-app && ./setup.sh --new-project="Mi App" --owner=tu@correo.com`.
+**Correo real con Resend** (por defecto cuando hay clave):
+`RESEND_API_KEY=re_… ./setup.sh --mail-from=hola@tudominio.com`; también SMTP, Postmark o
+Mailgun ([docs/mail.md](docs/mail.md)).
+
+**¿Con un agente de IA?** Dale este mensaje; al abrir el repositorio recibe el contexto solo
+(`AGENTS.md`, `CLAUDE.md` con las skills de `.claude/skills/`, `GEMINI.md`):
 
 ```text
-Instala y configura https://github.com/bluesmilecl/startkit_laravel siguiendo su INSTALL.md.
-Propietario: tu@correo.com. Usa Docker si está disponible.
+Crea mi proyecto "Mi App" a partir de https://github.com/bluesmilecl/startkit_laravel
+siguiendo su INSTALL.md (sección "Tu proyecto desde la plantilla"). Propietario: tu@correo.com.
+Usa Docker si está disponible. Si te doy RESEND_API_KEY, deja el correo con Resend.
 Al terminar dime la URL, dónde llegan los códigos de acceso y qué quedó pendiente.
 ```
 
-Para empezar un proyecto propio desde la plantilla (historial limpio y configuración
-aplicada) usa el instalador `laravel-starter new` ([docs/installer.md](docs/installer.md)).
+Para empezar un proyecto propio desde la plantilla usa `./setup.sh --new-project="Mi App"`
+en un clon nuevo ([INSTALL.md](INSTALL.md#tu-proyecto-desde-la-plantilla)) o el instalador
+`laravel-starter new` ([docs/installer.md](docs/installer.md)).
 
 ## Estructura
 
@@ -51,7 +60,8 @@ packages/php/          administration · identity · ai · knowledge · starter-
 packages/js/           @starter/ui · @starter/chat · @starter/api-client
 tooling/create-starter/ Instalador laravel-starter (Composer)
 tooling/contracts/     OpenAPI y esquemas JSON
-skills/                Skills para agentes de desarrollo
+skills/                Skills para agentes de desarrollo (enlazadas en .claude/skills/)
+AGENTS.md, CLAUDE.md   Contexto que los agentes de IA leen al abrir el proyecto
 tests/e2e/             Pruebas Playwright
 docker/                Imagen, Nginx y Compose
 docs/                  Documentación

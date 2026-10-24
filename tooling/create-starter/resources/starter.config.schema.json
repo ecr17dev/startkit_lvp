@@ -66,9 +66,12 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "transport": { "enum": ["mailpit", "smtp", "resend", "log"] },
+                "transport": { "enum": ["mailpit", "resend", "smtp", "postmark", "mailgun", "log"] },
                 "from": { "type": "string", "format": "email" },
-                "credentialRef": { "$ref": "#/$defs/secretRef" }
+                "fromName": { "type": "string", "minLength": 1 },
+                "credentialRef": { "$ref": "#/$defs/secretRef" },
+                "domain": { "type": "string", "minLength": 3 },
+                "region": { "enum": ["us", "eu"] }
             }
         },
         "ai": {

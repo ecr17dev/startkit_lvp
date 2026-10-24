@@ -27,6 +27,7 @@ final class ConfigValidator
         'GitHub token' => '/\bgh[pousr]_[A-Za-z0-9]{20,}/',
         'Slack token' => '/\bxox[abprs]-[A-Za-z0-9-]{10,}/',
         'Google API key' => '/\bAIza[0-9A-Za-z_-]{30,}/',
+        'Resend API key' => '/\bre_[A-Za-z0-9]{6,}_[A-Za-z0-9]{12,}/',
         'URL with credentials' => '#[a-z][a-z0-9+.-]*://[^/\s:@]+:[^/\s@]+@#i',
     ];
 
@@ -257,13 +258,21 @@ final class ConfigValidator
 
         $transport = $config['mail']['transport'] ?? null;
 
-        if (in_array($transport, ['smtp', 'resend'], true)) {
+        $variables = ['resend' => 'RESEND_API_KEY', 'postmark' => 'POSTMARK_API_KEY', 'mailgun' => 'MAILGUN_SECRET'];
+
+        if (in_array($transport, ['smtp', 'resend', 'postmark', 'mailgun'], true)) {
             if (empty($config['mail']['credentialRef'])) {
-                $warnings[] = "/mail/credentialRef: {$transport} without credentials; login codes cannot be sent until they are configured";
+                $warnings[] = $transport === 'smtp'
+                    ? '/mail/credentialRef: smtp needs a reference to a URL like smtps://user:password@host:465; login codes cannot be sent until it is configured'
+                    : "/mail/credentialRef: {$transport} without a reference; the key is read from {$variables[$transport]} in the .env and login codes cannot be sent without it";
             }
 
             if (empty($config['mail']['from'])) {
-                $warnings[] = '/mail/from: no sender address';
+                $warnings[] = '/mail/from: no sender address'.($transport === 'resend' ? ' (Resend only sends from a verified domain or onboarding@resend.dev)' : '');
+            }
+
+            if ($transport === 'mailgun' && empty($config['mail']['domain'])) {
+                $warnings[] = '/mail/domain: mailgun needs the sending domain (or MAILGUN_DOMAIN in the .env)';
             }
         }
 

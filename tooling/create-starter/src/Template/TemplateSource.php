@@ -58,6 +58,8 @@ class TemplateSource
             $count++;
         }
 
+        $this->linkSkills($target);
+
         return $count;
     }
 
@@ -102,6 +104,8 @@ class TemplateSource
                 $this->copyFile("{$root}/{$relative}", "{$target}/{$relative}");
                 $count++;
             }
+
+            $this->linkSkills($target);
 
             return $count;
         } catch (TemplateException $exception) {
@@ -201,6 +205,34 @@ class TemplateSource
         }
 
         return false;
+    }
+
+    /**
+     * Link every skill where Claude Code loads it (.claude/skills/<name> ->
+     * ../../skills/<name>). The links are recreated instead of copied, so no
+     * symlink of the template is ever followed. Without symlink support
+     * (Windows) AGENTS.md still says which SKILL.md to read.
+     */
+    protected function linkSkills(string $target): void
+    {
+        foreach (glob("{$target}/skills/*/SKILL.md") ?: [] as $skill) {
+            $name = basename(dirname($skill));
+            $link = "{$target}/.claude/skills/{$name}";
+
+            if (is_link($link) && readlink($link) === "../../skills/{$name}") {
+                continue;
+            }
+
+            if (! is_dir(dirname($link))) {
+                mkdir(dirname($link), 0755, true);
+            }
+
+            if (is_link($link) || is_file($link)) {
+                unlink($link);
+            }
+
+            @symlink("../../skills/{$name}", $link);
+        }
     }
 
     protected function copyFile(string $from, string $to): void

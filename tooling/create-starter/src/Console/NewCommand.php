@@ -357,11 +357,19 @@ class NewCommand extends Command
             'log' => $env->set('MAIL_MAILER', 'log'),
             'smtp' => $env->set('MAIL_MAILER', 'smtp')->set('MAIL_URL', $credential),
             'resend' => $env->set('MAIL_MAILER', 'resend')->set('RESEND_API_KEY', $credential),
+            'postmark' => $env->set('MAIL_MAILER', 'postmark')->set('POSTMARK_API_KEY', $credential),
+            'mailgun' => $env->set('MAIL_MAILER', 'mailgun')->set('MAILGUN_SECRET', $credential)
+                ->set('MAILGUN_DOMAIN', isset($config['mail']['domain']) ? (string) $config['mail']['domain'] : null)
+                ->set('MAILGUN_ENDPOINT', ($config['mail']['region'] ?? 'us') === 'eu' ? 'api.eu.mailgun.net' : 'api.mailgun.net'),
             default => $env->set('MAIL_MAILER', 'smtp')->set('MAIL_HOST', '127.0.0.1')->set('MAIL_PORT', 1025),
         };
 
         if (isset($config['mail']['from'])) {
             $env->set('MAIL_FROM_ADDRESS', (string) $config['mail']['from']);
+        }
+
+        if (isset($config['mail']['fromName'])) {
+            $env->set('MAIL_FROM_NAME', (string) $config['mail']['fromName']);
         }
 
         // AI keys referenced by env: are copied into the project .env (the

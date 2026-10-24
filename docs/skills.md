@@ -15,21 +15,25 @@ Cada una indica entradas, prerrequisitos, pasos, archivos, comprobaciones y erro
 
 ## Instalación en agentes
 
-Que las skills estén en el repositorio **no** hace que un agente las cargue: hay que
-instalarlas donde cada herramienta las busca.
+Cada herramienta busca las skills en su propio directorio:
 
-- **Claude Code**: copia o enlaza cada carpeta en `.claude/skills/` del proyecto (o en
-  `~/.claude/skills/` para todos tus proyectos):
+- **Claude Code**: el repositorio ya trae `.claude/skills/<nombre>` como enlaces simbólicos a
+  `skills/<nombre>` y un `CLAUDE.md` que importa `AGENTS.md`, así que al abrir el proyecto
+  carga las reglas y las skills sin pasos extra. Al agregar una skill, crea su enlace (una
+  prueba lo exige):
 
   ```bash
-  mkdir -p .claude/skills
-  for skill in skills/*/; do ln -s "../../$skill" ".claude/skills/$(basename "$skill")"; done
+  ln -s ../../skills/mi-skill .claude/skills/mi-skill
   ```
+
+  En Windows los enlaces requieren `git config core.symlinks true` (modo desarrollador); sin
+  ellos, `AGENTS.md` sigue indicando qué `SKILL.md` leer.
 
 - **Otros agentes con soporte de skills/`SKILL.md`**: copia las carpetas en el directorio que
   indique su documentación.
-- **Agentes sin skills**: `AGENTS.md` y `llms.txt` resumen las reglas y enlazan esta
-  documentación; puedes pedirle al agente que lea el `SKILL.md` correspondiente.
+- **Agentes sin skills**: `AGENTS.md` (que Codex, Cursor, Copilot y otros leen al iniciar;
+  `GEMINI.md` lo importa para Gemini CLI) trae la tabla «Qué leer según la tarea» con el
+  `SKILL.md` de cada caso; `llms.txt` resume toda la documentación.
 
 Laravel Boost puede usarse como ayuda opcional de desarrollo; no es requisito del runtime ni
 reemplaza esta documentación.

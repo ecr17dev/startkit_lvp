@@ -132,6 +132,46 @@ class ConfigApplyTest extends TestCase
         $this->assertStringContainsString('STARTER_FEATURE_POSTGREST=true', $steps['environment']['message']);
     }
 
+    public function test_the_mail_provider_is_activated_only_with_a_usable_key(): void
+    {
+        config(['services.resend.key' => null]);
+        $mail = ['mail' => ['transport' => 'resend', 'from' => 'hola@acme.test', 'credentialRef' => 'env:RESEND_API_KEY']];
+
+        $steps = $this->apply($this->file($mail));
+
+        $this->assertSame('warning', $steps['mail']['status']);
+        $this->assertSame('env', settings('mail.mailer'));
+
+        config(['services.resend.key' => 're_test1234_abcdefghijklmnopqrstuv']);
+
+        $steps = $this->apply($this->file($mail));
+
+        $this->assertSame('ok', $steps['mail']['status']);
+        $this->assertSame('resend', settings('mail.mailer'));
+        $this->assertSame('hola@acme.test', settings('mail.from_address'));
+        // The key stays in the .env: nothing secret is stored...
+        $this->assertNull(settings('mail.resend_key'));
+    }
+
+    public function test_smtp_is_read_from_a_url_reference(): void
+    {
+        putenv('STARTER_MAIL_SECRET_SMTP=smtps://mailer:p%40ss@smtp.acme.test:465');
+
+        try {
+            $steps = $this->apply($this->file(['mail' => ['transport' => 'smtp', 'from' => 'hola@acme.test', 'credentialRef' => 'env:STARTER_MAIL_SECRET_SMTP']]));
+        } finally {
+            putenv('STARTER_MAIL_SECRET_SMTP');
+        }
+
+        $this->assertSame('ok', $steps['mail']['status']);
+        $this->assertSame('smtp', settings('mail.mailer'));
+        $this->assertSame('smtp.acme.test', settings('mail.host'));
+        $this->assertSame(465, settings('mail.port'));
+        $this->assertSame('smtps', settings('mail.scheme'));
+        $this->assertSame('mailer', settings('mail.username'));
+        $this->assertSame('p@ss', settings('mail.password'));
+    }
+
     public function test_an_invalid_file_changes_nothing(): void
     {
         $code = Artisan::call('starter:config-apply', ['path' => $this->file(['schemaVersion' => 5, 'project' => ['name' => 'Never applied']]), '--json' => true]);

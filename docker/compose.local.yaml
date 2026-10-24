@@ -7,13 +7,16 @@
 #
 # To edit the code with live reload use compose.dev.yaml (mounts the source;
 # needs vendor/ and the built assets on the host) or the local mode.
+#
+# Mail goes to Mailpit unless docker/.env sets MAIL_MAILER (setup.sh writes
+# MAIL_MAILER=resend when RESEND_API_KEY is in apps/platform/.env).
 services:
     app: &local
         environment:
             APP_ENV: local
             APP_DEBUG: 'true'
             DB_HOST: ${DB_HOST:-postgres}
-            MAIL_MAILER: smtp
+            MAIL_MAILER: ${MAIL_MAILER:-smtp}
             MAIL_HOST: mailpit
             MAIL_PORT: '1025'
     queue: *local

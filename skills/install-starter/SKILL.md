@@ -1,6 +1,6 @@
 ---
 name: install-starter
-description: Instala y configura el Laravel Starter (Laravel 13 + Laravel AI SDK + Vue/Inertia + PostgreSQL/pgvector) con ./setup.sh (Docker o local, un comando) o crea un proyecto nuevo con laravel-starter new desde una release verificada o una copia local, con starter.config.json y diagnóstico. Úsala para instalar, reinstalar o diagnosticar.
+description: Instala y configura el Laravel Starter (Laravel 13 + Laravel AI SDK + Vue/Inertia + PostgreSQL/pgvector) con ./setup.sh (Docker o local, un comando), crea un proyecto propio desde la plantilla (./setup.sh --new-project o laravel-starter new), configura el correo (Resend por defecto, SMTP, Postmark, Mailgun) y diagnostica. Úsala para instalar, reinstalar, copiar la plantilla como proyecto nuevo o diagnosticar.
 ---
 
 # install-starter
@@ -9,7 +9,16 @@ description: Instala y configura el Laravel Starter (Laravel 13 + Laravel AI SDK
 (Docker si está disponible; si no, local). Ver [INSTALL.md](../../INSTALL.md): opciones,
 códigos de salida 0/2–7 y problemas frecuentes. Usa `--json` y actúa según el código.
 
-**Proyecto propio desde la plantilla:** `laravel-starter new` (resto de esta skill). No inventa
+**Proyecto propio desde la plantilla (camino corto):** clona en una carpeta nueva y ejecuta
+`./setup.sh --new-project="Nombre" --owner=correo` (historial git nuevo, la plantilla como remoto
+`starter`, `APP_NAME` y proyecto de Docker propio). No hagas push sin que te lo pidan.
+
+**Correo:** con `RESEND_API_KEY` en el entorno, `setup.sh` deja Resend (`--mail-from=` para el
+remitente; sin dominio verificado usa `onboarding@resend.dev`, que solo llega a la cuenta de
+Resend). SMTP, Postmark y Mailgun: panel o `starter.config.json` ([docs/mail.md](../../docs/mail.md)).
+Nunca escribas la clave en archivos versionados ni en tu respuesta.
+
+**Alternativa con instalador:** `laravel-starter new` (resto de esta skill). No inventa
 credenciales: solo usa referencias `env:NOMBRE` o `file:/ruta`.
 
 ## Entradas

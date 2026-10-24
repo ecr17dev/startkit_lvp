@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Admin\Settings;
 
+use App\Actions\Settings\UpdateMailSettings;
 use App\Http\Controllers\Controller;
 use App\Mail\TestMail;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Starter\Administration\Settings\MailCredentials;
 use Starter\Administration\Settings\SettingsManager;
 use Throwable;
 
@@ -24,43 +25,21 @@ class MailSettingsController extends Controller
         $settings = $this->settings->group('mail');
 
         return Inertia::render('admin/settings/Mail', [
-            'settings' => [
-                ...Arr::except($settings, ['password']),
-                'has_password' => filled($settings['password'] ?? null),
-            ],
+            'settings' => Arr::except($settings, UpdateMailSettings::SECRET_FIELDS),
+            // Where each credential comes from, never its value...
+            'credentials' => collect(array_keys(MailCredentials::SECRETS))
+                ->mapWithKeys(fn (string $mailer) => [$mailer => MailCredentials::describe($settings, $mailer)])
+                ->all(),
             'envMailer' => config('starter.env_mailer'),
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, UpdateMailSettings $action): RedirectResponse
     {
-        $validated = $request->validate([
-            'mailer' => ['required', Rule::in(['env', 'smtp', 'log'])],
-            'host' => ['nullable', 'required_if:mailer,smtp', 'string', 'max:255'],
-            'port' => ['nullable', 'required_if:mailer,smtp', 'integer', 'between:1,65535'],
-            'username' => ['nullable', 'string', 'max:255'],
-            'password' => ['nullable', 'string', 'max:255'],
-            'remove_password' => ['boolean'],
-            'scheme' => ['nullable', Rule::in(['smtp', 'smtps'])],
-            'from_address' => ['required', 'email', 'max:255'],
-            'from_name' => ['required', 'string', 'max:255'],
-        ]);
+        /** @var User $actor */
+        $actor = $request->user();
 
-        $values = Arr::except($validated, ['password', 'remove_password']);
-
-        // A blank password keeps the stored one...
-        if (filled($validated['password'] ?? null)) {
-            $values['password'] = $validated['password'];
-        } elseif ($request->boolean('remove_password')) {
-            $values['password'] = null;
-        }
-
-        $this->settings->setGroup('mail', $values);
-
-        audit('settings.updated', null, ['group' => 'mail', 'keys' => array_keys($values)]);
-
-        // Long running queue workers must reload the configuration...
-        Artisan::call('queue:restart');
+        $action->handle($actor, $request->all());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mail settings saved.')]);
 

@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Settings\UpdateMailSettings;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Starter\Ai\Agents\AgentManager;
@@ -20,12 +22,12 @@ use Throwable;
 
 /**
  * Apply the non secret part of starter.config.json to the database: name,
- * language, time zone, registration, sender, AI connections (keys stay as
- * env: references or encrypted from file: references), the default agent,
- * internal knowledge activation and the owner. Environment flags
- * (STARTER_FEATURE_*, STARTER_AUTH_METHOD, DB_*, MAIL_*) are written by the
- * installer; here they are only compared. Idempotent: run it again after
- * editing the file.
+ * language, time zone, registration, mail provider and sender, AI
+ * connections (keys stay as env: references or encrypted from file:
+ * references), the default agent, internal knowledge activation and the
+ * owner. Environment flags (STARTER_FEATURE_*, STARTER_AUTH_METHOD, DB_*,
+ * MAIL_*) are written by the installer; here they are only compared.
+ * Idempotent: run it again after editing the file.
  */
 class ConfigApplyCommand extends Command
 {
@@ -61,6 +63,7 @@ class ConfigApplyCommand extends Command
         $dry = (bool) $this->option('dry-run');
 
         $this->settings($config, $dry);
+        $this->mail($config, $dry);
         $this->features($config);
         $this->connections((array) ($config['ai'] ?? []), $dry);
         $this->agent((array) ($config['ai'] ?? []), $agents, $dry);
@@ -81,8 +84,6 @@ class ConfigApplyCommand extends Command
             'general.locale' => array_key_exists($locale, (array) config('starter.locales')) ? $locale : null,
             'general.timezone' => in_array($config['project']['timezone'] ?? null, timezone_identifiers_list(), true) ? $config['project']['timezone'] : null,
             'auth.registration' => $config['auth']['registration'] ?? null,
-            'mail.from_address' => $config['mail']['from'] ?? null,
-            'mail.from_name' => isset($config['mail']['from']) ? ($config['project']['name'] ?? null) : null,
             'ai.dashboard' => $config['ai']['usage']['dashboard'] ?? null,
         ], fn ($value) => $value !== null);
 
@@ -95,6 +96,98 @@ class ConfigApplyCommand extends Command
         if (($config['ai']['usage']['record'] ?? true) === false) {
             $this->step('usage', 'warning', 'AI usage is always recorded in the ledger (ai.usage.record=false is ignored).');
         }
+    }
+
+    /**
+     * Mail provider and sender through the same Action as the panel. A
+     * provider whose key is not available is not activated, so the login
+     * codes keep working with the current one.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    protected function mail(array $config, bool $dry): void
+    {
+        $mail = (array) ($config['mail'] ?? []);
+
+        if ($mail === []) {
+            $this->step('mail', 'skipped', 'No mail section in the configuration.');
+
+            return;
+        }
+
+        $current = settings()->group('mail');
+        $transport = $mail['transport'] ?? 'mailpit';
+        $credential = $mail['credentialRef'] ?? null;
+        $input = [
+            'mailer' => $current['mailer'] ?? 'env',
+            'from_address' => $mail['from'] ?? $current['from_address'],
+            'from_name' => $mail['fromName'] ?? (isset($mail['from']) ? ($config['project']['name'] ?? $current['from_name']) : $current['from_name']),
+        ];
+
+        if (in_array($transport, ['resend', 'postmark', 'mailgun'], true)) {
+            $input['mailer'] = $transport;
+
+            if (is_string($credential) && str_starts_with($credential, 'file:')) {
+                $secret = is_readable(substr($credential, 5)) ? trim((string) file_get_contents(substr($credential, 5))) : '';
+
+                if ($secret === '') {
+                    $this->step('mail', 'warning', "The key file of {$transport} cannot be read; the mail provider was not changed.");
+
+                    return;
+                }
+
+                $credential = $secret;
+            }
+
+            $input[['resend' => 'resend_key', 'postmark' => 'postmark_token', 'mailgun' => 'mailgun_secret'][$transport]] = $credential;
+            $input['mailgun_domain'] = $mail['domain'] ?? ($current['mailgun_domain'] ?? null);
+            $input['mailgun_region'] = $mail['region'] ?? ($current['mailgun_region'] ?? 'us');
+        } elseif ($transport === 'smtp') {
+            $url = is_string($credential) ? $this->secretValue($credential) : null;
+            $parts = is_string($url) ? parse_url($url) : false;
+
+            if (! is_array($parts) || ! in_array($parts['scheme'] ?? null, ['smtp', 'smtps'], true) || ! isset($parts['host'])) {
+                $this->step('mail', 'warning', 'smtp needs credentialRef pointing to a URL like smtps://user:password@smtp.example.com:465; the mail provider was not changed.');
+
+                return;
+            }
+
+            $input = [...$input, 'mailer' => 'smtp', 'host' => $parts['host'], 'port' => $parts['port'] ?? ($parts['scheme'] === 'smtps' ? 465 : 587), 'scheme' => $parts['scheme'], 'username' => isset($parts['user']) ? rawurldecode($parts['user']) : null, 'password' => isset($parts['pass']) ? rawurldecode($parts['pass']) : null];
+        } elseif ($transport === 'log') {
+            $input['mailer'] = 'log';
+        }
+
+        if ($dry) {
+            $this->step('mail', 'ok', "Would use {$input['mailer']}, sender {$input['from_address']}.");
+
+            return;
+        }
+
+        try {
+            app(UpdateMailSettings::class)->handle(null, $input);
+        } catch (ValidationException $exception) {
+            $this->step('mail', 'warning', "{$transport} was not activated: ".collect($exception->errors())->flatten()->implode(' ').' Login codes keep using the current mail provider.');
+
+            return;
+        }
+
+        $this->step('mail', 'ok', $transport === 'mailpit'
+            ? "Sender {$input['from_address']}; mail keeps the MAIL_* variables of the .env (Mailpit in development)."
+            : "Mail through {$input['mailer']}, sender {$input['from_address']}.");
+    }
+
+    /**
+     * The value of an env: or file: reference.
+     */
+    protected function secretValue(string $reference): ?string
+    {
+        $value = match (true) {
+            str_starts_with($reference, 'env:') => Env::get(substr($reference, 4)),
+            str_starts_with($reference, 'file:') => is_readable(substr($reference, 5)) ? trim((string) file_get_contents(substr($reference, 5))) : null,
+            default => null,
+        };
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

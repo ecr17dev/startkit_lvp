@@ -34,12 +34,16 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "resend/resend-php": "^1.17",
         "spatie/laravel-permission": "^8.3",
         "starter/administration": "^0.1",
         "starter/ai": "^0.1",
         "starter/console": "^0.1",
         "starter/identity": "^0.1",
-        "starter/knowledge": "^0.1"
+        "starter/knowledge": "^0.1",
+        "symfony/http-client": "^7.4",
+        "symfony/mailgun-mailer": "^7.4",
+        "symfony/postmark-mailer": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",

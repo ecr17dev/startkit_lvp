@@ -41,3 +41,22 @@ test('the audit trail records administrative changes', async ({ page }) => {
         page.getByTestId('activity-list').or(page.getByRole('table')).first(),
     ).toBeVisible();
 });
+
+test('mail settings guide each provider without breaking the login mail', async ({
+    page,
+}) => {
+    await page.goto('/admin/settings/mail');
+
+    // An API provider without its key is refused (the codes keep flowing)...
+    await page.getByText('Resend (API)').click();
+    await expect(page.getByText(/verifica tu dominio en resend/i)).toBeVisible();
+    await page.getByRole('button', { name: /^guardar$/i }).click();
+    await expect(page.getByText(/pega la clave api/i)).toBeVisible();
+
+    // SMTP presets fill the server of known providers...
+    await page.getByText('Servidor SMTP').click();
+    await page.getByRole('combobox', { name: /proveedor/i }).click();
+    await page.getByRole('option', { name: 'Gmail / Google Workspace' }).click();
+    await expect(page.getByLabel(/^host/i)).toHaveValue('smtp.gmail.com');
+    await expect(page.getByLabel(/^puerto/i)).toHaveValue('587');
+});

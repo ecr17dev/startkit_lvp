@@ -20,7 +20,8 @@ tooling/create-starter/   Instalador laravel-starter y validador de starter.conf
 tooling/contracts/        OpenAPI exportado, esquemas JSON (configuración y manifiesto), contrato de recuperación
 docker/                   Imagen PHP multi-stage, Nginx y Compose con perfiles
 docs/                     Documentación Markdown
-skills/                   Skills para agentes de desarrollo
+skills/                   Skills para agentes de desarrollo (enlazadas en .claude/skills/ para Claude Code)
+AGENTS.md · CLAUDE.md · GEMINI.md  Contexto que los agentes leen al abrir el repositorio
 tests/e2e/                Pruebas Playwright
 ```
 
