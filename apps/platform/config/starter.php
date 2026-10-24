@@ -166,6 +166,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reverse proxy
+    |--------------------------------------------------------------------------
+    |
+    | Behind Traefik, Nginx, a load balancer or Cloudflare, trust the
+    | X-Forwarded-* headers of these proxies so Laravel sees HTTPS and the
+    | client IP: "*" (only when the app is unreachable except through the
+    | proxy, as in Docker) or a comma separated list of IPs/CIDRs. Empty
+    | trusts nobody (local development).
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Audit trail
     |--------------------------------------------------------------------------
     |

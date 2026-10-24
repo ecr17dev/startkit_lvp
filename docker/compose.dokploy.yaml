@@ -1,0 +1,120 @@
+# One file for Dokploy (or any host that runs a single Compose file behind
+# a reverse proxy): web, app, queue, scheduler, migrations and PostgreSQL
+# with pgvector. No ports are published: point the domain at the "web"
+# service, port 8080.
+#
+# Dokploy writes the Environment tab to docker/.env (Create Env File); the
+# services read it with env_file and Compose interpolates it. Minimum:
+#
+#   APP_KEY=base64:...            php artisan key:generate --show (or openssl rand -base64 32)
+#   APP_URL=https://app.example.com
+#   DB_PASSWORD=<random>
+#   STARTER_IMAGE=my-app          image name, unique per project on the server
+#   STARTER_OWNER_EMAIL=you@example.com   owner created (or kept) on each deploy
+#   MAIL_MAILER=resend + RESEND_API_KEY   or log: the codes go to the app logs
+#
+# Migrations, permissions and seeders run on every deploy (idempotent).
+
+x-app: &app
+    build:
+        context: ..
+        dockerfile: docker/app.Dockerfile
+        target: app
+    image: ${STARTER_IMAGE:-laravel-starter-app}:${STARTER_TAG:-latest}
+    env_file:
+        - path: .env
+          required: false
+    environment:
+        APP_ENV: ${APP_ENV:-production}
+        DB_CONNECTION: pgsql
+        DB_HOST: ${DB_HOST:-postgres}
+        DB_PORT: ${DB_PORT:-5432}
+        DB_DATABASE: ${DB_DATABASE:-starter}
+        DB_USERNAME: ${DB_USERNAME:-starter}
+        # Only the proxy can reach these containers...
+        TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
+    volumes:
+        - storage:/srv/apps/platform/storage/app
+    security_opt:
+        - no-new-privileges:true
+    restart: unless-stopped
+
+services:
+    migrate:
+        <<: *app
+        restart: 'no'
+        # The cache tables go first: --isolated takes its lock in cache_locks...
+        command:
+            - sh
+            - -c
+            - >-
+                php artisan migrate --force --path=database/migrations/0001_01_01_000001_create_cache_table.php &&
+                php artisan migrate --force --isolated &&
+                php artisan starter:permissions &&
+                php artisan db:seed --force &&
+                if [ -n "$${STARTER_OWNER_EMAIL:-}" ]; then php artisan starter:owner "$${STARTER_OWNER_EMAIL}"; fi
+        depends_on:
+            postgres:
+                condition: service_healthy
+        healthcheck:
+            disable: true
+
+    app:
+        <<: *app
+        command: ['php-fpm']
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
+    queue:
+        <<: *app
+        command: ['php', 'artisan', 'queue:work', 'database', '--queue=mail,default,ingest,sync,maintenance', '--sleep=1', '--tries=3', '--max-time=3600', '--timeout=600']
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+        healthcheck:
+            disable: true
+
+    scheduler:
+        <<: *app
+        command: ['php', 'artisan', 'schedule:work']
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+        healthcheck:
+            disable: true
+
+    web:
+        build:
+            context: ..
+            dockerfile: docker/app.Dockerfile
+            target: web
+        image: ${STARTER_IMAGE:-laravel-starter-app}-web:${STARTER_TAG:-latest}
+        expose:
+            - '8080'
+        depends_on:
+            app:
+                condition: service_started
+        security_opt:
+            - no-new-privileges:true
+        restart: unless-stopped
+
+    postgres:
+        image: pgvector/pgvector:${PGVECTOR_TAG:-0.8.1-pg17}
+        environment:
+            POSTGRES_DB: ${DB_DATABASE:-starter}
+            POSTGRES_USER: ${DB_USERNAME:-starter}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the environment}
+        volumes:
+            - postgres:/var/lib/postgresql/data
+            - ./postgres/init:/docker-entrypoint-initdb.d:ro
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-starter} -d ${DB_DATABASE:-starter}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+volumes:
+    storage:
+    postgres:

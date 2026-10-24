@@ -16,6 +16,7 @@ use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Dedoc\Scramble\Support\Generator\Server;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +74,12 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Behind a reverse proxy (TRUSTED_PROXIES), HTTPS and the client IP
+        // come from its X-Forwarded-* headers...
+        if (filled($proxies = config('starter.trusted_proxies'))) {
+            TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', (string) $proxies)));
+        }
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

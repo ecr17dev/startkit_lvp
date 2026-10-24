@@ -56,6 +56,34 @@ docker compose -f docker/compose.yaml -f docker/compose.production.yaml up -d we
 - PostgreSQL, Mailpit y PostgREST no se publican en producción.
 - Respalda la base de datos, el volumen `storage` y la configuración (incluida
   `APP_KEY`), y prueba la restauración periódicamente.
+- Detrás de un proxy (Traefik, Nginx, Cloudflare) define `TRUSTED_PROXIES` (`*` si solo el
+  proxy llega a los contenedores, o sus IPs/CIDRs) para que Laravel vea HTTPS y la IP real.
+
+## Dokploy (o cualquier host con un solo archivo Compose)
+
+`docker/compose.dokploy.yaml` es autocontenido: web, app, cola, scheduler, migraciones y
+PostgreSQL con pgvector, sin puertos publicados y con `TRUSTED_PROXIES=*`.
+
+1. Crea un servicio **Compose** desde el repositorio (proveedor GitHub), rama a desplegar y
+   *Compose Path* `./docker/compose.dokploy.yaml`. Activa **Isolated Deployment** para que los
+   nombres `app` y `postgres` no choquen con otros proyectos de la red de Dokploy.
+2. En **Environment** (Dokploy lo escribe en `docker/.env`):
+
+   ```dotenv
+   APP_NAME="Mi App"
+   APP_KEY=base64:...                 # openssl rand -base64 32 (con el prefijo base64:)
+   APP_URL=https://mi-app.example.com
+   DB_PASSWORD=...                    # aleatoria; crea la base en el primer arranque
+   STARTER_IMAGE=mi-app               # nombre de imagen único por proyecto en el servidor
+   STARTER_OWNER_EMAIL=tu@correo.com  # propietario creado o mantenido en cada despliegue
+   MAIL_MAILER=log                    # o resend + RESEND_API_KEY y MAIL_FROM_ADDRESS
+   ```
+
+3. **Domains**: servicio `web`, puerto `8080`, HTTPS con Let's Encrypt (el registro DNS debe
+   apuntar al servidor; con Cloudflare, proxy activado o no).
+4. **Deploy**. Cada despliegue migra, sincroniza permisos, siembra (idempotente) y asegura el
+   propietario. Con `MAIL_MAILER=log` el código de acceso aparece en los logs del servicio `app`;
+   después configura Resend desde el panel (Configuración del sistema → Servidor de correo).
 
 ## Salud
 

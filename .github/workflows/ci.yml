@@ -122,6 +122,7 @@ jobs:
                     docker compose -f docker/compose.yaml -f docker/compose.local.yaml $profiles config --quiet
                     docker compose -f docker/compose.yaml -f docker/compose.production.yaml $profiles config --quiet
                   done
+                  DB_PASSWORD=ci docker compose -f docker/compose.dokploy.yaml config --quiet
 
     installer:
         name: Installer (laravel-starter new)
