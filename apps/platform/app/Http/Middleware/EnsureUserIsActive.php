@@ -18,7 +18,7 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if ($user === null || $user->is_active) {
+        if ($user === null || ($user->is_active && $user->deleted_at === null)) {
             return $next($request);
         }
 

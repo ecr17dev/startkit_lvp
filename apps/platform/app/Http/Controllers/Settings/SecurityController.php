@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
+use Starter\Identity\Identity;
 
 class SecurityController extends Controller
 {
@@ -38,6 +39,9 @@ class SecurityController extends Controller
                     ->all()
                 : [],
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            // Password changes only exist with STARTER_AUTH_METHOD=email-otp+password...
+            'canUpdatePassword' => Identity::passwordsEnabled(),
+            'hasPassword' => $request->user()->hasPassword(),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {
@@ -58,6 +62,8 @@ class SecurityController extends Controller
         $request->user()->update([
             'password' => $request->password,
         ]);
+
+        audit('auth.password_changed', $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 

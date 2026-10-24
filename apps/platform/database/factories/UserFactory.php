@@ -47,6 +47,35 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user is disabled.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+            'disabled_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user only logs in with one-time codes.
+     */
+    public function withoutPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => null,
+        ]);
+    }
+
+    /**
+     * Assign roles after creating the user (run `starter:permissions` first).
+     */
+    public function withRole(string ...$roles): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole($roles));
+    }
+
+    /**
      * Indicate that the model has two-factor authentication configured.
      */
     public function withTwoFactor(): static

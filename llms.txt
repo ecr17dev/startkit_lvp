@@ -7,6 +7,7 @@
 - [Especificación](docs/especificacion.md): alcance y criterios de aceptación.
 - [Arquitectura](docs/architecture.md): monorepo, módulos y procesos.
 - [Instalación](docs/installation.md): Docker y local.
+- [Identidad](docs/identity.md): login OTP, registro e invitaciones, roles, delegación, sesiones y auditoría.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
 

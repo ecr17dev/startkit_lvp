@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Lock, Pencil, Plus, ShieldCheck, Trash2, Users } from '@lucide/vue';
+import {
+    Grid3x3,
+    Lock,
+    Pencil,
+    Plus,
+    ShieldCheck,
+    Trash2,
+    Users,
+} from '@lucide/vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@starter/ui/components/badge';
@@ -13,8 +21,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@starter/ui/components/card';
-import { usePermissions } from '@/composables/usePermissions';
 import { t } from '@/lib/i18n';
+import { index as matrix } from '@/routes/admin/permissions';
 import { create, destroy, edit, index } from '@/routes/admin/roles';
 import type { AdminRole } from '@/types';
 
@@ -26,12 +34,11 @@ defineOptions({
 
 defineProps<{
     roles: AdminRole[];
-    protectedRoles: string[];
-    superAdminRole: string;
     totalPermissions: number;
+    can: { create: boolean; viewMatrix: boolean };
 }>();
 
-const { can } = usePermissions();
+const OWNER = 'owner';
 
 const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
 </script>
@@ -46,12 +53,20 @@ const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
                 t('Group permissions into roles and assign them to your users')
             "
         >
-            <Button v-if="can('roles.create')" as-child>
-                <Link :href="create()">
-                    <Plus class="size-4" />
-                    {{ t('New role') }}
-                </Link>
-            </Button>
+            <div class="flex flex-wrap gap-2">
+                <Button v-if="can.viewMatrix" variant="outline" as-child>
+                    <Link :href="matrix()">
+                        <Grid3x3 class="size-4" />
+                        {{ t('Permission matrix') }}
+                    </Link>
+                </Button>
+                <Button v-if="can.create" as-child>
+                    <Link :href="create()">
+                        <Plus class="size-4" />
+                        {{ t('New role') }}
+                    </Link>
+                </Button>
+            </div>
         </PageHeader>
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -61,7 +76,7 @@ const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
                         <ShieldCheck class="size-4 text-muted-foreground" />
                         {{ role.name }}
                         <Badge
-                            v-if="protectedRoles.includes(role.name)"
+                            v-if="role.is_system"
                             variant="outline"
                             class="gap-1"
                         >
@@ -70,7 +85,7 @@ const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
                         </Badge>
                     </CardTitle>
                     <CardDescription>
-                        <template v-if="role.name === superAdminRole">
+                        <template v-if="role.name === OWNER">
                             {{ t('Has every permission, always.') }}
                         </template>
                         <template v-else>
@@ -95,9 +110,7 @@ const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
                 </CardContent>
                 <CardFooter class="justify-end gap-1">
                     <Button
-                        v-if="
-                            can('roles.update') && role.name !== superAdminRole
-                        "
+                        v-if="can.create && role.name !== OWNER"
                         variant="ghost"
                         size="sm"
                         as-child
@@ -108,10 +121,7 @@ const remove = (role: AdminRole) => router.delete(destroy(role.id).url);
                         </Link>
                     </Button>
                     <ConfirmDialog
-                        v-if="
-                            can('roles.delete') &&
-                            !protectedRoles.includes(role.name)
-                        "
+                        v-if="can.create && !role.is_system"
                         :title="t('Delete role')"
                         :description="
                             t(

@@ -38,7 +38,7 @@ class ChatController extends Controller
             ? $this->conversations($user)->whereKey($conversation)->firstOrFail()
             : null;
 
-        $canChooseModel = $user->can('ai.choose-model');
+        $canChooseModel = $user->can('ai.models.manage');
 
         return Inertia::render('ai/Chat', [
             'conversations' => $this->conversations($user)
@@ -86,7 +86,7 @@ class ChatController extends Controller
             $this->conversations($user)->whereKey($validated['conversation_id'])->firstOrFail();
         }
 
-        $canChooseModel = $user->can('ai.choose-model');
+        $canChooseModel = $user->can('ai.models.manage');
 
         $prompt = isset($validated['prompt_id']) ? AiPrompt::query()->whereKey($validated['prompt_id'])->first() : null;
 

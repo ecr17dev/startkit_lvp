@@ -16,6 +16,10 @@ return new class extends Migration
             $table->string('locale', 10)->nullable()->after('is_active');
             $table->timestamp('last_login_at')->nullable()->after('locale');
             $table->string('last_login_ip', 45)->nullable()->after('last_login_at');
+            $table->timestamp('disabled_at')->nullable()->after('last_login_ip');
+            // Deleted users are anonymized and soft deleted so the audit
+            // trail and AI ledger keep their references...
+            $table->softDeletes();
         });
     }
 
@@ -25,7 +29,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['is_active', 'locale', 'last_login_at', 'last_login_ip']);
+            $table->dropSoftDeletes();
+            $table->dropColumn(['is_active', 'locale', 'last_login_at', 'last_login_ip', 'disabled_at']);
         });
     }
 };

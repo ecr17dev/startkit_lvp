@@ -18,7 +18,10 @@ class PasswordUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'current_password' => $this->currentPasswordRules(),
+            // Accounts created with one-time codes can set a first password...
+            'current_password' => $this->user()?->hasPassword()
+                ? $this->currentPasswordRules()
+                : ['nullable'],
             'password' => $this->passwordRules(),
         ];
     }

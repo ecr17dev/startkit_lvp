@@ -12,6 +12,7 @@ import { index as apiTokens } from '@/routes/api-tokens';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { index as sessions } from '@/routes/sessions';
 import type { NavItem } from '@/types';
 
 const { can } = usePermissions();
@@ -26,10 +27,14 @@ const sidebarNavItems = computed<NavItem[]>(() => [
         href: editSecurity(),
     },
     {
+        title: t('Sessions'),
+        href: sessions(),
+    },
+    {
         title: t('Appearance'),
         href: editAppearance(),
     },
-    ...(can('api.tokens')
+    ...(can('api.tokens.create')
         ? [{ title: t('API tokens'), href: apiTokens() }]
         : []),
 ]);

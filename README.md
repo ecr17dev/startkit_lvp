@@ -52,7 +52,7 @@ implementado y verificado de lo pendiente.
 | Etapa | Estado |
 | --- | --- |
 | 1. Fundamentos: monorepo, PostgreSQL, Docker, salud, manifiesto, CI | Implementada |
-| 2. Identidad: OTP, registro/invitaciones, roles, permisos, auditoría, sesiones | En curso |
+| 2. Identidad: OTP, registro/invitaciones, roles, permisos, auditoría, sesiones | Implementada |
 | 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Pendiente (existe una primera versión: proveedores, modelos con precio, prompts, uso y chat) |
 | 4. Agentes versionados, chat flotante con herramientas, multimedia | Pendiente |
 | 5–6. RAG interno y operación | Pendiente |
@@ -65,6 +65,8 @@ implementado y verificado de lo pendiente.
 php artisan starter:doctor     # diagnóstico del entorno y servicios
 php artisan starter:health     # chequeos de /health/ready
 php artisan starter:manifest   # registra versiones en starter.manifest.json
+php artisan starter:owner tu@correo.com --name="Tu Nombre"  # propietario
+php artisan starter:permissions                              # catálogo y roles de sistema
 php artisan test               # tests sobre PostgreSQL
 pnpm check && pnpm types:check # lint/format y vue-tsc
 ```
@@ -73,6 +75,7 @@ pnpm check && pnpm types:check # lint/format y vue-tsc
 
 - [Arquitectura](docs/architecture.md)
 - [Instalación](docs/installation.md)
+- [Identidad, acceso y auditoría](docs/identity.md)
 - [Docker](docs/docker.md)
 - [Actualizaciones](docs/upgrades.md)
 - [AGENTS.md](AGENTS.md) y [llms.txt](llms.txt) para agentes de desarrollo

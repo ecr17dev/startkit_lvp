@@ -5,7 +5,9 @@ namespace Starter\Administration;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
+use Starter\Administration\Audit\Auditor;
 use Starter\Administration\Health\HealthChecker;
+use Starter\Administration\Models\AuditEvent;
 use Starter\Administration\Settings\Branding;
 use Starter\Administration\Settings\RuntimeConfiguration;
 use Starter\Administration\Settings\SettingsManager;
@@ -21,6 +23,7 @@ class AdministrationServiceProvider extends ServiceProvider
         $this->app->singleton(RuntimeConfiguration::class);
         $this->app->singleton(Branding::class);
         $this->app->singleton(HealthChecker::class);
+        $this->app->scoped(Auditor::class);
     }
 
     /**
@@ -38,6 +41,11 @@ class AdministrationServiceProvider extends ServiceProvider
                 ->name('starter:scheduler-heartbeat')
                 ->onOneServer()
                 ->withoutOverlapping();
+
+            $schedule->command('model:prune', ['--model' => [AuditEvent::class]])
+                ->daily()
+                ->name('starter:prune-audit-events')
+                ->onOneServer();
         });
 
         $this->app->booted(fn () => $this->app->make(RuntimeConfiguration::class)->apply());

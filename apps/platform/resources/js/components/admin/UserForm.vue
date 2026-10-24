@@ -21,20 +21,32 @@ export type UserFormData = {
     name: string;
     email: string;
     password: string;
-    is_active: boolean;
     email_verified: boolean;
     locale: string | null;
     roles: string[];
 };
 
-const props = defineProps<{
-    form: InertiaForm<UserFormData>;
-    roles: string[];
-    editing?: boolean;
-}>();
+const props = withDefaults(
+    defineProps<{
+        form: InertiaForm<UserFormData>;
+        /** Roles the current user can grant. */
+        roles: string[];
+        editing?: boolean;
+        passwordsEnabled?: boolean;
+        canAssignRoles?: boolean;
+        disabled?: boolean;
+    }>(),
+    { canAssignRoles: true },
+);
 
 const page = usePage();
 const locales = computed(() => page.props.locales ?? {});
+
+// Roles the user already has but the current user cannot grant are shown
+// read only: the server rejects changes to them anyway...
+const roleOptions = computed(() => [
+    ...new Set([...props.roles, ...props.form.roles]),
+]);
 
 const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
     props.form.roles = checked
@@ -44,7 +56,7 @@ const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
 </script>
 
 <template>
-    <div class="grid gap-6">
+    <fieldset class="grid gap-6" :disabled="disabled">
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="name">{{ t('Name') }}</Label>
@@ -70,7 +82,7 @@ const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
         </div>
 
         <div class="grid gap-6 sm:grid-cols-2">
-            <div class="grid gap-2">
+            <div v-if="passwordsEnabled" class="grid gap-2">
                 <Label for="password">{{
                     editing ? t('New password') : t('Password')
                 }}</Label>
@@ -84,13 +96,6 @@ const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
                             : t('Optional')
                     "
                 />
-                <p v-if="!editing" class="text-xs text-muted-foreground">
-                    {{
-                        t(
-                            'Without a password the user can log in with a code sent by email.',
-                        )
-                    }}
-                </p>
                 <InputError :message="form.errors.password" />
             </div>
             <div class="grid gap-2">
@@ -122,16 +127,28 @@ const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
             </div>
         </div>
 
+        <p class="text-xs text-muted-foreground">
+            {{
+                t(
+                    'Users log in with a one-time code sent to their email address.',
+                )
+            }}
+        </p>
+
         <div class="grid gap-3">
             <Label>{{ t('Roles') }}</Label>
+            <p v-if="!canAssignRoles" class="text-xs text-muted-foreground">
+                {{ t('You cannot change the roles of this account.') }}
+            </p>
             <div class="grid gap-2 sm:grid-cols-3">
                 <Label
-                    v-for="role in roles"
+                    v-for="role in roleOptions"
                     :key="role"
-                    class="flex items-center gap-2 rounded-md border p-3 font-normal"
+                    class="flex items-center gap-2 rounded-md border p-3 font-normal has-disabled:opacity-60"
                 >
                     <Checkbox
                         :model-value="form.roles.includes(role)"
+                        :disabled="!canAssignRoles || !roles.includes(role)"
                         @update:model-value="
                             (checked) => toggleRole(role, checked)
                         "
@@ -142,36 +159,20 @@ const toggleRole = (role: string, checked: boolean | 'indeterminate') => {
             <InputError :message="form.errors.roles" />
         </div>
 
-        <div class="grid gap-4 rounded-lg border p-4">
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <Label for="is_active">{{ t('Active account') }}</Label>
-                    <p class="text-xs text-muted-foreground">
-                        {{
-                            t(
-                                'Inactive users cannot log in and their sessions are closed.',
-                            )
-                        }}
-                    </p>
-                </div>
-                <Switch id="is_active" v-model="form.is_active" />
+        <div
+            class="flex items-center justify-between gap-4 rounded-lg border p-4"
+        >
+            <div>
+                <Label for="email_verified">{{ t('Email verified') }}</Label>
+                <p class="text-xs text-muted-foreground">
+                    {{
+                        t(
+                            'Otherwise the address is verified with the first one-time code.',
+                        )
+                    }}
+                </p>
             </div>
-            <InputError :message="form.errors.is_active" />
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <Label for="email_verified">{{
-                        t('Email verified')
-                    }}</Label>
-                    <p class="text-xs text-muted-foreground">
-                        {{
-                            t(
-                                'Mark the email address as verified without sending a verification link.',
-                            )
-                        }}
-                    </p>
-                </div>
-                <Switch id="email_verified" v-model="form.email_verified" />
-            </div>
+            <Switch id="email_verified" v-model="form.email_verified" />
         </div>
-    </div>
+    </fieldset>
 </template>

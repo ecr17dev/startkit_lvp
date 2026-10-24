@@ -30,6 +30,8 @@ class GeneralSettingsController extends Controller
 
         $this->settings->setGroup('general', $validated);
 
+        audit('settings.updated', null, ['group' => 'general', 'keys' => array_keys($validated)]);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Settings saved.')]);
 
         return back();

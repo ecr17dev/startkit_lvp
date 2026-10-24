@@ -10,8 +10,10 @@ export type Branding = {
 
 export type Features = {
     passwordLogin: boolean;
-    codeLogin: boolean;
     registration: boolean;
+    organizations: boolean;
+    ai: boolean;
+    rag: boolean;
 };
 
 export type PaginationLink = {

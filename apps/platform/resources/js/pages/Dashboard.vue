@@ -77,14 +77,14 @@ const shortcuts = computed(() =>
             description: 'Manage accounts and access',
             href: users(),
             icon: Users,
-            permission: 'users.view',
+            permission: 'users.read',
         },
         {
             title: 'Roles & permissions',
             description: 'Define what each role can do',
             href: roles(),
             icon: ShieldCheck,
-            permission: 'roles.view',
+            permission: 'roles.read',
         },
         {
             title: 'Providers & models',
@@ -98,14 +98,14 @@ const shortcuts = computed(() =>
             description: 'Logo, colors and typography',
             href: branding.edit(),
             icon: Palette,
-            permission: 'settings.branding',
+            permission: 'settings.update',
         },
         {
             title: 'API tokens',
             description: 'Connect other applications',
             href: apiTokens(),
             icon: KeyRound,
-            permission: 'api.tokens',
+            permission: 'api.tokens.create',
         },
     ].filter((item) => can(item.permission)),
 );

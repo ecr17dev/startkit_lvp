@@ -5,8 +5,10 @@ import {
     Bot,
     Brain,
     ChartColumn,
+    History,
     LayoutGrid,
     MessageSquareText,
+    MonitorSmartphone,
     Settings2,
     ShieldCheck,
     Users,
@@ -33,11 +35,10 @@ import { chat } from '@/routes/ai';
 import { usage } from '@/routes/admin/ai';
 import { index as prompts } from '@/routes/admin/ai/prompts';
 import { index as providers } from '@/routes/admin/ai/providers';
+import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
-import authSettings from '@/routes/admin/settings/auth';
-import branding from '@/routes/admin/settings/branding';
+import { index as sessions } from '@/routes/admin/sessions';
 import general from '@/routes/admin/settings/general';
-import mail from '@/routes/admin/settings/mail';
 import { index as users } from '@/routes/admin/users';
 import { ui as apiDocs } from '@/routes/scramble/docs';
 import type { NavItem } from '@/types';
@@ -54,12 +55,7 @@ const sections = computed<NavSection[]>(() => {
     const filter = (items: (NavItem & { can?: string | string[] })[]) =>
         items.filter((item) => !item.can || can(item.can));
 
-    const systemSettings = [
-        { permission: 'settings.general', href: general.edit() },
-        { permission: 'settings.branding', href: branding.edit() },
-        { permission: 'settings.mail', href: mail.edit() },
-        { permission: 'settings.auth', href: authSettings.edit() },
-    ].find((item) => can(item.permission));
+    const systemSettings = can('settings.read') ? general.edit() : null;
 
     return [
         {
@@ -81,19 +77,31 @@ const sections = computed<NavSection[]>(() => {
                     title: t('Users'),
                     href: users(),
                     icon: Users,
-                    can: 'users.view',
+                    can: 'users.read',
                 },
                 {
                     title: t('Roles & permissions'),
                     href: roles(),
                     icon: ShieldCheck,
-                    can: 'roles.view',
+                    can: 'roles.read',
+                },
+                {
+                    title: t('Sessions'),
+                    href: sessions(),
+                    icon: MonitorSmartphone,
+                    can: 'users.read',
+                },
+                {
+                    title: t('Audit trail'),
+                    href: audit(),
+                    icon: History,
+                    can: 'audit.read',
                 },
                 ...(systemSettings
                     ? [
                           {
                               title: t('System settings'),
-                              href: systemSettings.href,
+                              href: systemSettings,
                               icon: Settings2,
                               isActive:
                                   currentUrl.value.startsWith(
@@ -117,13 +125,13 @@ const sections = computed<NavSection[]>(() => {
                     title: t('System prompts'),
                     href: prompts(),
                     icon: Bot,
-                    can: 'ai.prompts.manage',
+                    can: 'ai.agents.manage',
                 },
                 {
                     title: t('Usage & costs'),
                     href: usage(),
                     icon: ChartColumn,
-                    can: 'ai.usage.view',
+                    can: 'ai.usage.read',
                 },
             ]),
         },
@@ -131,7 +139,7 @@ const sections = computed<NavSection[]>(() => {
 });
 
 const footerNavItems = computed<NavItem[]>(() =>
-    can('api.docs')
+    can('api.docs.read')
         ? [
               {
                   title: t('API documentation'),

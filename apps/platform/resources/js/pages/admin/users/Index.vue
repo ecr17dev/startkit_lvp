@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { watchDebounced } from '@vueuse/core';
-import { Pencil, Plus, Search, Trash2 } from '@lucide/vue';
+import { MailPlus, Pencil, Plus, Search } from '@lucide/vue';
 import { reactive } from 'vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@starter/ui/components/badge';
@@ -27,7 +26,8 @@ import {
 } from '@starter/ui/components/table';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatDate, t } from '@/lib/i18n';
-import { create, destroy, edit, index } from '@/routes/admin/users';
+import { index as invitations } from '@/routes/admin/invitations';
+import { create, edit, index } from '@/routes/admin/users';
 import type { AdminUser, Paginated } from '@/types';
 
 defineOptions({
@@ -65,10 +65,6 @@ watchDebounced(
     },
     { debounce: 300, deep: true },
 );
-
-const remove = (user: AdminUser) => {
-    router.delete(destroy(user.id).url, { preserveScroll: true });
-};
 </script>
 
 <template>
@@ -81,12 +77,20 @@ const remove = (user: AdminUser) => {
                 t('Manage the accounts, roles and access of your users')
             "
         >
-            <Button v-if="can('users.create')" as-child>
-                <Link :href="create()">
-                    <Plus class="size-4" />
-                    {{ t('New user') }}
-                </Link>
-            </Button>
+            <div class="flex flex-wrap gap-2">
+                <Button v-if="can('users.invite')" variant="outline" as-child>
+                    <Link :href="invitations()">
+                        <MailPlus class="size-4" />
+                        {{ t('Invitations') }}
+                    </Link>
+                </Button>
+                <Button v-if="can('users.create')" as-child>
+                    <Link :href="create()">
+                        <Plus class="size-4" />
+                        {{ t('New user') }}
+                    </Link>
+                </Button>
+            </div>
         </PageHeader>
 
         <div class="flex flex-col gap-3 sm:flex-row">
@@ -121,8 +125,8 @@ const remove = (user: AdminUser) => {
                 <SelectContent>
                     <SelectItem value="all">{{ t('All statuses') }}</SelectItem>
                     <SelectItem value="active">{{ t('Active') }}</SelectItem>
-                    <SelectItem value="inactive">{{
-                        t('Inactive')
+                    <SelectItem value="disabled">{{
+                        t('Disabled')
                     }}</SelectItem>
                 </SelectContent>
             </Select>
@@ -146,7 +150,11 @@ const remove = (user: AdminUser) => {
                 <TableBody>
                     <TableRow v-for="user in users.data" :key="user.id">
                         <TableCell>
-                            <div class="font-medium">{{ user.name }}</div>
+                            <Link
+                                :href="edit(user.id)"
+                                class="font-medium hover:underline"
+                                >{{ user.name || '—' }}</Link
+                            >
                             <div class="text-xs text-muted-foreground">
                                 {{ user.email }}
                             </div>
@@ -164,10 +172,10 @@ const remove = (user: AdminUser) => {
                         <TableCell>
                             <Badge
                                 :variant="
-                                    user.is_active ? 'default' : 'outline'
+                                    user.is_active ? 'default' : 'destructive'
                                 "
                                 >{{
-                                    user.is_active ? t('Active') : t('Inactive')
+                                    user.is_active ? t('Active') : t('Disabled')
                                 }}</Badge
                             >
                         </TableCell>
@@ -182,12 +190,7 @@ const remove = (user: AdminUser) => {
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="flex justify-end gap-1">
-                                <Button
-                                    v-if="can('users.update')"
-                                    variant="ghost"
-                                    size="icon"
-                                    as-child
-                                >
+                                <Button variant="ghost" size="icon" as-child>
                                     <Link
                                         :href="edit(user.id)"
                                         :aria-label="t('Edit')"
@@ -195,27 +198,6 @@ const remove = (user: AdminUser) => {
                                         <Pencil class="size-4" />
                                     </Link>
                                 </Button>
-                                <ConfirmDialog
-                                    v-if="can('users.delete')"
-                                    :title="t('Delete user')"
-                                    :description="
-                                        t(
-                                            'Are you sure you want to delete :name? This cannot be undone.',
-                                            { name: user.name },
-                                        )
-                                    "
-                                    :confirm-text="t('Delete')"
-                                    @confirm="remove(user)"
-                                >
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="text-destructive"
-                                        :aria-label="t('Delete')"
-                                    >
-                                        <Trash2 class="size-4" />
-                                    </Button>
-                                </ConfirmDialog>
                             </div>
                         </TableCell>
                     </TableRow>

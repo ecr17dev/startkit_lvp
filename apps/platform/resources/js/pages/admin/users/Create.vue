@@ -20,14 +20,14 @@ defineOptions({
 const props = defineProps<{
     roles: string[];
     defaultRole: string | null;
+    passwordsEnabled: boolean;
 }>();
 
 const form = useForm<UserFormData>({
     name: '',
     email: '',
     password: '',
-    is_active: true,
-    email_verified: true,
+    email_verified: false,
     locale: null,
     roles:
         props.defaultRole && props.roles.includes(props.defaultRole)
@@ -35,7 +35,16 @@ const form = useForm<UserFormData>({
             : [],
 });
 
-const submit = () => form.post(store().url);
+const submit = () =>
+    form
+        .transform((data) => ({
+            ...data,
+            password:
+                props.passwordsEnabled && data.password
+                    ? data.password
+                    : undefined,
+        }))
+        .post(store().url);
 </script>
 
 <template>
@@ -47,10 +56,18 @@ const submit = () => form.post(store().url);
     >
         <PageHeader
             :title="t('New user')"
-            :description="t('Create an account and assign its roles')"
+            :description="
+                t(
+                    'Create an account and assign its roles. To let people choose their own name, send an invitation instead.',
+                )
+            "
         />
 
-        <UserForm :form="form" :roles="roles" />
+        <UserForm
+            :form="form"
+            :roles="roles"
+            :passwords-enabled="passwordsEnabled"
+        />
 
         <div class="flex items-center gap-2">
             <Button type="submit" :disabled="form.processing">

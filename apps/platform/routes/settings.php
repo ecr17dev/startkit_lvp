@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SessionController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -13,8 +14,12 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+// Sensitive pages and actions require a recent confirmation: a one-time
+// code, a passkey or, when enabled, the password (see ConfirmPassword page)...
+Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
+    Route::delete('settings/profile', [ProfileController::class, 'destroy'])
+        ->middleware(RequirePassword::class)
+        ->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
         ->middleware(RequirePassword::class)
@@ -24,9 +29,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 
+    Route::get('settings/sessions', [SessionController::class, 'index'])->name('sessions.index');
+    Route::delete('settings/sessions', [SessionController::class, 'destroyOthers'])->name('sessions.destroy-others');
+    Route::delete('settings/sessions/{session}', [SessionController::class, 'destroy'])->name('sessions.destroy');
+
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
-    Route::middleware('can:api.tokens')->group(function () {
+    Route::middleware('can:api.tokens.create')->group(function () {
         Route::get('settings/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
         Route::post('settings/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
         Route::delete('settings/api-tokens/{token}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');

@@ -80,6 +80,7 @@ class SecurityTest extends TestCase
 
     public function test_password_can_be_updated()
     {
+        $this->enablePasswordLogin();
         $user = User::factory()->create();
 
         $response = $this
@@ -100,6 +101,7 @@ class SecurityTest extends TestCase
 
     public function test_correct_password_must_be_provided_to_update_password()
     {
+        $this->enablePasswordLogin();
         $user = User::factory()->create();
 
         $response = $this
@@ -114,5 +116,34 @@ class SecurityTest extends TestCase
         $response
             ->assertSessionHasErrors('current_password')
             ->assertRedirect(route('security.edit'));
+    }
+
+    public function test_passwords_cannot_be_updated_when_the_deployment_disables_them()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('user-password.update'), [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_passwordless_accounts_can_set_a_first_password_when_enabled()
+    {
+        $this->enablePasswordLogin();
+        $user = User::factory()->withoutPassword()->create();
+
+        $this->actingAs($user)
+            ->from(route('security.edit'))
+            ->put(route('user-password.update'), [
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check('new-password', (string) $user->refresh()->password));
     }
 }

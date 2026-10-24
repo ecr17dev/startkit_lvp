@@ -15,6 +15,8 @@ import ManageTwoFactor from '@/components/ManageTwoFactor.vue';
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    canUpdatePassword: boolean;
+    hasPassword: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
@@ -37,10 +39,10 @@ defineOptions({
 
     <h1 class="sr-only">{{ $t('Security settings') }}</h1>
 
-    <div class="space-y-6">
+    <div v-if="canUpdatePassword" class="space-y-6">
         <Heading
             variant="small"
-            :title="$t('Update password')"
+            :title="hasPassword ? $t('Update password') : $t('Set a password')"
             :description="
                 $t(
                     'Ensure your account is using a long, random password to stay secure',
@@ -62,7 +64,7 @@ defineOptions({
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
+            <div v-if="hasPassword" class="grid gap-2">
                 <Label for="current_password">{{
                     $t('Current password')
                 }}</Label>

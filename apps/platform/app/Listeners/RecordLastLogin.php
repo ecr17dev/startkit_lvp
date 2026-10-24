@@ -20,5 +20,7 @@ class RecordLastLogin
             'last_login_at' => now(),
             'last_login_ip' => request()->ip(),
         ])->saveQuietly();
+
+        audit('auth.login', $event->user, ['guard' => $event->guard], $event->user);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Auth\LoginCodeBroker;
+use App\Auth\PasswordlessAuthentication;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Resources\UserResource;
@@ -16,27 +16,54 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Features;
+use Starter\Identity\Identity;
+use Starter\Identity\Otp\OtpPurpose;
 
 #[Group('Authentication', weight: 0)]
 class AuthController extends Controller
 {
-    public function __construct(protected LoginCodeBroker $broker) {}
+    public function __construct(protected PasswordlessAuthentication $auth) {}
 
     /**
-     * Create a token with email and password.
+     * Request a one-time code.
      *
-     * Users with two-factor authentication enabled must also send a valid
-     * `two_factor_code` (TOTP) or one of their `recovery_code`.
+     * Always answers 202 with a `challenge_id`, whether the account exists
+     * or not, so the endpoint cannot be used to discover accounts. Send the
+     * challenge id with the code received by email to `/v1/auth/otp/verify`.
      *
      * @unauthenticated
      */
-    public function token(Request $request): JsonResponse
+    public function requestOtp(Request $request): JsonResponse
     {
-        abort_unless(settings('auth.password_login', true), 404);
-
         $validated = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+        ]);
+
+        $challenge = $this->auth->requestLogin($validated['email'], $request);
+
+        return response()->json([
+            /** Identifier of the challenge, required to verify the code. */
+            'challenge_id' => $challenge->id,
+            'code_length' => $this->auth->broker()->length(),
+            'expires_in_minutes' => $this->auth->broker()->ttl(),
+            /** Seconds before another code can be requested for this email. */
+            'resend_available_in' => $challenge->resendAvailableIn(),
+        ], 202);
+    }
+
+    /**
+     * Exchange a one-time code for a token.
+     *
+     * Requires the `api.tokens.create` permission. Users with two-factor
+     * authentication must also send `two_factor_code` or `recovery_code`.
+     *
+     * @unauthenticated
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'challenge_id' => ['required', 'uuid'],
+            'code' => ['required', 'string', 'digits:'.$this->auth->broker()->length()],
             /** A name to identify the device or integration using the token. */
             'device_name' => ['required', 'string', 'max:100'],
             /** Six digit code of the authenticator app (only when 2FA is enabled). */
@@ -47,54 +74,33 @@ class AuthController extends Controller
             'abilities.*' => [Rule::in(ApiTokenController::ABILITIES)],
         ]);
 
-        $user = User::query()->where('email', Str::lower($validated['email']))->first();
+        $result = $this->auth->broker()->verify($validated['challenge_id'], $validated['code'], OtpPurpose::Login);
+        $user = $result->verified() && $result->challenge !== null ? $this->auth->complete($result->challenge) : null;
 
-        if ($user === null || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages(['email' => __('auth.failed')]);
+        if ($user === null) {
+            throw ValidationException::withMessages(['code' => $result->status->message()]);
         }
 
-        $this->ensureCanLogin($user);
         $this->ensureTwoFactorPassed($user, $validated['two_factor_code'] ?? null, $validated['recovery_code'] ?? null);
 
         return $this->tokenResponse($user, $validated['device_name'], $validated['abilities'] ?? null);
     }
 
     /**
-     * Send a login code by email.
+     * Create a token with email and password.
      *
-     * Always answers with the same message, whether the account exists or not.
-     *
-     * @unauthenticated
-     */
-    public function requestCode(Request $request): JsonResponse
-    {
-        abort_unless(settings('auth.code_login', true), 404);
-
-        $validated = $request->validate([
-            'email' => ['required', 'string', 'email', 'max:255'],
-        ]);
-
-        $this->broker->send($validated['email'], $request->ip(), $request->userAgent());
-
-        return response()->json([
-            'message' => __('If an account exists for :email, we have sent a login code to it.', ['email' => $validated['email']]),
-            'code_length' => $this->broker->length(),
-            'expires_in_minutes' => $this->broker->ttl(),
-        ]);
-    }
-
-    /**
-     * Exchange a login code for a token.
+     * Only available when the deployment enables passwords
+     * (STARTER_AUTH_METHOD=email-otp+password).
      *
      * @unauthenticated
      */
-    public function verifyCode(Request $request): JsonResponse
+    public function token(Request $request): JsonResponse
     {
-        abort_unless(settings('auth.code_login', true), 404);
+        abort_unless(Identity::passwordsEnabled(), 404);
 
         $validated = $request->validate([
             'email' => ['required', 'string', 'email'],
-            'code' => ['required', 'string', 'digits:'.$this->broker->length()],
+            'password' => ['required', 'string'],
             'device_name' => ['required', 'string', 'max:100'],
             'two_factor_code' => ['nullable', 'string'],
             'recovery_code' => ['nullable', 'string'],
@@ -102,10 +108,10 @@ class AuthController extends Controller
             'abilities.*' => [Rule::in(ApiTokenController::ABILITIES)],
         ]);
 
-        $user = $this->broker->verify($validated['email'], $validated['code']);
+        $user = User::query()->where('email', Str::lower($validated['email']))->first();
 
-        if ($user === null) {
-            throw ValidationException::withMessages(['code' => __('The code is invalid or has expired.')]);
+        if ($user === null || ! Hash::check($validated['password'], (string) $user->password) || ! $user->isActive()) {
+            throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
         $this->ensureTwoFactorPassed($user, $validated['two_factor_code'] ?? null, $validated['recovery_code'] ?? null);
@@ -116,12 +122,16 @@ class AuthController extends Controller
     /**
      * Get the authenticated user.
      */
-    public function me(Request $request): UserResource
+    public function me(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        return new UserResource($user->load('roles'));
+        return response()->json([
+            'data' => (new UserResource($user->load('roles')))->resolve($request),
+            /** @var list<string> */
+            'permissions' => $user->permissionNames(),
+        ]);
     }
 
     /**
@@ -135,13 +145,6 @@ class AuthController extends Controller
         $user->currentAccessToken()->delete();
 
         return response()->json(['message' => __('Token revoked.')]);
-    }
-
-    protected function ensureCanLogin(User $user): void
-    {
-        if (! $user->is_active) {
-            throw ValidationException::withMessages(['email' => __('Your account has been deactivated.')]);
-        }
     }
 
     protected function ensureTwoFactorPassed(User $user, ?string $code, ?string $recoveryCode): void
@@ -174,12 +177,17 @@ class AuthController extends Controller
      */
     protected function tokenResponse(User $user, string $deviceName, ?array $abilities): JsonResponse
     {
+        abort_unless($user->can('api.tokens.create'), 403, __('Your account is not allowed to create API tokens.'));
+
         $token = $user->createToken($deviceName, $abilities ?: ApiTokenController::ABILITIES);
+
+        audit('api_tokens.created', $user, ['name' => $deviceName, 'abilities' => $token->accessToken->abilities], $user);
 
         return response()->json([
             /** The plain text token. Send it as `Authorization: Bearer <token>`. */
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
+            /** @var list<string> */
             'abilities' => $token->accessToken->abilities,
             'user' => new UserResource($user->load('roles')),
         ], 201);

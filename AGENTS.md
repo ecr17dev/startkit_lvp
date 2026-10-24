@@ -19,14 +19,22 @@ llamada a modelos de IA del servidor pasa por `laravel/ai`.
   `Starter\Ai`, `Starter\Knowledge`, `Starter\Console`). Sin lock propio; providers
   registrados en `apps/platform/bootstrap/providers.php`.
 - `packages/js/*`: `@starter/ui` (shadcn-vue), `@starter/chat`, `@starter/api-client`.
-- Casos de uso compartidos por panel, API y herramientas del chat: `app/Actions`.
+- Casos de uso compartidos por panel, API y herramientas del chat: `app/Actions`
+  (`Users`, `Roles`, `Invitations`). Cada Action autoriza (Policies), valida (sus
+  `rules()` las reutilizan los Form Requests), aplica la delegación
+  (`Starter\Identity\Authorization\Delegation`) y audita con `audit()`.
   Nunca dupliques reglas en un controlador o en una herramienta IA.
 
 ## Reglas
 
 - **Autorización**: Policies/Gates + `spatie/laravel-permission` con el catálogo de
-  `Starter\Identity\Permissions`. El backend siempre valida; las props de permisos
-  solo adaptan la interfaz. Nunca otorgues privilegios que el actor no tiene.
+  `Starter\Identity\Permissions` (agrega permisos ahí o con `Permissions::register()`
+  y ejecuta `php artisan starter:permissions`). Sin `Gate::before`: el rol `owner`
+  tiene todos los permisos explícitamente. El backend siempre valida; las props de
+  permisos solo adaptan la interfaz. Nunca otorgues privilegios que el actor no tiene.
+- **Autenticación**: OTP por correo (`App\Auth\PasswordlessAuthentication`); las
+  contraseñas solo existen con `STARTER_AUTH_METHOD=email-otp+password`. Ver
+  `docs/identity.md`.
 - **Secretos**: nunca en props Inertia, bundles Vite, logs ni JSON exportable. Las
   credenciales se guardan cifradas (`encrypted` cast) o como referencias `env:NAME`.
 - **Costos IA**: toda llamada se registra en el libro de consumo. Una tarifa

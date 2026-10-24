@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Users\DeleteUser;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Starter\Identity\Authorization\Delegation;
 
 class ProfileController extends Controller
 {
@@ -44,15 +47,24 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Delete the user's account (anonymized and soft deleted). The route
+     * requires a recent confirmation (one-time code, passkey or password).
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(Request $request, DeleteUser $action, Delegation $delegation): RedirectResponse
     {
+        /** @var User $user */
         $user = $request->user();
 
-        Auth::logout();
+        if ($delegation->isLastOwner($user)) {
+            throw ValidationException::withMessages([
+                'account' => __('You are the last owner. Make someone else an owner before deleting your account.'),
+            ]);
+        }
 
-        $user->delete();
+        $emailHash = $action->anonymize($user);
+        audit('users.deleted', $user, ['email_sha256' => $emailHash, 'self' => true], $user);
+
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

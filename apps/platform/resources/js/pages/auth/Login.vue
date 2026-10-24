@@ -19,14 +19,13 @@ import {
 } from '@starter/ui/components/tabs';
 import { t } from '@/lib/i18n';
 import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { store as sendCode } from '@/routes/login-code';
+import { code, store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
         title: 'Log in to your account',
-        description: 'Choose how you want to log in',
+        description: 'Enter your email and we will send you a one-time code',
     },
 });
 
@@ -38,7 +37,7 @@ defineProps<{
 
 const page = usePage();
 const features = computed(() => page.props.features);
-const method = ref<string>(features.value.codeLogin ? 'code' : 'password');
+const method = ref<'code' | 'password'>('code');
 const email = ref('');
 </script>
 
@@ -59,10 +58,7 @@ const email = ref('');
     />
 
     <Tabs v-model="method" class="gap-6">
-        <TabsList
-            v-if="features.codeLogin && features.passwordLogin"
-            class="grid w-full grid-cols-2"
-        >
+        <TabsList v-if="features.passwordLogin" class="grid w-full grid-cols-2">
             <TabsTrigger value="code" data-test="login-code-tab">
                 <Mail class="size-4" />
                 {{ t('Email code') }}
@@ -73,9 +69,9 @@ const email = ref('');
             </TabsTrigger>
         </TabsList>
 
-        <TabsContent v-if="features.codeLogin" value="code">
+        <TabsContent value="code">
             <Form
-                v-bind="sendCode.form()"
+                v-bind="code.form()"
                 v-slot="{ errors, processing }"
                 class="grid gap-6"
             >
@@ -90,6 +86,7 @@ const email = ref('');
                         v-focus
                         autocomplete="email"
                         placeholder="email@example.com"
+                        data-test="login-email-input"
                     />
                     <InputError :message="errors.email" />
                     <p class="text-xs text-muted-foreground">
@@ -135,7 +132,6 @@ const email = ref('');
                             type="email"
                             name="email"
                             required
-                            :tabindex="1"
                             autocomplete="email"
                             placeholder="email@example.com"
                         />
@@ -149,7 +145,6 @@ const email = ref('');
                                 v-if="canResetPassword"
                                 :href="request()"
                                 class="text-sm"
-                                :tabindex="5"
                             >
                                 {{ t('Forgot your password?') }}
                             </TextLink>
@@ -158,31 +153,20 @@ const email = ref('');
                             id="password"
                             name="password"
                             required
-                            :tabindex="2"
                             autocomplete="current-password"
                             :placeholder="t('Password')"
                         />
                         <InputError :message="errors.password" />
                     </div>
 
-                    <div class="flex items-center justify-between">
-                        <Label
-                            for="remember"
-                            class="flex items-center space-x-3"
-                        >
-                            <Checkbox
-                                id="remember"
-                                name="remember"
-                                :tabindex="3"
-                            />
-                            <span>{{ t('Remember me') }}</span>
-                        </Label>
-                    </div>
+                    <Label for="remember" class="flex items-center space-x-3">
+                        <Checkbox id="remember" name="remember" />
+                        <span>{{ t('Remember me') }}</span>
+                    </Label>
 
                     <Button
                         type="submit"
                         class="mt-2 w-full"
-                        :tabindex="4"
                         :disabled="processing"
                         data-test="login-button"
                     >
@@ -199,6 +183,6 @@ const email = ref('');
         class="mt-6 text-center text-sm text-muted-foreground"
     >
         {{ t("Don't have an account?") }}
-        <TextLink :href="register()" :tabindex="5">{{ t('Sign up') }}</TextLink>
+        <TextLink :href="register()">{{ t('Sign up') }}</TextLink>
     </div>
 </template>

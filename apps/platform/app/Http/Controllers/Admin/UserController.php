@@ -2,22 +2,31 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Users\CreateUser;
+use App\Actions\Users\DeleteUser;
+use App\Actions\Users\RevokeSessions;
+use App\Actions\Users\SetUserStatus;
+use App\Actions\Users\UpdateUser;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UserRequest;
+use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Support\Permissions;
+use App\Support\AuditLog;
+use App\Support\SessionList;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Starter\Identity\Authorization\Delegation;
+use Starter\Identity\Identity;
 
 class UserController extends Controller
 {
+    public function __construct(protected Delegation $delegation) {}
+
     /**
      * Display the users.
      */
@@ -28,15 +37,15 @@ class UserController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'in:active,inactive'],
+            'status' => ['nullable', 'in:active,disabled'],
         ]);
 
         $users = User::query()
             ->with('roles')
             ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(
-                fn ($query) => $query->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")
+                fn ($query) => $query->whereLike('name', "%{$search}%")->orWhereLike('email', "%{$search}%")
             ))
-            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->role($role))
+            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->whereHas('roles', fn ($query) => $query->where('name', $role)))
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('is_active', $status === 'active'))
             ->latest('id')
             ->paginate(15)
@@ -44,7 +53,7 @@ class UserController extends Controller
 
         return Inertia::render('admin/users/Index', [
             'users' => UserResource::collection($users),
-            'roles' => Role::query()->orderBy('name')->pluck('name'),
+            'roles' => Role::query()->orderBy('id')->pluck('name'),
             'filters' => (object) $filters,
         ]);
     }
@@ -57,114 +66,91 @@ class UserController extends Controller
         Gate::authorize('create', User::class);
 
         return Inertia::render('admin/users/Create', [
-            'roles' => $this->assignableRoles($request),
+            'roles' => $this->grantableRoles($request),
             'defaultRole' => settings('auth.default_role'),
+            'passwordsEnabled' => Identity::passwordsEnabled(),
         ]);
     }
 
     /**
      * Store a newly created user.
      */
-    public function store(UserRequest $request): RedirectResponse
+    public function store(StoreUserRequest $request, CreateUser $action): RedirectResponse
     {
-        Gate::authorize('create', User::class);
-
-        $validated = $request->validated();
-
-        $user = User::query()->create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            // Users without password can log in with an email code...
-            'password' => $validated['password'] ?? Str::password(32),
-            'is_active' => $validated['is_active'] ?? true,
-            'locale' => $validated['locale'] ?? null,
-        ]);
-
-        if ($request->boolean('email_verified')) {
-            $user->markEmailAsVerified();
-        }
-
-        $user->syncRoles($validated['roles'] ?? []);
+        $user = $action->handle($this->actor($request), $request->all());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User created.')]);
 
-        return to_route('admin.users.index');
+        return to_route('admin.users.edit', $user);
     }
 
     /**
-     * Show the form to edit a user.
+     * Show the user detail: profile, roles, sessions and activity.
      */
     public function edit(Request $request, User $user): Response
     {
-        Gate::authorize('update', $user);
+        Gate::authorize('view', $user);
+
+        $actor = $this->actor($request);
+        $canManageSessions = $actor->can('manageSessions', $user);
 
         return Inertia::render('admin/users/Edit', [
             'user' => (new UserResource($user->load('roles')))->resolve(),
-            'roles' => $this->assignableRoles($request),
-            'canDelete' => $request->user()?->can('delete', $user) ?? false,
+            'roles' => $this->grantableRoles($request),
+            'permissions' => $user->permissionNames(),
+            'sessions' => $canManageSessions ? SessionList::forUser($user->id) : [],
+            'tokens' => $canManageSessions ? $user->tokens()->count() : 0,
+            'activity' => $actor->can('audit.read') ? AuditLog::forSubject($user, 15) : null,
+            'passwordsEnabled' => Identity::passwordsEnabled(),
+            'isLastOwner' => $this->delegation->isLastOwner($user),
+            'can' => [
+                'update' => $actor->can('update', $user),
+                'assignRoles' => $actor->can('assignRoles', $user),
+                'disable' => $actor->can('disable', $user),
+                'delete' => $actor->can('delete', $user),
+                'manageSessions' => $canManageSessions,
+            ],
         ]);
     }
 
     /**
      * Update the given user.
      */
-    public function update(UserRequest $request, User $user): RedirectResponse
+    public function update(UpdateUserRequest $request, User $user, UpdateUser $action): RedirectResponse
     {
-        Gate::authorize('update', $user);
+        $input = $request->only(['name', 'email', 'locale', 'email_verified', 'password']);
 
-        $validated = $request->validated();
-        $isSelf = $request->user()?->is($user);
-
-        if ($isSelf && ! ($validated['is_active'] ?? true)) {
-            throw ValidationException::withMessages(['is_active' => __('You cannot deactivate your own account.')]);
+        if ($request->has('roles')) {
+            $input['roles'] = $request->input('roles', []);
         }
 
-        $roles = $validated['roles'] ?? [];
-
-        if ($user->isSuperAdmin() && ! in_array(Permissions::SUPER_ADMIN, $roles, true) && $this->isLastSuperAdmin($user)) {
-            throw ValidationException::withMessages(['roles' => __('At least one super administrator is required.')]);
-        }
-
-        $user->fill([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'is_active' => $validated['is_active'] ?? $user->is_active,
-            'locale' => $validated['locale'] ?? null,
-        ]);
-
-        if (filled($validated['password'] ?? null)) {
-            $user->password = $validated['password'];
-        }
-
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-
-        $user->save();
-
-        if ($request->boolean('email_verified') && ! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-        }
-
-        $user->syncRoles($roles);
+        $action->handle($this->actor($request), $user, array_filter($input, fn ($value, $key) => $key !== 'password' || filled($value), ARRAY_FILTER_USE_BOTH));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User updated.')]);
 
-        return to_route('admin.users.index');
+        return back();
     }
 
     /**
-     * Delete the given user.
+     * Disable or enable the user.
      */
-    public function destroy(User $user): RedirectResponse
+    public function status(Request $request, User $user, SetUserStatus $action): RedirectResponse
     {
-        Gate::authorize('delete', $user);
+        $validated = $request->validate(['active' => ['required', 'boolean']]);
 
-        if ($user->isSuperAdmin() && $this->isLastSuperAdmin($user)) {
-            throw ValidationException::withMessages(['user' => __('At least one super administrator is required.')]);
-        }
+        $action->handle($this->actor($request), $user, (bool) $validated['active']);
 
-        $user->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => $validated['active'] ? __('User enabled.') : __('User disabled. Their sessions and tokens were revoked.')]);
+
+        return back();
+    }
+
+    /**
+     * Delete (anonymize) the given user.
+     */
+    public function destroy(Request $request, User $user, DeleteUser $action): RedirectResponse
+    {
+        $action->handle($this->actor($request), $user);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User deleted.')]);
 
@@ -172,21 +158,41 @@ class UserController extends Controller
     }
 
     /**
-     * Get the roles the current user can assign.
-     *
-     * @return list<string>
+     * Revoke one session of the user.
      */
-    protected function assignableRoles(Request $request): array
+    public function destroySession(Request $request, User $user, string $session, RevokeSessions $action): RedirectResponse
     {
-        return array_values(Role::query()
-            ->orderBy('name')
-            ->pluck('name')
-            ->reject(fn (string $role) => $role === Permissions::SUPER_ADMIN && ! $request->user()?->isSuperAdmin())
-            ->all());
+        $action->handle($this->actor($request), $user, $session);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Session revoked.')]);
+
+        return back();
     }
 
-    protected function isLastSuperAdmin(User $user): bool
+    /**
+     * Revoke every session of the user.
+     */
+    public function destroySessions(Request $request, User $user, RevokeSessions $action): RedirectResponse
     {
-        return User::role(Permissions::SUPER_ADMIN)->whereKeyNot($user->getKey())->doesntExist();
+        $actor = $this->actor($request);
+        $action->others($actor, $user, $actor->is($user) ? $request->session()->getId() : null);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Sessions revoked.')]);
+
+        return back();
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function grantableRoles(Request $request): array
+    {
+        return array_values($this->delegation->grantableRoles($this->actor($request))->pluck('name')->all());
+    }
+
+    protected function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
     }
 }

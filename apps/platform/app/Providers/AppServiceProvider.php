@@ -5,12 +5,14 @@ namespace App\Providers;
 use App\Ai\ProviderRegistry;
 use App\Ai\UsageContext;
 use App\Models\User;
+use App\Policies\InvitationPolicy;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 use Starter\Administration\Settings\RuntimeConfiguration;
 use Starter\Administration\Settings\SettingsManager;
+use Starter\Identity\Models\Invitation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -73,16 +76,24 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Super administrators are granted every permission.
+     * Deny by default: there is no Gate::before bypass, owners hold every
+     * permission explicitly (synced by `starter:permissions`) and policies
+     * apply the delegation rules to everybody.
      */
     protected function configureAuthorization(): void
     {
-        Gate::before(fn (User $user) => $user->isSuperAdmin() ? true : null);
+        // Short, stable names in polymorphic columns (audit trail, roles)...
+        Relation::morphMap([
+            'user' => User::class,
+            'role' => Role::class,
+            'invitation' => Invitation::class,
+        ]);
 
         Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Invitation::class, InvitationPolicy::class);
 
         Gate::define('viewApiDocs', fn (?User $user) => app()->environment('local')
-            || ($user?->can('api.docs') ?? false));
+            || ($user?->can('api.docs.read') ?? false));
     }
 
     protected function configureRateLimiting(): void
@@ -93,9 +104,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ai', fn (Request $request) => Limit::perMinute(20)
             ->by($request->user()?->getAuthIdentifier() ?: $request->ip()));
 
-        RateLimiter::for('login-code', fn (Request $request) => [
-            Limit::perMinute(3)->by(Str::lower((string) $request->input('email')).'|'.$request->ip()),
-            Limit::perHour(20)->by($request->ip()),
+        // One-time codes: the broker already enforces a resend cooldown per
+        // email; these limits stop floods per address and per client...
+        RateLimiter::for('otp-request', fn (Request $request) => [
+            Limit::perMinute(6)->by('ip:'.$request->ip()),
+            Limit::perHour(10)->by('email:'.Str::lower((string) ($request->input('email')
+                ?? $request->user()?->getAttribute('email')
+                ?? ($request->hasSession() ? $request->session()->getId() : $request->ip())))),
+        ]);
+
+        RateLimiter::for('otp-verify', fn (Request $request) => [
+            Limit::perMinute(10)->by('ip:'.$request->ip()),
         ]);
     }
 
@@ -107,7 +126,7 @@ class AppServiceProvider extends ServiceProvider
         Scramble::configure()
             ->withDocumentTransformers(function (OpenApi $openApi) {
                 $openApi->info->title = config('app.name').' API';
-                $openApi->info->description = (string) __('REST API secured with Laravel Sanctum. Create a token from Settings → API tokens or with POST /v1/auth/token and send it as `Authorization: Bearer <token>`.');
+                $openApi->info->description = (string) __('REST API secured with Laravel Sanctum. Create a token from Settings → API tokens or with the one-time code endpoints (POST /v1/auth/otp and /v1/auth/otp/verify) and send it as `Authorization: Bearer <token>`.');
 
                 $openApi->secure(SecurityScheme::http('bearer'));
             });

@@ -61,39 +61,51 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_deleting_the_account_requires_a_recent_confirmation()
     {
         $user = User::factory()->create();
 
+        $this->actingAs($user)
+            ->delete(route('profile.destroy'))
+            ->assertRedirect(route('password.confirm'));
+
+        $this->assertNotSoftDeleted($user);
+    }
+
+    public function test_user_can_delete_their_account()
+    {
+        $user = User::factory()->create();
+        $email = $user->email;
+
         $response = $this
             ->actingAs($user)
-            ->delete(route('profile.destroy'), [
-                'password' => 'password',
-            ]);
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->delete(route('profile.destroy'));
 
         $response
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('home'));
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $this->assertSoftDeleted($user);
+
+        // The account is anonymized and soft deleted...
+        $deleted = User::withTrashed()->find($user->id);
+        $this->assertNotNull($deleted);
+        $this->assertNotSame($email, $deleted->email);
+        $this->assertFalse($deleted->is_active);
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account()
+    public function test_the_last_owner_cannot_delete_their_account()
     {
-        $user = User::factory()->create();
+        $owner = $this->userWithRole('owner');
 
-        $response = $this
-            ->actingAs($user)
+        $this->actingAs($owner)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->from(route('profile.edit'))
-            ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
-            ]);
+            ->delete(route('profile.destroy'))
+            ->assertSessionHasErrors('account');
 
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
-
-        $this->assertNotNull($user->fresh());
+        $this->assertNotSoftDeleted($owner);
     }
 }

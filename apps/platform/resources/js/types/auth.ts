@@ -6,6 +6,7 @@ export type User = {
     email_verified_at: string | null;
     locale?: string | null;
     roles?: string[];
+    is_owner?: boolean;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;

@@ -64,6 +64,8 @@ class ApiTokenController extends Controller
             isset($validated['expires_in_days']) ? now()->addDays((int) $validated['expires_in_days']) : null,
         );
 
+        audit('api_tokens.created', $user, ['name' => $validated['name'], 'abilities' => $token->accessToken->abilities]);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('API token created. Copy it now, it will not be shown again.')]);
 
         return back()->with('plainTextToken', $token->plainTextToken);
@@ -77,7 +79,9 @@ class ApiTokenController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $user->tokens()->whereKey($token)->delete();
+        if ($user->tokens()->whereKey($token)->delete() > 0) {
+            audit('api_tokens.revoked', $user, ['token_id' => $token]);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('API token revoked.')]);
 

@@ -4,44 +4,62 @@ namespace App\Policies;
 
 use App\Models\User;
 
+/**
+ * Owners can only be managed by other owners. Nobody disables, deletes or
+ * changes the roles of their own account from the administration.
+ */
 class UserPolicy
 {
-    public function viewAny(User $user): bool
+    public function viewAny(User $actor): bool
     {
-        return $user->can('users.view');
+        return $actor->can('users.read');
     }
 
-    public function view(User $user, User $model): bool
+    public function view(User $actor, User $user): bool
     {
-        return $user->can('users.view');
+        return $actor->is($user) || $actor->can('users.read');
     }
 
-    public function create(User $user): bool
+    public function create(User $actor): bool
     {
-        return $user->can('users.create');
+        return $actor->can('users.create');
+    }
+
+    public function invite(User $actor): bool
+    {
+        return $actor->can('users.invite');
+    }
+
+    public function update(User $actor, User $user): bool
+    {
+        return $actor->can('users.update') && $this->canManage($actor, $user);
+    }
+
+    public function assignRoles(User $actor, User $user): bool
+    {
+        return ! $actor->is($user) && $this->update($actor, $user);
+    }
+
+    public function disable(User $actor, User $user): bool
+    {
+        return ! $actor->is($user) && $actor->can('users.disable') && $this->canManage($actor, $user);
+    }
+
+    public function delete(User $actor, User $user): bool
+    {
+        return ! $actor->is($user) && $actor->can('users.delete') && $this->canManage($actor, $user);
     }
 
     /**
-     * Only super administrators can modify other super administrators.
+     * View and revoke the sessions and tokens of the user.
      */
-    public function update(User $user, User $model): bool
+    public function manageSessions(User $actor, User $user): bool
     {
-        if ($model->isSuperAdmin() && ! $user->isSuperAdmin()) {
-            return false;
-        }
-
-        return $user->can('users.update');
+        return $actor->is($user) || $this->update($actor, $user);
     }
 
-    /**
-     * Users cannot delete themselves from the admin panel, nor super administrators.
-     */
-    public function delete(User $user, User $model): bool
+    protected function canManage(User $actor, User $user): bool
     {
-        if ($user->is($model) || ($model->isSuperAdmin() && ! $user->isSuperAdmin())) {
-            return false;
-        }
-
-        return $user->can('users.delete');
+        return ! $user->isOwner() || $actor->isOwner();
     }
 }

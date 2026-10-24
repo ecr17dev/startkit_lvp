@@ -57,6 +57,8 @@ class MailSettingsController extends Controller
 
         $this->settings->setGroup('mail', $values);
 
+        audit('settings.updated', null, ['group' => 'mail', 'keys' => array_keys($values)]);
+
         // Long running queue workers must reload the configuration...
         Artisan::call('queue:restart');
 

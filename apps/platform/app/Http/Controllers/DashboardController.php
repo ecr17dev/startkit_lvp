@@ -23,7 +23,7 @@ class DashboardController extends Controller
 
         $stats = [];
 
-        if ($user->can('users.view')) {
+        if ($user->can('users.read')) {
             $stats['users'] = [
                 'total' => User::query()->count(),
                 'active' => User::query()->where('is_active', true)->count(),
@@ -31,11 +31,11 @@ class DashboardController extends Controller
             ];
         }
 
-        if ($user->can('roles.view')) {
+        if ($user->can('roles.read')) {
             $stats['roles'] = Role::query()->count();
         }
 
-        if ($user->can('ai.usage.view')) {
+        if ($user->can('ai.usage.read')) {
             $stats['ai'] = [
                 'month_cost' => $this->ai->monthlySpend(),
                 'month_calls' => AiUsageLog::query()->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),

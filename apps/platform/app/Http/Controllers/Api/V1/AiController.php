@@ -47,9 +47,9 @@ class AiController extends Controller
             'prompt' => ['nullable', 'string', Rule::exists('ai_prompts', 'slug')->where('is_active', true)],
             /** Conversation to continue. */
             'conversation_id' => ['nullable', 'string', 'max:36'],
-            /** Provider name (requires the `ai.choose-model` permission). */
+            /** Provider name (requires the `ai.models.manage` permission). */
             'provider' => ['nullable', 'string', Rule::exists('ai_providers', 'name')->where('is_active', true)],
-            /** Model identifier (requires the `ai.choose-model` permission). */
+            /** Model identifier (requires the `ai.models.manage` permission). */
             'model' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -61,7 +61,7 @@ class AiController extends Controller
                 ->firstOrFail();
         }
 
-        $canChooseModel = $user->can('ai.choose-model');
+        $canChooseModel = $user->can('ai.models.manage');
 
         $response = $this->ai->chat(
             $user,

@@ -80,6 +80,8 @@ class BrandingSettingsController extends Controller
 
         $this->settings->setGroup('branding', $values);
 
+        audit('settings.updated', null, ['group' => 'branding', 'keys' => array_keys($values)]);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branding updated.')]);
 
         return back();

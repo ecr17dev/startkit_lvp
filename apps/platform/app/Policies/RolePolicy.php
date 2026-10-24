@@ -3,37 +3,46 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Support\Permissions;
 use Spatie\Permission\Models\Role;
+use Starter\Identity\Permissions;
 
+/**
+ * The owner role is immutable (it always holds every permission) and the
+ * system roles cannot be renamed nor deleted. Granting permissions is
+ * further limited by the delegation rules (Starter\Identity\Authorization\Delegation).
+ */
 class RolePolicy
 {
-    public function viewAny(User $user): bool
+    public function viewAny(User $actor): bool
     {
-        return $user->can('roles.view');
+        return $actor->can('roles.read');
     }
 
-    public function view(User $user, Role $role): bool
+    public function view(User $actor, Role $role): bool
     {
-        return $user->can('roles.view');
+        return $actor->can('roles.read');
     }
 
-    public function create(User $user): bool
+    public function create(User $actor): bool
     {
-        return $user->can('roles.create');
+        return $actor->can('roles.manage');
+    }
+
+    public function update(User $actor, Role $role): bool
+    {
+        return $role->name !== Permissions::OWNER && $actor->can('roles.manage');
     }
 
     /**
-     * The super administrator role always has every permission.
+     * Edit the role permissions from the permission matrix.
      */
-    public function update(User $user, Role $role): bool
+    public function updatePermissions(User $actor, Role $role): bool
     {
-        return $role->name !== Permissions::SUPER_ADMIN && $user->can('roles.update');
+        return $role->name !== Permissions::OWNER && $actor->can('permissions.manage');
     }
 
-    public function delete(User $user, Role $role): bool
+    public function delete(User $actor, Role $role): bool
     {
-        return ! in_array($role->name, Permissions::protectedRoles(), true)
-            && $user->can('roles.delete');
+        return ! in_array($role->name, Permissions::systemRoles(), true) && $actor->can('roles.manage');
     }
 }

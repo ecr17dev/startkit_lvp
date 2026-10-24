@@ -2,9 +2,8 @@
 
 namespace App\Providers;
 
-use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
-use App\Auth\LoginCodeBroker;
+use App\Auth\PasswordlessAuthentication;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -17,6 +16,9 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Starter\Identity\Identity;
+use Starter\Identity\Otp\OtpBroker;
+use Starter\Identity\Otp\OtpPurpose;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -40,27 +42,28 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Configure Fortify actions.
+     * Configure Fortify actions. Registration is not handled by Fortify: the
+     * starter signs users up with one-time codes (RegisterController).
      */
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::createUsersUsing(CreateNewUser::class);
     }
 
     /**
-     * Only active users can log in with their password.
+     * Password login (only with STARTER_AUTH_METHOD=email-otp+password, see
+     * EnforceAuthMethod) is restricted to active accounts.
      */
     private function configureAuthentication(): void
     {
         Fortify::authenticateUsing(function (Request $request): ?User {
             $user = User::query()->where('email', Str::lower((string) $request->input(Fortify::username())))->first();
 
-            if ($user === null || ! Hash::check((string) $request->input('password'), $user->password)) {
+            if ($user === null || ! Hash::check((string) $request->input('password'), (string) $user->password)) {
                 return null;
             }
 
-            if (! $user->is_active) {
+            if (! $user->isActive()) {
                 throw ValidationException::withMessages([
                     Fortify::username() => __('Your account has been deactivated.'),
                 ]);
@@ -76,9 +79,9 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
-            'canResetPassword' => Features::enabled(Features::resetPasswords()) && settings('auth.password_login', true),
+            'canResetPassword' => Identity::passwordsEnabled() && Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
-            'codeLength' => app(LoginCodeBroker::class)->length(),
+            'codeLength' => app(OtpBroker::class)->length(),
         ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/ResetPassword', [
@@ -95,13 +98,23 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/Register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
-
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));
 
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/ConfirmPassword'));
+        // Passwordless accounts confirm sensitive actions with a one-time code
+        // (ConfirmWithCodeController) or a passkey...
+        Fortify::confirmPasswordView(function (Request $request) {
+            $user = $request->user();
+            $broker = app(OtpBroker::class);
+            $pending = app(PasswordlessAuthentication::class)->pending($request, OtpPurpose::Confirm);
+
+            return Inertia::render('auth/ConfirmPassword', [
+                'canUsePassword' => Identity::passwordsEnabled() && $user instanceof User && $user->hasPassword(),
+                'codeSent' => $pending !== null && $pending->isActive(),
+                'resendAvailableIn' => $pending?->resendAvailableIn() ?? 0,
+                'codeLength' => $broker->length(),
+                'email' => $user?->getAttribute('email'),
+            ]);
+        });
     }
 
     /**

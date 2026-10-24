@@ -20,6 +20,7 @@ defineOptions({
 
 defineProps<{
     permissionGroups: PermissionGroup[];
+    grantable: string[];
 }>();
 
 const form = useForm<RoleFormData>({ name: '', permissions: [] });
@@ -39,7 +40,11 @@ const submit = () => form.post(store().url);
             :description="t('Choose the permissions granted by the role')"
         />
 
-        <RoleForm :form="form" :permission-groups="permissionGroups" />
+        <RoleForm
+            :form="form"
+            :permission-groups="permissionGroups"
+            :grantable="grantable"
+        />
 
         <div class="flex items-center gap-2">
             <Button type="submit" :disabled="form.processing">

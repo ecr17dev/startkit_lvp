@@ -8,9 +8,10 @@ import {
     AlertDescription,
     AlertTitle,
 } from '@starter/ui/components/alert';
+import { Badge } from '@starter/ui/components/badge';
 import { Button } from '@starter/ui/components/button';
-import { Input } from '@starter/ui/components/input';
 import { Label } from '@starter/ui/components/label';
+import { RadioGroup, RadioGroupItem } from '@starter/ui/components/radio-group';
 import {
     Select,
     SelectContent,
@@ -18,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@starter/ui/components/select';
-import { Switch } from '@starter/ui/components/switch';
+import { usePermissions } from '@/composables/usePermissions';
 import { t } from '@/lib/i18n';
 import authSettings from '@/routes/admin/settings/auth';
 import mail from '@/routes/admin/settings/mail';
@@ -29,60 +30,49 @@ defineOptions({
     },
 });
 
-type AuthSettings = {
-    password_login: boolean;
-    code_login: boolean;
-    registration: boolean;
-    default_role: string | null;
-    code_length: number;
-    code_ttl: number;
-    code_max_attempts: number;
-};
-
 const props = defineProps<{
-    settings: AuthSettings;
+    settings: { registration: string; default_role: string | null };
     roles: string[];
+    registrationModes: string[];
+    environment: {
+        method: string;
+        passwords_enabled: boolean;
+        otp_length: number;
+        otp_ttl: number;
+        otp_max_attempts: number;
+        otp_resend_cooldown: number;
+        invitation_ttl_days: number;
+    };
     mailConfigured: boolean;
 }>();
 
+const { can } = usePermissions();
+
 const form = useForm({
-    password_login: !!props.settings.password_login,
-    code_login: !!props.settings.code_login,
-    registration: !!props.settings.registration,
-    default_role: props.settings.default_role ?? 'none',
-    code_length: Number(props.settings.code_length),
-    code_ttl: Number(props.settings.code_ttl),
-    code_max_attempts: Number(props.settings.code_max_attempts),
+    registration: props.settings.registration,
+    default_role: props.settings.default_role ?? props.roles[0] ?? 'reader',
 });
 
-const submit = () =>
-    form
-        .transform((data) => ({
-            ...data,
-            default_role:
-                data.default_role === 'none' ? null : data.default_role,
-        }))
-        .put(authSettings.update().url, { preserveScroll: true });
+const modes: Record<string, { label: string; description: string }> = {
+    open: {
+        label: 'Open',
+        description:
+            'Anyone can sign up with their email. Invitations also work.',
+    },
+    'invite-only': {
+        label: 'Invite only',
+        description:
+            'Accounts are only created from invitations sent by an administrator.',
+    },
+    closed: {
+        label: 'Closed',
+        description:
+            'No sign ups nor invitations. Administrators create the users.',
+    },
+};
 
-const toggles = [
-    {
-        key: 'code_login',
-        label: 'Login with email code',
-        description:
-            'Users receive a one-time code by email and log in without a password.',
-    },
-    {
-        key: 'password_login',
-        label: 'Login with password',
-        description:
-            'Classic email and password login, including password resets.',
-    },
-    {
-        key: 'registration',
-        label: 'Public registration',
-        description: 'Visitors can create their own account.',
-    },
-] as const;
+const submit = () =>
+    form.put(authSettings.update().url, { preserveScroll: true });
 </script>
 
 <template>
@@ -92,14 +82,15 @@ const toggles = [
         <div class="space-y-4">
             <Heading
                 variant="small"
-                :title="t('Authentication')"
-                :description="t('Choose how users log in and register')"
+                :title="t('Login method')"
+                :description="
+                    t(
+                        'Defined by the deployment (STARTER_AUTH_METHOD); it cannot be changed from the panel.',
+                    )
+                "
             />
 
-            <Alert
-                v-if="form.code_login && !mailConfigured"
-                variant="destructive"
-            >
+            <Alert v-if="!mailConfigured" variant="destructive">
                 <TriangleAlert class="size-4" />
                 <AlertTitle>{{ t('Mail is not configured') }}</AlertTitle>
                 <AlertDescription>
@@ -116,84 +107,92 @@ const toggles = [
                 </AlertDescription>
             </Alert>
 
-            <div class="divide-y rounded-lg border">
-                <div
-                    v-for="toggle in toggles"
-                    :key="toggle.key"
-                    class="flex items-center justify-between gap-4 p-4"
+            <dl class="grid gap-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
+                <div>
+                    <dt class="text-muted-foreground">{{ t('Method') }}</dt>
+                    <dd class="mt-1 flex flex-wrap gap-1">
+                        <Badge>{{ t('Email code') }}</Badge>
+                        <Badge variant="secondary">{{ t('Passkeys') }}</Badge>
+                        <Badge
+                            v-if="environment.passwords_enabled"
+                            variant="outline"
+                            >{{ t('Password') }}</Badge
+                        >
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        {{ t('One-time codes') }}
+                    </dt>
+                    <dd class="mt-1">
+                        {{
+                            t(
+                                ':digits digits · valid :minutes min · :attempts attempts · resend every :seconds s',
+                                {
+                                    digits: environment.otp_length,
+                                    minutes: environment.otp_ttl,
+                                    attempts: environment.otp_max_attempts,
+                                    seconds: environment.otp_resend_cooldown,
+                                },
+                            )
+                        }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        {{ t('Invitations expire after') }}
+                    </dt>
+                    <dd class="mt-1">
+                        {{
+                            t(':count days', {
+                                count: environment.invitation_ttl_days,
+                            })
+                        }}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="space-y-4">
+            <Heading
+                variant="small"
+                :title="t('Registration')"
+                :description="t('Who can create an account')"
+            />
+
+            <RadioGroup v-model="form.registration" class="gap-2">
+                <Label
+                    v-for="mode in registrationModes"
+                    :key="mode"
+                    :for="`mode-${mode}`"
+                    class="flex items-start gap-3 rounded-lg border p-4 font-normal has-data-[state=checked]:border-primary"
                 >
-                    <div>
-                        <Label :for="toggle.key">{{ t(toggle.label) }}</Label>
-                        <p class="text-xs text-muted-foreground">
-                            {{ t(toggle.description) }}
-                        </p>
-                    </div>
-                    <Switch :id="toggle.key" v-model="form[toggle.key]" />
-                </div>
-            </div>
-            <InputError :message="form.errors.code_login" />
-        </div>
+                    <RadioGroupItem
+                        :id="`mode-${mode}`"
+                        :value="mode"
+                        class="mt-0.5"
+                    />
+                    <span class="grid gap-1">
+                        <span class="font-medium">{{
+                            t(modes[mode]?.label ?? mode)
+                        }}</span>
+                        <span class="text-xs text-muted-foreground">{{
+                            t(modes[mode]?.description ?? '')
+                        }}</span>
+                    </span>
+                </Label>
+            </RadioGroup>
+            <InputError :message="form.errors.registration" />
 
-        <div class="space-y-4">
-            <Heading
-                variant="small"
-                :title="t('Login codes')"
-                :description="t('Security of the codes sent by email')"
-            />
-            <div class="grid gap-6 sm:grid-cols-3">
-                <div class="grid gap-2">
-                    <Label for="code_length">{{ t('Digits') }}</Label>
-                    <Input
-                        id="code_length"
-                        v-model="form.code_length"
-                        type="number"
-                        min="4"
-                        max="10"
-                    />
-                    <InputError :message="form.errors.code_length" />
-                </div>
-                <div class="grid gap-2">
-                    <Label for="code_ttl">{{ t('Valid for (minutes)') }}</Label>
-                    <Input
-                        id="code_ttl"
-                        v-model="form.code_ttl"
-                        type="number"
-                        min="1"
-                        max="60"
-                    />
-                    <InputError :message="form.errors.code_ttl" />
-                </div>
-                <div class="grid gap-2">
-                    <Label for="code_max_attempts">{{
-                        t('Max attempts')
-                    }}</Label>
-                    <Input
-                        id="code_max_attempts"
-                        v-model="form.code_max_attempts"
-                        type="number"
-                        min="1"
-                        max="10"
-                    />
-                    <InputError :message="form.errors.code_max_attempts" />
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <Heading
-                variant="small"
-                :title="t('New users')"
-                :description="
-                    t('Role assigned automatically to users who register')
-                "
-            />
-            <div class="grid gap-2 sm:w-64">
+            <div class="grid max-w-sm gap-2">
+                <Label for="default_role">{{
+                    t('Role of new sign ups')
+                }}</Label>
                 <Select v-model="form.default_role">
-                    <SelectTrigger class="w-full">
-                        <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger id="default_role" class="w-full"
+                        ><SelectValue
+                    /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="none">{{ t('No role') }}</SelectItem>
                         <SelectItem
                             v-for="role in roles"
                             :key="role"
@@ -202,12 +201,23 @@ const toggles = [
                         >
                     </SelectContent>
                 </Select>
+                <p class="text-xs text-muted-foreground">
+                    {{
+                        t(
+                            'Privileged roles (owner, admin) are never given automatically.',
+                        )
+                    }}
+                </p>
                 <InputError :message="form.errors.default_role" />
             </div>
         </div>
 
-        <Button type="submit" :disabled="form.processing">{{
-            t('Save')
-        }}</Button>
+        <Button
+            v-if="can('settings.update')"
+            type="submit"
+            :disabled="form.processing"
+        >
+            {{ t('Save') }}
+        </Button>
     </form>
 </template>

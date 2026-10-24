@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
 use Starter\Administration\Settings\Branding;
+use Starter\Identity\Identity;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -52,13 +53,16 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user ? [
                     ...$user->only(['id', 'name', 'email', 'email_verified_at', 'locale', 'created_at', 'updated_at']),
                     'roles' => $user->getRoleNames()->values()->all(),
+                    'is_owner' => $user->isOwner(),
                 ] : null,
                 'permissions' => $user?->permissionNames() ?? [],
             ],
             'features' => [
-                'passwordLogin' => (bool) settings('auth.password_login', true),
-                'codeLogin' => (bool) settings('auth.code_login', true),
-                'registration' => (bool) settings('auth.registration', true),
+                'passwordLogin' => Identity::passwordsEnabled(),
+                'registration' => Identity::registrationMode()->allowsSignUp(),
+                'organizations' => (bool) config('starter.features.organizations'),
+                'ai' => (bool) config('starter.features.ai'),
+                'rag' => (bool) config('starter.features.rag'),
             ],
             'locale' => $locale,
             'locales' => config('starter.locales'),

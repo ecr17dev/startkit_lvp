@@ -12,7 +12,8 @@ import type { AdminRole, PermissionGroup } from '@/types';
 const props = defineProps<{
     role: AdminRole;
     permissionGroups: PermissionGroup[];
-    isProtected: boolean;
+    grantable: string[];
+    canDelete: boolean;
 }>();
 
 defineOptions({
@@ -48,7 +49,8 @@ const submit = () =>
         <RoleForm
             :form="form"
             :permission-groups="permissionGroups"
-            :name-locked="isProtected"
+            :grantable="grantable"
+            :name-locked="role.is_system"
         />
 
         <div class="flex items-center gap-2">

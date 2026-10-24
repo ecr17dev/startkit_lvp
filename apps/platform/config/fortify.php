@@ -160,8 +160,11 @@ return [
     |
     */
 
-    'features' => [
-        Features::registration(),
+    // Registration is handled by the starter (one-time code sign up). The
+    // password routes are always registered (stable generated route types)
+    // but answer 404 unless STARTER_AUTH_METHOD=email-otp+password (see
+    // App\Http\Middleware\EnforceAuthMethod).
+    'features' => array_values(array_filter([
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
@@ -172,6 +175,6 @@ return [
         Features::passkeys([
             'confirmPassword' => true,
         ]),
-    ],
+    ])),
 
 ];

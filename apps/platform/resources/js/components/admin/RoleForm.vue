@@ -5,6 +5,7 @@ import { Checkbox } from '@starter/ui/components/checkbox';
 import { Input } from '@starter/ui/components/input';
 import { Label } from '@starter/ui/components/label';
 import { t } from '@/lib/i18n';
+import { permissionGroupLabels as groupLabels } from '@/lib/permissions';
 import type { PermissionGroup } from '@/types';
 
 export type RoleFormData = {
@@ -15,16 +16,12 @@ export type RoleFormData = {
 const props = defineProps<{
     form: InertiaForm<RoleFormData>;
     permissionGroups: PermissionGroup[];
+    /** Permissions the current user holds and can therefore grant or revoke. */
+    grantable: string[];
     nameLocked?: boolean;
 }>();
 
-const groupLabels: Record<string, string> = {
-    users: 'Users',
-    roles: 'Roles',
-    settings: 'System settings',
-    ai: 'Artificial intelligence',
-    api: 'API',
-};
+const canChange = (permission: string) => props.grantable.includes(permission);
 
 const toggle = (permission: string, checked: boolean | 'indeterminate') => {
     props.form.permissions = checked
@@ -48,7 +45,9 @@ const toggleGroup = (
     group: PermissionGroup,
     checked: boolean | 'indeterminate',
 ) => {
-    const names = group.permissions.map((p) => p.name);
+    const names = group.permissions
+        .map((p) => p.name)
+        .filter((name) => canChange(name));
 
     props.form.permissions = checked
         ? [...new Set([...props.form.permissions, ...names])]
@@ -78,7 +77,16 @@ const toggleGroup = (
         </div>
 
         <div class="grid gap-4">
-            <Label>{{ t('Permissions') }}</Label>
+            <div>
+                <Label>{{ t('Permissions') }}</Label>
+                <p class="text-xs text-muted-foreground">
+                    {{
+                        t(
+                            'You can only grant or revoke permissions that you hold yourself.',
+                        )
+                    }}
+                </p>
+            </div>
             <div class="grid gap-4 md:grid-cols-2">
                 <div
                     v-for="group in permissionGroups"
@@ -108,6 +116,7 @@ const toggleGroup = (
                                 :model-value="
                                     form.permissions.includes(permission.name)
                                 "
+                                :disabled="!canChange(permission.name)"
                                 @update:model-value="
                                     (checked) =>
                                         toggle(permission.name, checked)

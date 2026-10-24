@@ -1,9 +1,9 @@
 {
     "openapi": "3.1.2",
     "info": {
-        "title": "Laravel API",
+        "title": "Acme Starter API",
         "version": "1.0.0",
-        "description": "API REST protegida con Laravel Sanctum. Crea un token en Configuraci\u00f3n \u2192 Tokens de API o con POST /v1/auth/token y env\u00edalo como `Authorization: Bearer <token>`."
+        "description": "API REST protegida con Laravel Sanctum. Crea un token desde Ajustes \u2192 Tokens de API o con los endpoints de c\u00f3digo de un solo uso (POST /v1/auth/otp y /v1/auth/otp/verify) y env\u00edalo como `Authorization: Bearer <token>`."
     },
     "servers": [
         {
@@ -18,7 +18,10 @@
             "name": "Users"
         },
         {
-            "name": "Roles"
+            "name": "Roles and permissions"
+        },
+        {
+            "name": "Invitations"
         },
         {
             "name": "AI"
@@ -30,11 +33,11 @@
         }
     ],
     "paths": {
-        "/v1/auth/token": {
+        "/v1/auth/otp": {
             "post": {
-                "operationId": "v1.auth.token",
-                "description": "Users with two-factor authentication enabled must also send a valid\n`two_factor_code` (TOTP) or one of their `recovery_code`.",
-                "summary": "Create a token with email and password",
+                "operationId": "v1.auth.otp",
+                "description": "Always answers 202 with a `challenge_id`, whether the account exists\nor not, so the endpoint cannot be used to discover accounts. Send the\nchallenge id with the code received by email to `/v1/auth/otp/verify`.",
+                "summary": "Request a one-time code",
                 "tags": [
                     "Authentication"
                 ],
@@ -47,9 +50,77 @@
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "format": "email"
+                                        "format": "email",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "challenge_id": {
+                                            "type": "string",
+                                            "description": "Identifier of the challenge, required to verify the code."
+                                        },
+                                        "code_length": {
+                                            "type": "integer"
+                                        },
+                                        "expires_in_minutes": {
+                                            "type": "integer"
+                                        },
+                                        "resend_available_in": {
+                                            "type": "integer",
+                                            "description": "Seconds before another code can be requested for this email."
+                                        }
                                     },
-                                    "password": {
+                                    "required": [
+                                        "challenge_id",
+                                        "code_length",
+                                        "expires_in_minutes",
+                                        "resend_available_in"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/v1/auth/otp/verify": {
+            "post": {
+                "operationId": "v1.auth.otp.verify",
+                "description": "Requires the `api.tokens.create` permission. Users with two-factor\nauthentication must also send `two_factor_code` or `recovery_code`.",
+                "summary": "Exchange a one-time code for a token",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "challenge_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "code": {
                                         "type": "string"
                                     },
                                     "device_name": {
@@ -70,6 +141,119 @@
                                             "null"
                                         ],
                                         "description": "Recovery code (only when 2FA is enabled)."
+                                    },
+                                    "abilities": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "read",
+                                                "write",
+                                                "ai"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "challenge_id",
+                                    "code",
+                                    "device_name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "description": "The plain text token. Send it as `Authorization: Bearer <token>`."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "const": "Bearer"
+                                        },
+                                        "abilities": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "user": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UserResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "is_owner",
+                                                        "roles"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "token_type",
+                                        "abilities",
+                                        "user"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/v1/auth/token": {
+            "post": {
+                "operationId": "v1.auth.token",
+                "description": "Only available when the deployment enables passwords\n(STARTER_AUTH_METHOD=email-otp+password).",
+                "summary": "Create a token with email and password",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "two_factor_code": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "recovery_code": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
                                     },
                                     "abilities": {
                                         "type": "array",
@@ -109,7 +293,10 @@
                                             "const": "Bearer"
                                         },
                                         "abilities": {
-                                            "type": "string"
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
                                         },
                                         "user": {
                                             "allOf": [
@@ -119,182 +306,7 @@
                                                 {
                                                     "type": "object",
                                                     "required": [
-                                                        "roles"
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "token",
-                                        "token_type",
-                                        "abilities",
-                                        "user"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                },
-                "security": []
-            }
-        },
-        "/v1/auth/code": {
-            "post": {
-                "operationId": "v1.auth.code",
-                "description": "Always answers with the same message, whether the account exists or not.",
-                "summary": "Send a login code by email",
-                "tags": [
-                    "Authentication"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "maxLength": 255
-                                    }
-                                },
-                                "required": [
-                                    "email"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string"
-                                        },
-                                        "code_length": {
-                                            "type": "integer"
-                                        },
-                                        "expires_in_minutes": {
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "code_length",
-                                        "expires_in_minutes"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                },
-                "security": []
-            }
-        },
-        "/v1/auth/code/verify": {
-            "post": {
-                "operationId": "v1.auth.code.verify",
-                "summary": "Exchange a login code for a token",
-                "tags": [
-                    "Authentication"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "code": {
-                                        "type": "string"
-                                    },
-                                    "device_name": {
-                                        "type": "string",
-                                        "maxLength": 100
-                                    },
-                                    "two_factor_code": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ]
-                                    },
-                                    "recovery_code": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ]
-                                    },
-                                    "abilities": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "enum": [
-                                                "read",
-                                                "write",
-                                                "ai"
-                                            ]
-                                        }
-                                    }
-                                },
-                                "required": [
-                                    "email",
-                                    "code",
-                                    "device_name"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "token": {
-                                            "type": "string",
-                                            "description": "The plain text token. Send it as `Authorization: Bearer <token>`."
-                                        },
-                                        "token_type": {
-                                            "type": "string",
-                                            "const": "Bearer"
-                                        },
-                                        "abilities": {
-                                            "type": "string"
-                                        },
-                                        "user": {
-                                            "allOf": [
-                                                {
-                                                    "$ref": "#/components/schemas/UserResource"
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "required": [
+                                                        "is_owner",
                                                         "roles"
                                                     ]
                                                 }
@@ -330,28 +342,26 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "`UserResource`",
+                        "description": "",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "allOf": [
-                                                {
-                                                    "$ref": "#/components/schemas/UserResource"
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "required": [
-                                                        "roles"
-                                                    ]
-                                                }
-                                            ]
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "permissions": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
                                         }
                                     },
                                     "required": [
-                                        "data"
+                                        "data",
+                                        "permissions"
                                     ]
                                 }
                             }
@@ -399,7 +409,7 @@
         "/v1/users": {
             "get": {
                 "operationId": "v1.users.index",
-                "description": "Requires the `users.view` permission.",
+                "description": "Requires the `users.read` permission.",
                 "summary": "List users",
                 "tags": [
                     "Users"
@@ -427,6 +437,21 @@
                                 "null"
                             ],
                             "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "active",
+                                "disabled",
+                                null
+                            ]
                         }
                     },
                     {
@@ -460,6 +485,7 @@
                                                     {
                                                         "type": "object",
                                                         "required": [
+                                                            "is_owner",
                                                             "roles"
                                                         ]
                                                     }
@@ -605,7 +631,7 @@
             },
             "post": {
                 "operationId": "v1.users.store",
-                "description": "Requires the `users.create` permission. When `password` is omitted the\nuser can log in with an email code.",
+                "description": "Requires `users.create`; only roles the caller can grant are accepted.\nUsers log in with one-time codes (passwords are only accepted when the\ndeployment enables them).",
                 "summary": "Create a user",
                 "tags": [
                     "Users"
@@ -615,7 +641,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UserRequest"
+                                "$ref": "#/components/schemas/StoreUserRequest"
                             }
                         }
                     }
@@ -636,6 +662,7 @@
                                                 {
                                                     "type": "object",
                                                     "required": [
+                                                        "is_owner",
                                                         "roles"
                                                     ]
                                                 }
@@ -648,9 +675,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -695,6 +719,7 @@
                                                 {
                                                     "type": "object",
                                                     "required": [
+                                                        "is_owner",
                                                         "roles"
                                                     ]
                                                 }
@@ -719,9 +744,9 @@
                     }
                 }
             },
-            "put": {
+            "patch": {
                 "operationId": "v1.users.update",
-                "description": "Requires the `users.update` permission.",
+                "description": "Requires `users.update`. Sending `roles` replaces the roles of the user\n(not allowed on your own account; the last owner keeps the owner role).",
                 "summary": "Update a user",
                 "tags": [
                     "Users"
@@ -738,11 +763,10 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UserRequest"
+                                "$ref": "#/components/schemas/UpdateUserRequest"
                             }
                         }
                     }
@@ -763,6 +787,7 @@
                                                 {
                                                     "type": "object",
                                                     "required": [
+                                                        "is_owner",
                                                         "roles"
                                                     ]
                                                 }
@@ -775,9 +800,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -792,7 +814,7 @@
             },
             "delete": {
                 "operationId": "v1.users.destroy",
-                "description": "Requires the `users.delete` permission.",
+                "description": "Requires `users.delete`. Personal data is anonymized.",
                 "summary": "Delete a user",
                 "tags": [
                     "Users"
@@ -828,8 +850,84 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/{user}/status": {
+            "patch": {
+                "operationId": "v1.users.status",
+                "description": "Requires `users.disable`. Disabling revokes the sessions and tokens.",
+                "summary": "Disable or enable a user",
+                "tags": [
+                    "Users"
+                ],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "active": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "active"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`UserResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UserResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "is_owner",
+                                                        "roles"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -843,10 +941,10 @@
         "/v1/roles": {
             "get": {
                 "operationId": "v1.roles.index",
-                "description": "Requires the `roles.view` permission.",
+                "description": "Requires the `roles.read` permission.",
                 "summary": "List roles with their permissions",
                 "tags": [
-                    "Roles"
+                    "Roles and permissions"
                 ],
                 "responses": {
                     "200": {
@@ -882,6 +980,318 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.roles.store",
+                "description": "Requires `roles.manage`; you can only grant permissions you hold.",
+                "summary": "Create a role",
+                "tags": [
+                    "Roles and permissions"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/roles/{role}": {
+            "get": {
+                "operationId": "v1.roles.show",
+                "summary": "Get a role",
+                "tags": [
+                    "Roles and permissions"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.roles.update",
+                "description": "Requires `roles.manage`. The owner role cannot be modified and system\nroles cannot be renamed.",
+                "summary": "Update a role",
+                "tags": [
+                    "Roles and permissions"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.roles.destroy",
+                "description": "Requires `roles.manage`. System roles cannot be deleted.",
+                "summary": "Delete a role",
+                "tags": [
+                    "Roles and permissions"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Rol eliminado."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/permissions": {
+            "get": {
+                "operationId": "v1.permissions.index",
+                "description": "Requires the `permissions.read` permission.",
+                "summary": "List the permission catalog",
+                "tags": [
+                    "Roles and permissions"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "group": {
+                                                        "type": "string"
+                                                    },
+                                                    "permissions": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "name": {
+                                                                    "type": "string"
+                                                                },
+                                                                "description": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "name",
+                                                                "description"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "group",
+                                                    "permissions"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -966,14 +1376,14 @@
                                             "string",
                                             "null"
                                         ],
-                                        "description": "Provider name (requires the `ai.choose-model` permission)."
+                                        "description": "Provider name (requires the `ai.models.manage` permission)."
                                     },
                                     "model": {
                                         "type": [
                                             "string",
                                             "null"
                                         ],
-                                        "description": "Model identifier (requires the `ai.choose-model` permission).",
+                                        "description": "Model identifier (requires the `ai.models.manage` permission).",
                                         "maxLength": 255
                                     }
                                 },
@@ -1100,6 +1510,326 @@
                     }
                 }
             }
+        },
+        "/v1/invitations": {
+            "get": {
+                "operationId": "v1.invitations.index",
+                "description": "Requires `users.invite` or `users.read`.",
+                "summary": "List invitations",
+                "tags": [
+                    "Invitations"
+                ],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `InvitationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/InvitationResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "invited_by"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.invitations.store",
+                "description": "Requires `users.invite`; the role must be one you can grant. The link\nis emailed and expires after STARTER_INVITATION_TTL_DAYS days.",
+                "summary": "Invite a user",
+                "tags": [
+                    "Invitations"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InviteUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`InvitationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvitationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/invitations/{invitation}/resend": {
+            "post": {
+                "operationId": "v1.invitations.resend",
+                "summary": "Resend an invitation with a new link",
+                "tags": [
+                    "Invitations"
+                ],
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invitation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`InvitationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvitationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/invitations/{invitation}": {
+            "delete": {
+                "operationId": "v1.invitations.destroy",
+                "summary": "Revoke an invitation",
+                "tags": [
+                    "Invitations"
+                ],
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invitation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`InvitationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvitationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1193,6 +1923,145 @@
                 ],
                 "title": "AiPrompt"
             },
+            "InvitationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "revoked",
+                            "expired"
+                        ]
+                    },
+                    "invited_by": {},
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "accepted_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "revoked_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "last_sent_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "sends": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "email",
+                    "role",
+                    "status",
+                    "expires_at",
+                    "accepted_at",
+                    "revoked_at",
+                    "last_sent_at",
+                    "sends",
+                    "created_at"
+                ],
+                "title": "InvitationResource"
+            },
+            "InviteUserRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "email",
+                    "role"
+                ],
+                "title": "InviteUserRequest"
+            },
+            "RoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "maxLength": 100
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "users.read",
+                                "users.create",
+                                "users.invite",
+                                "users.update",
+                                "users.disable",
+                                "users.delete",
+                                "roles.read",
+                                "roles.manage",
+                                "permissions.read",
+                                "permissions.manage",
+                                "settings.read",
+                                "settings.update",
+                                "ai.chat",
+                                "ai.providers.manage",
+                                "ai.models.manage",
+                                "ai.agents.manage",
+                                "ai.usage.read",
+                                "ai.budgets.manage",
+                                "rag.collections.read",
+                                "rag.collections.manage",
+                                "rag.sources.manage",
+                                "rag.documents.read",
+                                "rag.documents.delete",
+                                "rag.jobs.manage",
+                                "rag.playground.use",
+                                "rag.analytics.read",
+                                "audit.read",
+                                "api.docs.read",
+                                "api.tokens.create"
+                            ]
+                        },
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "RoleRequest"
+            },
             "RoleResource": {
                 "type": "object",
                 "properties": {
@@ -1202,9 +2071,14 @@
                     "name": {
                         "type": "string"
                     },
+                    "is_system": {
+                        "type": "boolean"
+                    },
                     "permissions": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "users_count": {
                         "type": "integer"
@@ -1220,12 +2094,14 @@
                 "required": [
                     "id",
                     "name",
+                    "is_system",
                     "created_at"
                 ],
                 "title": "RoleResource"
             },
-            "UserRequest": {
+            "StoreUserRequest": {
                 "type": "object",
+                "description": "Validation is shared with the action (panel, API and AI tools).",
                 "properties": {
                     "name": {
                         "type": "string",
@@ -1237,16 +2113,7 @@
                         "maxLength": 255
                     },
                     "password": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    },
-                    "email_verified": {
-                        "type": "boolean"
+                        "type": "string"
                     },
                     "locale": {
                         "type": [
@@ -1259,18 +2126,61 @@
                             null
                         ]
                     },
+                    "email_verified": {
+                        "type": "boolean"
+                    },
                     "roles": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "uniqueItems": true
                     }
                 },
                 "required": [
                     "name",
                     "email"
                 ],
-                "title": "UserRequest"
+                "title": "StoreUserRequest"
+            },
+            "UpdateUserRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "locale": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "es",
+                            "en",
+                            null
+                        ]
+                    },
+                    "email_verified": {
+                        "type": "boolean"
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "uniqueItems": true
+                    }
+                },
+                "title": "UpdateUserRequest"
             },
             "UserResource": {
                 "type": "object",
@@ -1285,6 +2195,9 @@
                         "type": "string"
                     },
                     "is_active": {
+                        "type": "boolean"
+                    },
+                    "is_owner": {
                         "type": "boolean"
                     },
                     "locale": {
@@ -1303,7 +2216,17 @@
                     "two_factor_enabled": {
                         "type": "boolean"
                     },
+                    "has_password": {
+                        "type": "boolean"
+                    },
                     "last_login_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "disabled_at": {
                         "type": [
                             "string",
                             "null"
@@ -1312,7 +2235,9 @@
                     },
                     "roles": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "created_at": {
                         "type": [
@@ -1337,7 +2262,9 @@
                     "locale",
                     "email_verified_at",
                     "two_factor_enabled",
+                    "has_password",
                     "last_login_at",
+                    "disabled_at",
                     "created_at",
                     "updated_at"
                 ],
@@ -1345,25 +2272,6 @@
             }
         },
         "responses": {
-            "ModelNotFoundException": {
-                "description": "Not found",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string",
-                                    "description": "Error overview."
-                                }
-                            },
-                            "required": [
-                                "message"
-                            ]
-                        }
-                    }
-                }
-            },
             "ValidationException": {
                 "description": "Validation error",
                 "content": {
@@ -1389,6 +2297,25 @@
                             "required": [
                                 "message",
                                 "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
                             ]
                         }
                     }

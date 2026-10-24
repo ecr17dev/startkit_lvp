@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
+use Starter\Identity\Permissions;
 
 /**
  * @mixin Role
@@ -21,7 +22,9 @@ class RoleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('name')->values()),
+            'is_system' => in_array($this->name, Permissions::systemRoles(), true),
+            /** @var list<string> */
+            'permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('name')->sort()->values()),
             'users_count' => $this->whenCounted('users'),
             'created_at' => $this->created_at,
         ];

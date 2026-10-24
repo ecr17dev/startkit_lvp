@@ -35,9 +35,10 @@ return [
     | Authentication
     |--------------------------------------------------------------------------
     |
-    | method: "email-otp" (only one-time codes) or "email-otp+password"
-    | (also allows password login, password resets and passkeys).
-    | registration: "open", "invite-only" or "closed".
+    | method: "email-otp" (one-time codes and passkeys) or "email-otp+password"
+    | (also password login, password resets and password confirmation).
+    | registration: initial mode, "open", "invite-only" or "closed"; it is
+    | changed afterwards from Admin → Settings → Authentication.
     |
     */
 
@@ -45,12 +46,27 @@ return [
         'method' => env('STARTER_AUTH_METHOD', 'email-otp'),
         'registration' => env('STARTER_REGISTRATION', 'invite-only'),
         'otp' => [
+            // HMAC secret of the code verifiers (defaults to APP_KEY)...
+            'secret' => env('STARTER_OTP_SECRET'),
             'length' => (int) env('STARTER_OTP_LENGTH', 6),
             'ttl' => (int) env('STARTER_OTP_TTL', 5),
             'max_attempts' => (int) env('STARTER_OTP_MAX_ATTEMPTS', 5),
             'resend_cooldown' => (int) env('STARTER_OTP_RESEND_COOLDOWN', 60),
         ],
         'invitation_ttl_days' => (int) env('STARTER_INVITATION_TTL_DAYS', 7),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Audit trail
+    |--------------------------------------------------------------------------
+    |
+    | Events older than the retention are removed by `model:prune`.
+    |
+    */
+
+    'audit' => [
+        'retention_days' => (int) env('STARTER_AUDIT_RETENTION_DAYS', 365),
     ],
 
     /*
@@ -88,8 +104,9 @@ return [
                 'default_appearance' => 'system',
             ],
 
+            // The authentication method is a deployment decision taken in
+            // the environment (STARTER_AUTH_METHOD), not a setting...
             'auth' => [
-                'password_login' => env('STARTER_AUTH_METHOD', 'email-otp') === 'email-otp+password',
                 'registration' => env('STARTER_REGISTRATION', 'invite-only'),
                 'default_role' => 'reader',
             ],

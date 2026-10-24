@@ -57,7 +57,8 @@ services:
         <<: *app
         profiles: ['ops']
         restart: 'no'
-        command: ['php', 'artisan', 'migrate', '--force', '--isolated']
+        # Migrations, then the permission catalog and system roles...
+        command: ['sh', '-c', 'php artisan migrate --force --isolated && php artisan starter:permissions']
         healthcheck:
             disable: true
 

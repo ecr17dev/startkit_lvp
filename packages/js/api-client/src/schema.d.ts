@@ -4,6 +4,49 @@
  */
 
 export interface paths {
+    "/v1/auth/otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a one-time code
+         * @description Always answers 202 with a `challenge_id`, whether the account exists
+         *     or not, so the endpoint cannot be used to discover accounts. Send the
+         *     challenge id with the code received by email to `/v1/auth/otp/verify`.
+         */
+        post: operations["v1.auth.otp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange a one-time code for a token
+         * @description Requires the `api.tokens.create` permission. Users with two-factor
+         *     authentication must also send `two_factor_code` or `recovery_code`.
+         */
+        post: operations["v1.auth.otp.verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/token": {
         parameters: {
             query?: never;
@@ -15,47 +58,10 @@ export interface paths {
         put?: never;
         /**
          * Create a token with email and password
-         * @description Users with two-factor authentication enabled must also send a valid
-         *     `two_factor_code` (TOTP) or one of their `recovery_code`.
+         * @description Only available when the deployment enables passwords
+         *     (STARTER_AUTH_METHOD=email-otp+password).
          */
         post: operations["v1.auth.token"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/code": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Send a login code by email
-         * @description Always answers with the same message, whether the account exists or not.
-         */
-        post: operations["v1.auth.code"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/code/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Exchange a login code for a token */
-        post: operations["v1.auth.code.verify"];
         delete?: never;
         options?: never;
         head?: never;
@@ -105,14 +111,15 @@ export interface paths {
         };
         /**
          * List users
-         * @description Requires the `users.view` permission.
+         * @description Requires the `users.read` permission.
          */
         get: operations["v1.users.index"];
         put?: never;
         /**
          * Create a user
-         * @description Requires the `users.create` permission. When `password` is omitted the
-         *     user can log in with an email code.
+         * @description Requires `users.create`; only roles the caller can grant are accepted.
+         *     Users log in with one-time codes (passwords are only accepted when the
+         *     deployment enables them).
          */
         post: operations["v1.users.store"];
         delete?: never;
@@ -130,20 +137,41 @@ export interface paths {
         };
         /** Get a user */
         get: operations["v1.users.show"];
-        /**
-         * Update a user
-         * @description Requires the `users.update` permission.
-         */
-        put: operations["v1.users.update"];
+        put?: never;
         post?: never;
         /**
          * Delete a user
-         * @description Requires the `users.delete` permission.
+         * @description Requires `users.delete`. Personal data is anonymized.
          */
         delete: operations["v1.users.destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update a user
+         * @description Requires `users.update`. Sending `roles` replaces the roles of the user
+         *     (not allowed on your own account; the last owner keeps the owner role).
+         */
+        patch: operations["v1.users.update"];
+        trace?: never;
+    };
+    "/v1/users/{user}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Disable or enable a user
+         * @description Requires `users.disable`. Disabling revokes the sessions and tokens.
+         */
+        patch: operations["v1.users.status"];
         trace?: never;
     };
     "/v1/roles": {
@@ -155,9 +183,59 @@ export interface paths {
         };
         /**
          * List roles with their permissions
-         * @description Requires the `roles.view` permission.
+         * @description Requires the `roles.read` permission.
          */
         get: operations["v1.roles.index"];
+        put?: never;
+        /**
+         * Create a role
+         * @description Requires `roles.manage`; you can only grant permissions you hold.
+         */
+        post: operations["v1.roles.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roles/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a role */
+        get: operations["v1.roles.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a role
+         * @description Requires `roles.manage`. System roles cannot be deleted.
+         */
+        delete: operations["v1.roles.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a role
+         * @description Requires `roles.manage`. The owner role cannot be modified and system
+         *     roles cannot be renamed.
+         */
+        patch: operations["v1.roles.update"];
+        trace?: never;
+    };
+    "/v1/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the permission catalog
+         * @description Requires the `permissions.read` permission.
+         */
+        get: operations["v1.permissions.index"];
         put?: never;
         post?: never;
         delete?: never;
@@ -221,6 +299,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List invitations
+         * @description Requires `users.invite` or `users.read`.
+         */
+        get: operations["v1.invitations.index"];
+        put?: never;
+        /**
+         * Invite a user
+         * @description Requires `users.invite`; the role must be one you can grant. The link
+         *     is emailed and expires after STARTER_INVITATION_TTL_DAYS days.
+         */
+        post: operations["v1.invitations.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invitations/{invitation}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend an invitation with a new link */
+        post: operations["v1.invitations.resend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invitations/{invitation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an invitation */
+        delete: operations["v1.invitations.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -243,25 +380,70 @@ export interface components {
             /** Format: date-time */
             updated_at: string | null;
         };
+        /** InvitationResource */
+        InvitationResource: {
+            id: number;
+            email: string;
+            role: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            invited_by?: unknown;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            accepted_at: string | null;
+            /** Format: date-time */
+            revoked_at: string | null;
+            /** Format: date-time */
+            last_sent_at: string | null;
+            sends: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** InviteUserRequest */
+        InviteUserRequest: {
+            /** Format: email */
+            email: string;
+            role: string;
+        };
+        /** RoleRequest */
+        RoleRequest: {
+            name: string;
+            permissions?: ("users.read" | "users.create" | "users.invite" | "users.update" | "users.disable" | "users.delete" | "roles.read" | "roles.manage" | "permissions.read" | "permissions.manage" | "settings.read" | "settings.update" | "ai.chat" | "ai.providers.manage" | "ai.models.manage" | "ai.agents.manage" | "ai.usage.read" | "ai.budgets.manage" | "rag.collections.read" | "rag.collections.manage" | "rag.sources.manage" | "rag.documents.read" | "rag.documents.delete" | "rag.jobs.manage" | "rag.playground.use" | "rag.analytics.read" | "audit.read" | "api.docs.read" | "api.tokens.create")[];
+        };
         /** RoleResource */
         RoleResource: {
             id: number;
             name: string;
-            permissions?: unknown[];
+            is_system: boolean;
+            permissions?: string[];
             users_count?: number;
             /** Format: date-time */
             created_at: string | null;
         };
-        /** UserRequest */
-        UserRequest: {
+        /**
+         * StoreUserRequest
+         * @description Validation is shared with the action (panel, API and AI tools).
+         */
+        StoreUserRequest: {
             name: string;
             /** Format: email */
             email: string;
-            password?: string | null;
-            is_active?: boolean;
-            email_verified?: boolean;
+            password?: string;
             /** @enum {string|null} */
             locale?: "es" | "en" | null;
+            email_verified?: boolean;
+            roles?: string[];
+        };
+        /** UpdateUserRequest */
+        UpdateUserRequest: {
+            name?: string;
+            /** Format: email */
+            email?: string;
+            password?: string;
+            /** @enum {string|null} */
+            locale?: "es" | "en" | null;
+            email_verified?: boolean;
             roles?: string[];
         };
         /** UserResource */
@@ -270,13 +452,17 @@ export interface components {
             name: string;
             email: string;
             is_active: boolean;
+            is_owner?: boolean;
             locale: string | null;
             /** Format: date-time */
             email_verified_at: string | null;
             two_factor_enabled: boolean;
+            has_password: boolean;
             /** Format: date-time */
             last_login_at: string | null;
-            roles?: unknown[];
+            /** Format: date-time */
+            disabled_at: string | null;
+            roles?: string[];
             /** Format: date-time */
             created_at: string | null;
             /** Format: date-time */
@@ -284,18 +470,6 @@ export interface components {
         };
     };
     responses: {
-        /** @description Not found */
-        ModelNotFoundException: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": {
-                    /** @description Error overview. */
-                    message: string;
-                };
-            };
-        };
         /** @description Validation error */
         ValidationException: {
             headers: {
@@ -309,6 +483,18 @@ export interface components {
                     errors: {
                         [key: string]: string[];
                     };
+                };
+            };
+        };
+        /** @description Not found */
+        ModelNotFoundException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
                 };
             };
         };
@@ -344,7 +530,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    "v1.auth.token": {
+    "v1.auth.otp": {
         parameters: {
             query?: never;
             header?: never;
@@ -356,7 +542,41 @@ export interface operations {
                 "application/json": {
                     /** Format: email */
                     email: string;
-                    password: string;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Identifier of the challenge, required to verify the code. */
+                        challenge_id: string;
+                        code_length: number;
+                        expires_in_minutes: number;
+                        /** @description Seconds before another code can be requested for this email. */
+                        resend_available_in: number;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.auth.otp.verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    challenge_id: string;
+                    code: string;
                     /** @description A name to identify the device or integration using the token. */
                     device_name: string;
                     /** @description Six digit code of the authenticator app (only when 2FA is enabled). */
@@ -378,16 +598,15 @@ export interface operations {
                         token: string;
                         /** @constant */
                         token_type: "Bearer";
-                        abilities: string;
+                        abilities: string[];
                         user: components["schemas"]["UserResource"] & Record<string, never>;
                     };
                 };
             };
-            404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
         };
     };
-    "v1.auth.code": {
+    "v1.auth.token": {
         parameters: {
             query?: never;
             header?: never;
@@ -399,39 +618,7 @@ export interface operations {
                 "application/json": {
                     /** Format: email */
                     email: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                        code_length: number;
-                        expires_in_minutes: number;
-                    };
-                };
-            };
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "v1.auth.code.verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    code: string;
+                    password: string;
                     device_name: string;
                     two_factor_code?: string | null;
                     recovery_code?: string | null;
@@ -450,7 +637,7 @@ export interface operations {
                         token: string;
                         /** @constant */
                         token_type: "Bearer";
-                        abilities: string;
+                        abilities: string[];
                         user: components["schemas"]["UserResource"] & Record<string, never>;
                     };
                 };
@@ -468,14 +655,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description `UserResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["UserResource"] & Record<string, never>;
+                        data: unknown[];
+                        permissions: string[];
                     };
                 };
             };
@@ -512,6 +699,7 @@ export interface operations {
                 search?: string | null;
                 /** @description Filter by role name. */
                 role?: string | null;
+                status?: "active" | "disabled" | null;
                 per_page?: number | null;
             };
             header?: never;
@@ -570,7 +758,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UserRequest"];
+                "application/json": components["schemas"]["StoreUserRequest"];
             };
         };
         responses: {
@@ -586,7 +774,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };
@@ -618,39 +805,6 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
-    "v1.users.update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The user ID */
-                user: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserRequest"];
-            };
-        };
-        responses: {
-            /** @description `UserResource` */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["UserResource"] & Record<string, never>;
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
-        };
-    };
     "v1.users.destroy": {
         parameters: {
             query?: never;
@@ -675,8 +829,73 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.users.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `UserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["UserResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.users.status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    active: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description `UserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["UserResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "v1.roles.index": {
@@ -701,6 +920,164 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.roles.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `RoleResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RoleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.roles.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The role ID */
+                role: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `RoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RoleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.roles.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The role ID */
+                role: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        message: "Rol eliminado.";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.roles.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The role ID */
+                role: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `RoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RoleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.permissions.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            group: string;
+                            permissions: {
+                                name: string;
+                                description: string;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.ai.prompts": {
@@ -741,9 +1118,9 @@ export interface operations {
                     prompt?: string | null;
                     /** @description Conversation to continue. */
                     conversation_id?: string | null;
-                    /** @description Provider name (requires the `ai.choose-model` permission). */
+                    /** @description Provider name (requires the `ai.models.manage` permission). */
                     provider?: string | null;
-                    /** @description Model identifier (requires the `ai.choose-model` permission). */
+                    /** @description Model identifier (requires the `ai.models.manage` permission). */
                     model?: string | null;
                 };
             };
@@ -798,6 +1175,140 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "v1.invitations.index": {
+        parameters: {
+            query?: {
+                per_page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `InvitationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: (components["schemas"]["InvitationResource"] & Record<string, never>)[];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            current_page: number;
+                            from: number | null;
+                            last_page: number;
+                            /** @description Generated paginator links. */
+                            links: {
+                                url: string | null;
+                                label: string;
+                                active: boolean;
+                            }[];
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description Number of the last item in the slice. */
+                            to: number | null;
+                            /** @description Total number of items being paginated. */
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.invitations.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvitationResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvitationResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.invitations.resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invitation ID */
+                invitation: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `InvitationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvitationResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.invitations.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invitation ID */
+                invitation: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `InvitationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvitationResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
         };
     };
 }
