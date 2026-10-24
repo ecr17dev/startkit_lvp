@@ -74,6 +74,7 @@ import type {
     RagConnection,
     RagJobSummary,
     RagStatus,
+    RemoteCatalog,
 } from '@/types';
 
 defineOptions({
@@ -85,6 +86,8 @@ const props = defineProps<{
     internal: RagConnection;
     modes: { value: string; label: string }[];
     connections: RagConnection[];
+    /** Collections the active retrieval API offers (API mode only). */
+    remote: RemoteCatalog | null;
     profiles: EmbeddingProfile[];
     embeddingModels: EmbeddingModelOption[];
     collections: CollectionSummary[];
@@ -169,6 +172,7 @@ const collectionForm = useForm<CollectionFormData>({
     slug: '',
     description: '',
     embedding_profile_id: null,
+    external_id: null,
     language: 'es',
     chunking: { target_tokens: 350, overlap_tokens: 50, max_tokens: 800 },
     search: {
@@ -184,15 +188,21 @@ const collectionForm = useForm<CollectionFormData>({
 
 const openCollection = () => {
     collectionForm.reset();
-    collectionForm.embedding_profile_id =
-        props.profiles.find((profile) => profile.status === 'ready')?.id ??
-        null;
+    collectionForm.embedding_profile_id = props.remote
+        ? null
+        : (props.profiles.find((profile) => profile.status === 'ready')?.id ??
+          null);
+    collectionForm.external_id = props.remote?.collections?.[0]?.id ?? null;
     collectionOpen.value = true;
 };
 
 const submitCollection = () =>
     collectionForm
-        .transform((data) => ({ ...data, slug: data.slug || null }))
+        .transform((data) => ({
+            ...data,
+            slug: data.slug || null,
+            external_id: props.remote ? data.external_id : undefined,
+        }))
         .post(collectionRoutes.store().url, {
             onSuccess: () => (collectionOpen.value = false),
         });
@@ -409,6 +419,7 @@ onBeforeUnmount(() => clearInterval(timer));
                         <Button
                             v-if="
                                 status.available &&
+                                !remote &&
                                 can('rag.collections.manage')
                             "
                             size="sm"
@@ -563,7 +574,11 @@ onBeforeUnmount(() => clearInterval(timer));
                                 </div>
                             </TableCell>
                             <TableCell class="text-sm">{{
-                                collection.profile
+                                collection.remote
+                                    ? t('Retrieval API · :id', {
+                                          id: collection.external_id ?? '',
+                                      })
+                                    : collection.profile
                             }}</TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 collection.sources
@@ -754,6 +769,7 @@ onBeforeUnmount(() => clearInterval(timer));
                     :form="collectionForm"
                     :profiles="readyProfiles"
                     :languages="options.languages"
+                    :remote="remote"
                 />
                 <InputError
                     :message="

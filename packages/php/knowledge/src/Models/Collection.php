@@ -7,18 +7,22 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Starter\Knowledge\Enums\ConnectionKind;
 use Starter\Knowledge\Support\Principals;
 
 /**
  * A group of knowledge with its own access, language, embedding profile,
- * chunking and search settings.
+ * chunking and search settings. A collection of a retrieval API points to
+ * a remote collection (external_id) and has no profile: the remote service
+ * indexes and ranks, the access list still applies locally.
  *
  * @property int $id
  * @property string $slug
  * @property string $name
  * @property string|null $description
  * @property int $connection_id
- * @property int $embedding_profile_id
+ * @property string|null $external_id
+ * @property int|null $embedding_profile_id
  * @property int|null $active_index_version_id
  * @property string $language
  * @property array{target_tokens: int, overlap_tokens: int, max_tokens: int} $chunking
@@ -30,7 +34,7 @@ use Starter\Knowledge\Support\Principals;
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
  * @property-read RagConnection $connection
- * @property-read EmbeddingProfile $profile
+ * @property-read EmbeddingProfile|null $profile
  * @property-read IndexVersion|null $activeVersion
  */
 class Collection extends Model
@@ -152,6 +156,39 @@ class Collection extends Model
     public function buildingVersion(): ?IndexVersion
     {
         return $this->indexVersions()->where('status', 'building')->first();
+    }
+
+    /**
+     * Searched through a retrieval API (no local chunks or index).
+     */
+    public function isRemote(): bool
+    {
+        return $this->ragConnection()->kind === ConnectionKind::Api;
+    }
+
+    /**
+     * Ready to be searched: active, and indexed here or served remotely.
+     */
+    public function isSearchable(): bool
+    {
+        return $this->status === self::ACTIVE
+            && $this->ragConnection()->isReady()
+            && ($this->isRemote() ? $this->external_id !== null : $this->active_index_version_id !== null);
+    }
+
+    /**
+     * The knowledge connection (inside the model `$this->connection` is
+     * Eloquent's database connection name, not the relation).
+     */
+    protected function ragConnection(): RagConnection
+    {
+        $connection = $this->getRelationValue('connection');
+
+        if (! $connection instanceof RagConnection) {
+            throw new \LogicException('The collection has no knowledge connection.');
+        }
+
+        return $connection;
     }
 
     /**

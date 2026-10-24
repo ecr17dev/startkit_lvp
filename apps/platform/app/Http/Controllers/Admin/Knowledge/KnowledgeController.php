@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Starter\Knowledge\Enums\Capability;
+use Starter\Knowledge\Enums\ConnectionKind;
 use Starter\Knowledge\Enums\RagMode;
 use Starter\Knowledge\Exceptions\RagUnavailableException;
 use Starter\Knowledge\Knowledge;
@@ -20,6 +22,8 @@ use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\RagConnection;
 use Starter\Knowledge\Models\RagJob;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiClient;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiException;
 use Starter\Knowledge\Support\Access;
 use Starter\Knowledge\Support\Principals;
 
@@ -52,7 +56,31 @@ class KnowledgeController extends Controller
                 : [],
             'options' => KnowledgePresenter::options(),
             'principals' => Principals::for($user),
+            'remote' => fn () => $this->remote($knowledge),
         ]);
+    }
+
+    /**
+     * Collections a retrieval API offers, when it is the active connection.
+     *
+     * @return array{isolated: bool, collections: list<array{id: string, name: string, description: string|null, documents: int|null}>|null, error: string|null}|null
+     */
+    protected function remote(Knowledge $knowledge): ?array
+    {
+        $connection = $knowledge->available() ? $knowledge->connection() : null;
+
+        if ($connection === null || $connection->kind !== ConnectionKind::Api) {
+            return null;
+        }
+
+        try {
+            $collections = $connection->can(Capability::ListCollections) ? app(RetrievalApiClient::class)->collections($connection) : null;
+            $error = null;
+        } catch (RetrievalApiException $exception) {
+            [$collections, $error] = [null, $exception->getMessage()];
+        }
+
+        return ['isolated' => (bool) $connection->setting('enforces_acl', false), 'collections' => $collections, 'error' => $error];
     }
 
     public function diagnose(Request $request, Knowledge $knowledge): RedirectResponse

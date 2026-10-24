@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Starter\Ai\Models\AiModel;
 use Starter\Knowledge\Enums\Metric;
+use Starter\Knowledge\Exceptions\RagUnavailableException;
 use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\EmbeddingProfile;
 
@@ -43,7 +44,12 @@ class SaveEmbeddingProfile
     public function handle(User $actor, array $input, ?EmbeddingProfile $profile = null): EmbeddingProfile
     {
         Gate::forUser($actor)->authorize('rag.collections.manage');
-        $connection = $this->knowledge->ensureAvailable();
+        // Profiles belong to the profile's own connection; a retrieval API embeds by itself...
+        $connection = $profile !== null ? $profile->connection : $this->knowledge->ensureAvailable();
+
+        if (! $connection->kind->managed()) {
+            throw new RagUnavailableException((string) __('A retrieval API embeds and indexes on its own: it has no embedding profiles.'));
+        }
 
         $validator = Validator::make($input, self::rules($profile === null));
 

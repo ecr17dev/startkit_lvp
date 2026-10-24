@@ -1220,6 +1220,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/retrieval/v1/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract version and capabilities */
+        get: operations["retrieval.v1.capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retrieval/v1/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Collections of this installation the token user can search (remote
+         *     collections are never re-exported)
+         */
+        get: operations["retrieval.v1.collections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retrieval/v1/collections/{collection}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Indexed documents of a collection the token user can read (50 per page) */
+        get: operations["retrieval.v1.documents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/retrieval/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search with the same rules as `POST /api/v1/rag/search`: the access
+         *     lists of the token user apply inside the query, and `principals`
+         *     (the end user of the calling installation) must also match
+         */
+        post: operations["retrieval.v1.search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/transcriptions": {
         parameters: {
             query?: never;
@@ -1447,6 +1522,8 @@ export interface components {
             source_ids?: number[] | null;
             /** @description Force exact (true) or approximate (false) vector search. */
             exact?: boolean | null;
+            /** @description Only return what these principals may also read (a service searching for its own end user); never widens your access. */
+            principals?: string[] | null;
         };
         /**
          * SearchMethod
@@ -2215,8 +2292,8 @@ export interface operations {
                             hits: number;
                             citations: {
                                 n: string;
-                                document_id: number;
-                                chunk_id: number;
+                                document_id: number | null;
+                                chunk_id: number | null;
                                 title: string;
                                 location: string | null;
                                 uri: unknown;
@@ -2281,8 +2358,8 @@ export interface operations {
                             hits: number;
                             citations: {
                                 n: string;
-                                document_id: number;
-                                chunk_id: number;
+                                document_id: number | null;
+                                chunk_id: number | null;
                                 title: string;
                                 location: string | null;
                                 uri: unknown;
@@ -4814,8 +4891,10 @@ export interface operations {
                             description: string | null;
                             status: string;
                             language: string;
-                            embedding_profile_id: number;
-                            profile: string;
+                            embedding_profile_id: number | null;
+                            profile: string | null;
+                            external_id: string | null;
+                            remote: boolean;
                             chunking: {
                                 target_tokens: number;
                                 overlap_tokens: number;
@@ -4918,8 +4997,10 @@ export interface operations {
                             description: string | null;
                             status: string;
                             language: string;
-                            embedding_profile_id: number;
-                            profile: string;
+                            embedding_profile_id: number | null;
+                            profile: string | null;
+                            external_id: string | null;
+                            remote: boolean;
                             chunking: {
                                 target_tokens: number;
                                 overlap_tokens: number;
@@ -6122,6 +6203,138 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "retrieval.v1.capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        version: "1";
+                        capabilities: [
+                            "query",
+                            "list_collections",
+                            "list_documents"
+                        ];
+                        enforces_acl: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "retrieval.v1.collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            description: string | null;
+                            documents: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+        };
+    };
+    "retrieval.v1.documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            title: string;
+                            uri: string | null;
+                            updated_at: string | null;
+                        }[];
+                        next_page: number | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "retrieval.v1.search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SearchKnowledge"] & {
+                    query: string;
+                    /** @description Collection ids (slugs) to search; empty = every collection the token user can search. */
+                    collections?: string[] | null;
+                    top_k?: number | null;
+                    method?: string | null;
+                    min_score?: number | null;
+                    /** @description Principals of the end user (everyone, user:{id}, role:{name}, permission:{name}). */
+                    principals?: string[] | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            hits: unknown[];
+                        };
+                        usage: {
+                            cost: string | null;
+                            latency_ms: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
         };
     };

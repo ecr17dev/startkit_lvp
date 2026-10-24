@@ -15,6 +15,7 @@ final class RetrievalQuery
     /**
      * @param  list<Collection>  $collections
      * @param  list<int>  $sourceIds  optional filter
+     * @param  list<string>|null  $restrictPrincipals  a second access list a chunk must also match (a retrieval API serving another installation for its end user)
      */
     public function __construct(
         public string $text,
@@ -31,6 +32,7 @@ final class RetrievalQuery
         public ?string $conversationId = null,
         public bool $record = true,
         public ?bool $exact = null,
+        public ?array $restrictPrincipals = null,
     ) {}
 
     /**

@@ -20,3 +20,4 @@
 - [Manifiesto de versiones](starter.manifest.json)
 - [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
 - [OpenAPI](tooling/contracts/openapi.json)
+- [Contrato de la API de recuperación](tooling/contracts/retrieval-api.openapi.json)

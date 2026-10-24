@@ -43,13 +43,16 @@ class SearchKnowledge
             'source_ids.*' => ['integer'],
             /** Force exact (true) or approximate (false) vector search. */
             'exact' => ['nullable', 'boolean'],
+            /** Only return what these principals may also read (a service searching for its own end user); never widens your access. */
+            'principals' => ['nullable', 'array', 'max:200'],
+            'principals.*' => ['string', 'max:200'],
         ];
     }
 
     /**
      * @param  array<string, mixed>  $input
      */
-    public function handle(User $actor, array $input, string $surface = 'api'): RetrievalResult
+    public function handle(User $actor, array $input, string $surface = 'api', bool $localOnly = false): RetrievalResult
     {
         Gate::forUser($actor)->authorize('rag.playground.use');
         $this->knowledge->ensureAvailable(Capability::Query);
@@ -57,20 +60,22 @@ class SearchKnowledge
         /** @var array<string, mixed> $data */
         $data = Validator::make($input, self::rules())->validate();
 
-        return $this->retriever->search($this->query($actor, $data, $surface));
+        return $this->retriever->search($this->query($actor, $data, $surface, $localOnly));
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function query(User $actor, array $data, string $surface): RetrievalQuery
+    public function query(User $actor, array $data, string $surface, bool $localOnly = false): RetrievalQuery
     {
         $collections = array_values(Collection::query()
+            ->with('connection')
             ->where('status', Collection::ACTIVE)
             ->when($data['collection_ids'] ?? null, fn ($query, array $ids) => $query->whereIn('id', $ids))
             ->orderBy('name')
             ->get()
-            ->filter(fn (Collection $collection) => $collection->isVisibleTo($actor))
+            // Serving another installation never proxies a remote collection...
+            ->filter(fn (Collection $collection) => $collection->isVisibleTo($actor) && ! ($localOnly && $collection->isRemote()))
             ->all());
 
         $query = RetrievalQuery::for((string) $data['query'], $actor, $collections, [
@@ -83,6 +88,7 @@ class SearchKnowledge
 
         $query->sourceIds = array_values(array_map('intval', (array) ($data['source_ids'] ?? [])));
         $query->exact = isset($data['exact']) ? (bool) $data['exact'] : null;
+        $query->restrictPrincipals = isset($data['principals']) ? array_values(array_map('strval', (array) $data['principals'])) : null;
 
         return $query;
     }

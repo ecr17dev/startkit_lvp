@@ -57,7 +57,16 @@ class SaveRagConnection
                 /** Password or env:STARTER_RAG_SECRET_* reference (empty keeps the stored one). */
                 'credentials.password' => [$connection === null ? 'required' : 'nullable', 'string', 'max:500'],
             ],
-            ConnectionKind::Api, ConnectionKind::Internal => [],
+            ConnectionKind::Api => [
+                /** Base URL of the retrieval API contract (HTTPS in production). */
+                'config.base_url' => ['required', 'string', 'max:500', 'url:http,https', ...(app()->isProduction() ? ['starts_with:https://'] : [])],
+                'config.timeout' => ['nullable', 'integer', 'between:1,60'],
+                /** The service filters by the principals it receives (required for private collections). */
+                'config.enforces_acl' => ['boolean'],
+                /** Bearer token or env:STARTER_RAG_SECRET_* reference (empty keeps the stored one). */
+                'credentials.token' => ['nullable', 'string', 'max:4000'],
+            ],
+            ConnectionKind::Internal => [],
         };
     }
 
@@ -142,7 +151,12 @@ class SaveRagConnection
                 'statement_timeout_ms' => (int) ($input['statement_timeout_ms'] ?? 15000),
                 'read_only' => (bool) ($input['read_only'] ?? false),
             ], fn ($value) => $value !== null),
-            default => [],
+            ConnectionKind::Api => [
+                'base_url' => rtrim((string) $input['base_url'], '/'),
+                'timeout' => (int) ($input['timeout'] ?? 10),
+                'enforces_acl' => (bool) ($input['enforces_acl'] ?? false),
+            ],
+            ConnectionKind::Internal => [],
         };
     }
 

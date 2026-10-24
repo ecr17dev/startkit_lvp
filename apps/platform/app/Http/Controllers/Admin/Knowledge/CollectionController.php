@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Starter\Knowledge\Enums\Capability;
 use Starter\Knowledge\Exceptions\RagUnavailableException;
 use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\Document;
@@ -20,6 +21,8 @@ use Starter\Knowledge\Models\EmbeddingProfile;
 use Starter\Knowledge\Models\IndexVersion;
 use Starter\Knowledge\Models\RagJob;
 use Starter\Knowledge\Models\Source;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiClient;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiException;
 use Starter\Knowledge\Support\Access;
 
 class CollectionController extends Controller
@@ -67,6 +70,7 @@ class CollectionController extends Controller
                 'meta' => Paginated::meta($documents),
             ] : null,
             'filters' => $filters,
+            'remote' => $collection->isRemote() && $canReadContent ? $this->remote($collection, max(1, (int) $request->query('page', '1'))) : null,
             'jobs' => KnowledgePresenter::jobs(RagJob::query()->where('collection_id', $collection->id)->whereNull('parent_id'), 25),
             'versions' => $collection->indexVersions()->with('profile')->orderByDesc('number')->get()->map(fn (IndexVersion $version) => KnowledgePresenter::indexVersion($version)),
             'profiles' => EmbeddingProfile::query()->where('status', EmbeddingProfile::READY)->orderBy('name')->get()->map(fn (EmbeddingProfile $profile) => KnowledgePresenter::profile($profile)),
@@ -106,5 +110,28 @@ class CollectionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reindex started. The current version keeps answering until the new one is published.')]);
 
         return back();
+    }
+
+    /**
+     * Documents a retrieval API lists for a remote collection (live, never
+     * stored here).
+     *
+     * @return array{documents: list<array{id: string, title: string, uri: string|null, updated_at: string|null}>, next_page: int|null, page: int, error: string|null, available: bool}
+     */
+    protected function remote(Collection $collection, int $page): array
+    {
+        $connection = $collection->connection;
+
+        if (! $connection->isReady() || ! $connection->can(Capability::ListDocuments)) {
+            return ['documents' => [], 'next_page' => null, 'page' => $page, 'error' => null, 'available' => false];
+        }
+
+        try {
+            $answer = app(RetrievalApiClient::class)->documents($connection, (string) $collection->external_id, $page);
+
+            return ['documents' => $answer['data'], 'next_page' => $answer['next_page'], 'page' => $page, 'error' => null, 'available' => true];
+        } catch (RetrievalApiException $exception) {
+            return ['documents' => [], 'next_page' => null, 'page' => $page, 'error' => $exception->getMessage(), 'available' => true];
+        }
     }
 }

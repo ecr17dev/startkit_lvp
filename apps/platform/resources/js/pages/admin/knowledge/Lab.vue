@@ -48,6 +48,7 @@ import evaluations from '@/routes/admin/knowledge/evaluations';
 import lab from '@/routes/admin/knowledge/lab';
 import type {
     LabCollectionOption,
+    RetrievalHitRow,
     RetrievalResultData,
     RetrievalRunSummary,
 } from '@/types';
@@ -148,7 +149,9 @@ const foundDocuments = computed(() => {
 
     for (const result of results.value) {
         for (const hit of result.hits) {
-            documents.set(hit.document_id, hit.title);
+            if (hit.document_id) {
+                documents.set(hit.document_id, hit.title);
+            }
         }
     }
 
@@ -167,7 +170,11 @@ const openSave = () => {
 
     for (const result of results.value) {
         for (const hit of result.hits) {
-            if (hit.hit_id && judgements.value[hit.hit_id] === 1) {
+            if (
+                hit.hit_id &&
+                hit.document_id &&
+                judgements.value[hit.hit_id] === 1
+            ) {
                 relevant.add(hit.document_id);
             }
         }
@@ -197,6 +204,10 @@ const saveQuestion = () =>
             preserveState: true,
             onSuccess: () => (saveOpen.value = false),
         });
+
+// Passages of a retrieval API have an external id instead of a chunk...
+const hitKey = (hit: RetrievalHitRow) =>
+    hit.external_id ?? String(hit.chunk_id);
 
 const scoreLabel: Record<string, string> = {
     rrf: 'RRF',
@@ -457,7 +468,7 @@ const scoreLabel: Record<string, string> = {
                         <CardContent class="grid gap-3">
                             <div
                                 v-for="hit in result.hits"
-                                :key="hit.chunk_id"
+                                :key="hitKey(hit)"
                                 class="grid gap-1 rounded-md border p-3 text-sm"
                             >
                                 <div class="flex flex-wrap items-center gap-2">
@@ -465,7 +476,10 @@ const scoreLabel: Record<string, string> = {
                                         >#{{ hit.rank }}</Badge
                                     >
                                     <Link
-                                        v-if="can('rag.documents.read')"
+                                        v-if="
+                                            can('rag.documents.read') &&
+                                            hit.document_id
+                                        "
                                         :href="documentShow(hit.document_id)"
                                         class="font-medium hover:underline"
                                         >{{ hit.title }}</Link
@@ -548,7 +562,7 @@ const scoreLabel: Record<string, string> = {
                                     class="text-sm whitespace-pre-wrap text-muted-foreground"
                                     :class="
                                         expanded[
-                                            `${result.method}-${hit.chunk_id}`
+                                            `${result.method}-${hitKey(hit)}`
                                         ]
                                             ? ''
                                             : 'line-clamp-4'
@@ -561,16 +575,16 @@ const scoreLabel: Record<string, string> = {
                                     class="w-fit text-xs text-muted-foreground hover:text-foreground"
                                     @click="
                                         expanded[
-                                            `${result.method}-${hit.chunk_id}`
+                                            `${result.method}-${hitKey(hit)}`
                                         ] =
                                             !expanded[
-                                                `${result.method}-${hit.chunk_id}`
+                                                `${result.method}-${hitKey(hit)}`
                                             ]
                                     "
                                 >
                                     {{
                                         expanded[
-                                            `${result.method}-${hit.chunk_id}`
+                                            `${result.method}-${hitKey(hit)}`
                                         ]
                                             ? t('Show less')
                                             : t('Show more')

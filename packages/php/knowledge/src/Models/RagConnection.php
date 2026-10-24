@@ -123,6 +123,10 @@ class RagConnection extends Model
      */
     public function databaseConnection(): string
     {
+        if ($this->kind === ConnectionKind::Api) {
+            throw new \LogicException('A retrieval API connection has no database.');
+        }
+
         return $this->kind === ConnectionKind::Internal
             ? (string) config('database.default')
             : app(ExternalDatabases::class)->register($this);

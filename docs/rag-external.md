@@ -68,3 +68,42 @@ que RAG esté activo (para atender solicitudes de eliminación con el módulo ap
 | `POST /api/v1/rag/connections/{id}/activate` | activación explícita (422 con el informe si falla) |
 
 Requieren `settings.update`; el diagnóstico y la activación, además, la habilidad `write`.
+
+## API de recuperación
+
+Una conexión de tipo **API de recuperación** delega la indexación y el ranking en un servicio
+HTTP que implementa el contrato v1 (`tooling/contracts/retrieval-api.openapi.json`):
+
+| Ruta (relativa a la URL base) | Uso |
+| --- | --- |
+| `GET capabilities` | `{version: "1", capabilities: [...], enforces_acl}` |
+| `GET collections` | colecciones del servicio (capacidad `list_collections`) |
+| `GET collections/{id}/documents?page=` | documentos (capacidad `list_documents`) |
+| `POST search` | `{query, collections, top_k, method, min_score, principals, user}` → `{data: {hits: [...]}, usage?: {cost}}` |
+
+- **Configuración**: URL base (HTTPS obligatorio en producción), token Bearer (cifrado o
+  `env:STARTER_RAG_SECRET_*`), tiempo máximo y si el servicio **aplica las listas de acceso**.
+  No se siguen redirecciones; las respuestas se validan y acotan (textos ≤ 20.000
+  caracteres, a lo más 2 × top-k pasajes, URLs solo http/https).
+- **Diagnóstico**: dirección y TLS, versión del contrato, capacidades declaradas (el
+  adaptador solo habilita `query`, `list_collections` y `list_documents`: ingesta, bajas y
+  trabajos los gestiona el servicio), coherencia del aislamiento y una búsqueda de prueba.
+- **Colecciones remotas**: una colección local apunta a una colección del servicio
+  (`external_id`) y no tiene perfil de embeddings. Conserva aquí su lista de acceso, su
+  configuración de búsqueda y las trazas. Eliminarla solo borra su registro local.
+- **Aislamiento**: cada búsqueda envía los principales del usuario (`everyone`, `user:{id}`,
+  `role:{nombre}`, `permission:{nombre}`). Si el servicio **no** garantiza el filtrado, solo
+  se permiten colecciones públicas (`everyone`). Si un pasaje trae su propia lista de acceso
+  y no coincide con el usuario, se descarta también aquí.
+- **Costos**: si el servicio no informa `usage.cost`, el costo de la búsqueda queda
+  **desconocido** (`null`), nunca cero.
+- **Fallas**: un error del servicio deja la búsqueda sin pasajes y se registra en
+  `diagnostics.errors` de la traza, sin el token.
+
+### Servidor de referencia
+
+El propio starter implementa el contrato en `/api/retrieval/v1/*` (Sanctum con la habilidad
+`read` y el permiso `rag.playground.use`), de modo que una instalación puede usar a otra como
+conocimiento externo. El usuario del token fija el máximo visible; los principales recibidos
+solo **restringen** (un fragmento debe coincidir con ambas listas de acceso). Nunca se
+reexportan colecciones remotas y cada búsqueda queda trazada con `surface = retrieval_api`.

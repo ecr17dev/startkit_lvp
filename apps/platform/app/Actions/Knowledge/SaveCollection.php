@@ -8,12 +8,18 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Starter\Knowledge\Enums\Capability;
+use Starter\Knowledge\Enums\ConnectionKind;
 use Starter\Knowledge\Enums\SearchMethod;
+use Starter\Knowledge\Exceptions\RagUnavailableException;
 use Starter\Knowledge\Knowledge;
 use Starter\Knowledge\Models\Collection;
 use Starter\Knowledge\Models\Document;
 use Starter\Knowledge\Models\EmbeddingProfile;
+use Starter\Knowledge\Models\RagConnection;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiClient;
+use Starter\Knowledge\Store\ExternalApi\RetrievalApiException;
 use Starter\Knowledge\Store\VectorStore;
 
 /**
@@ -23,19 +29,27 @@ use Starter\Knowledge\Store\VectorStore;
  */
 class SaveCollection
 {
-    public function __construct(protected Knowledge $knowledge, protected VectorStore $store) {}
+    public function __construct(protected Knowledge $knowledge, protected VectorStore $store, protected RetrievalApiClient $api) {}
 
     /**
      * @return array<string, mixed>
      */
-    public static function rules(?Collection $collection = null, ?int $connectionId = null): array
+    public static function rules(?Collection $collection = null, ?RagConnection $connection = null): array
     {
+        $remote = $connection?->kind === ConnectionKind::Api;
+
         return [
             'name' => ['required', 'string', 'max:120'],
             'slug' => ['nullable', 'string', 'max:80', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('rag_collections', 'slug')->ignore($collection?->id)],
             'description' => ['nullable', 'string', 'max:1000'],
-            /** A ready profile of the collection connection. */
-            'embedding_profile_id' => ['required', 'integer', Rule::exists('rag_embedding_profiles', 'id')->where('status', EmbeddingProfile::READY)->when($connectionId !== null, fn ($rule) => $rule->where('connection_id', $connectionId))],
+            ...($remote ? [
+                /** Collection id in the retrieval API (retrieval API connections only). */
+                'external_id' => ['required', 'string', 'max:200', Rule::unique('rag_collections', 'external_id')->where('connection_id', $connection->id)->ignore($collection?->id)],
+                'embedding_profile_id' => ['prohibited'],
+            ] : [
+                /** A ready profile of the collection connection. */
+                'embedding_profile_id' => ['required', 'integer', Rule::exists('rag_embedding_profiles', 'id')->where('status', EmbeddingProfile::READY)->when($connection !== null, fn ($rule) => $rule->where('connection_id', $connection?->id))],
+            ]),
             /** Language of the full text search: simple, es, en, pt, fr, de or it. */
             'language' => ['required', Rule::in(array_keys(Collection::LANGUAGES))],
             'chunking' => ['required', 'array'],
@@ -61,15 +75,24 @@ class SaveCollection
     {
         Gate::forUser($actor)->authorize('rag.collections.manage');
         // New collections are created on the active connection (it must
-        // accept ingestion); an existing one keeps its own...
-        $connection = $collection === null ? $this->knowledge->ensureAvailable(Capability::Ingest) : $this->knowledge->ensureFor($collection, Capability::Query);
+        // accept ingestion, or serve searches for a retrieval API); an
+        // existing one keeps its own...
+        $connection = $collection === null ? $this->knowledge->ensureAvailable() : $this->knowledge->ensureFor($collection, Capability::Query);
+
+        if ($collection === null && ! $connection->can($connection->kind === ConnectionKind::Api ? Capability::Query : Capability::Ingest)) {
+            throw new RagUnavailableException((string) __('The knowledge connection does not support this operation.'));
+        }
 
         $input['chunking'] = [...Collection::defaultChunking(), ...((array) ($input['chunking'] ?? []))];
         $input['search'] = [...Collection::defaultSearch(), ...((array) ($input['search'] ?? []))];
         $input['acl'] ??= ['everyone'];
 
         /** @var array<string, mixed> $data */
-        $data = Validator::make($input, self::rules($collection, $connection->id))->validate();
+        $data = Validator::make($input, self::rules($collection, $connection))->validate();
+
+        if ($connection->kind === ConnectionKind::Api) {
+            $this->checkRemote($connection, $data);
+        }
 
         $data['search']['top_k'] = (int) $data['search']['top_k'];
         $data['search']['max_context_tokens'] = (int) $data['search']['max_context_tokens'];
@@ -81,6 +104,7 @@ class SaveCollection
         if ($collection === null) {
             $collection = Collection::query()->create([
                 ...$data,
+                'embedding_profile_id' => $data['embedding_profile_id'] ?? null,
                 'slug' => $data['slug'] ?? $this->slug((string) $data['name']),
                 'connection_id' => $connection->id,
                 'created_by' => $actor->id,
@@ -95,13 +119,42 @@ class SaveCollection
 
         DB::transaction(fn () => $collection->fill([...$data, 'slug' => $data['slug'] ?? $collection->slug])->save());
 
-        if ($aclChanged) {
+        // Remote collections keep no chunks here: the access list is sent
+        // with every search...
+        if ($aclChanged && ! $collection->isRemote()) {
             $this->propagateAcl($collection);
         }
 
         audit('rag.collections.updated', $collection, ['name' => $collection->name, 'acl_changed' => $aclChanged], $actor);
 
         return $collection;
+    }
+
+    /**
+     * A retrieval API without guaranteed isolation only serves public
+     * collections, and a listed collection must exist on the service.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function checkRemote(RagConnection $connection, array $data): void
+    {
+        if (! $connection->setting('enforces_acl', false) && array_values($data['acl']) !== ['everyone']) {
+            throw ValidationException::withMessages(['acl' => __('This retrieval API does not guarantee isolation: only public collections (every authenticated user) are allowed.')]);
+        }
+
+        if (! $connection->can(Capability::ListCollections)) {
+            return;
+        }
+
+        try {
+            $listed = array_column($this->api->collections($connection), 'id');
+        } catch (RetrievalApiException $exception) {
+            throw ValidationException::withMessages(['external_id' => $exception->getMessage()]);
+        }
+
+        if (! in_array((string) $data['external_id'], $listed, true)) {
+            throw ValidationException::withMessages(['external_id' => __('The retrieval API does not list this collection.')]);
+        }
     }
 
     /**

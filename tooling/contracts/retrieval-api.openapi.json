@@ -1,0 +1,148 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Retrieval API contract",
+        "version": "1",
+        "description": "Contract an external retrieval service implements so the starter can search it (RAG mode external_api). Paths are relative to the base URL of the connection. The starter sends the principals of the end user; a service that declares enforces_acl must only return passages those principals may read. The starter includes a reference implementation at /api/retrieval/v1."
+    },
+    "components": {
+        "securitySchemes": {
+            "bearer": { "type": "http", "scheme": "bearer" }
+        },
+        "schemas": {
+            "Hit": {
+                "type": "object",
+                "required": ["id", "text"],
+                "properties": {
+                    "id": { "type": "string", "description": "Passage id, unique within the service." },
+                    "document_id": { "type": ["string", "null"] },
+                    "collection": { "type": "string", "description": "Collection id the passage belongs to." },
+                    "title": { "type": "string" },
+                    "text": { "type": "string", "description": "Passage text (truncated by the starter at 20,000 characters)." },
+                    "uri": { "type": ["string", "null"], "description": "http(s) link to the origin." },
+                    "location": { "type": ["string", "null"], "description": "Human location, e.g. section and page." },
+                    "score": { "type": "number" },
+                    "score_type": { "type": "string", "description": "cosine, text_rank, rrf or another lowercase identifier." },
+                    "token_count": { "type": "integer" },
+                    "acl": { "type": ["array", "null"], "items": { "type": "string" }, "description": "Optional access list; the starter drops hits whose list does not match the user principals." }
+                }
+            }
+        }
+    },
+    "security": [{ "bearer": [] }],
+    "paths": {
+        "/capabilities": {
+            "get": {
+                "operationId": "retrieval.capabilities",
+                "summary": "Contract version and capabilities",
+                "responses": {
+                    "200": {
+                        "description": "Declared capabilities",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["version", "capabilities"],
+                                    "properties": {
+                                        "version": { "const": "1" },
+                                        "capabilities": { "type": "array", "items": { "enum": ["query", "list_collections", "list_documents", "ingest", "delete", "jobs", "metrics"] } },
+                                        "enforces_acl": { "type": "boolean", "description": "The service filters by the principals it receives." }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/collections": {
+            "get": {
+                "operationId": "retrieval.collections",
+                "summary": "Collections (capability list_collections)",
+                "responses": {
+                    "200": {
+                        "description": "Collections",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": { "type": "array", "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "description": { "type": ["string", "null"] }, "documents": { "type": ["integer", "null"] } } } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/collections/{collection}/documents": {
+            "get": {
+                "operationId": "retrieval.documents",
+                "summary": "Documents of a collection (capability list_documents)",
+                "parameters": [
+                    { "name": "collection", "in": "path", "required": true, "schema": { "type": "string" } },
+                    { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of documents",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": { "type": "array", "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "uri": { "type": ["string", "null"] }, "updated_at": { "type": ["string", "null"], "format": "date-time" } } } },
+                                        "next_page": { "type": ["integer", "null"] }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search": {
+            "post": {
+                "operationId": "retrieval.search",
+                "summary": "Search passages for an end user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["query", "principals"],
+                                "properties": {
+                                    "query": { "type": "string", "maxLength": 2000 },
+                                    "collections": { "type": "array", "items": { "type": "string" }, "description": "Collection ids; empty = every collection." },
+                                    "top_k": { "type": "integer", "minimum": 1, "maximum": 50 },
+                                    "method": { "enum": ["vector", "text", "hybrid"], "description": "Hint; the service may ignore it." },
+                                    "min_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                                    "principals": { "type": "array", "items": { "type": "string" }, "description": "everyone, user:{id}, role:{name}, permission:{name} of the end user." },
+                                    "user": { "type": "object", "properties": { "id": { "type": ["string", "null"] } } }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ranked passages",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": { "type": "object", "properties": { "hits": { "type": "array", "items": { "$ref": "#/components/schemas/Hit" } } } },
+                                        "usage": { "type": "object", "properties": { "cost": { "type": ["string", "null"], "description": "USD decimal; absent = unknown (never zero)." } } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

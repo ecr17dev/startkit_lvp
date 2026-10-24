@@ -40,6 +40,9 @@
         },
         {
             "name": "Knowledge (RAG)"
+        },
+        {
+            "name": "Retrieval API (contract v1)"
         }
     ],
     "security": [
@@ -1535,10 +1538,16 @@
                                                                         "type": "string"
                                                                     },
                                                                     "document_id": {
-                                                                        "type": "integer"
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
                                                                     },
                                                                     "chunk_id": {
-                                                                        "type": "integer"
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
                                                                     },
                                                                     "title": {
                                                                         "type": "string"
@@ -1815,10 +1824,16 @@
                                                                         "type": "string"
                                                                     },
                                                                     "document_id": {
-                                                                        "type": "integer"
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
                                                                     },
                                                                     "chunk_id": {
-                                                                        "type": "integer"
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
                                                                     },
                                                                     "title": {
                                                                         "type": "string"
@@ -9965,10 +9980,25 @@
                                                         "type": "string"
                                                     },
                                                     "embedding_profile_id": {
-                                                        "type": "integer"
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
                                                     },
                                                     "profile": {
-                                                        "type": "string"
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "external_id": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "remote": {
+                                                        "type": "boolean"
                                                     },
                                                     "chunking": {
                                                         "type": "object",
@@ -10281,6 +10311,8 @@
                                                     "language",
                                                     "embedding_profile_id",
                                                     "profile",
+                                                    "external_id",
+                                                    "remote",
                                                     "chunking",
                                                     "search",
                                                     "acl",
@@ -10365,10 +10397,25 @@
                                                     "type": "string"
                                                 },
                                                 "embedding_profile_id": {
-                                                    "type": "integer"
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "profile": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "external_id": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "remote": {
+                                                    "type": "boolean"
                                                 },
                                                 "chunking": {
                                                     "type": "object",
@@ -11234,6 +11281,8 @@
                                                 "language",
                                                 "embedding_profile_id",
                                                 "profile",
+                                                "external_id",
+                                                "remote",
                                                 "chunking",
                                                 "search",
                                                 "acl",
@@ -14627,6 +14676,345 @@
                 }
             }
         },
+        "/retrieval/v1/capabilities": {
+            "get": {
+                "operationId": "retrieval.v1.capabilities",
+                "summary": "Contract version and capabilities",
+                "tags": [
+                    "Retrieval API (contract v1)"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "version": {
+                                            "type": "string",
+                                            "const": "1"
+                                        },
+                                        "capabilities": {
+                                            "type": "array",
+                                            "prefixItems": [
+                                                {
+                                                    "type": "string",
+                                                    "const": "query"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "const": "list_collections"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "const": "list_documents"
+                                                }
+                                            ],
+                                            "minItems": 3,
+                                            "maxItems": 3
+                                        },
+                                        "enforces_acl": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "version",
+                                        "capabilities",
+                                        "enforces_acl"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/retrieval/v1/collections": {
+            "get": {
+                "operationId": "retrieval.v1.collections",
+                "summary": "Collections of this installation the token user can search (remote\ncollections are never re-exported)",
+                "tags": [
+                    "Retrieval API (contract v1)"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "documents": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "description",
+                                                    "documents"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/retrieval/v1/collections/{collection}/documents": {
+            "get": {
+                "operationId": "retrieval.v1.documents",
+                "summary": "Indexed documents of a collection the token user can read (50 per page)",
+                "tags": [
+                    "Retrieval API (contract v1)"
+                ],
+                "parameters": [
+                    {
+                        "name": "collection",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    },
+                                                    "uri": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "updated_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "title",
+                                                    "uri",
+                                                    "updated_at"
+                                                ]
+                                            }
+                                        },
+                                        "next_page": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "next_page"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/retrieval/v1/search": {
+            "post": {
+                "operationId": "retrieval.v1.search",
+                "summary": "Search with the same rules as `POST /api/v1/rag/search`: the access\nlists of the token user apply inside the query, and `principals`\n(the end user of the calling installation) must also match",
+                "tags": [
+                    "Retrieval API (contract v1)"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/SearchKnowledge"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "query": {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                            },
+                                            "collections": {
+                                                "type": [
+                                                    "array",
+                                                    "null"
+                                                ],
+                                                "description": "Collection ids (slugs) to search; empty = every collection the token user can search.",
+                                                "items": {
+                                                    "type": "string",
+                                                    "maxLength": 200
+                                                },
+                                                "maxItems": 20
+                                            },
+                                            "top_k": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "minimum": 1,
+                                                "maximum": 50
+                                            },
+                                            "method": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ]
+                                            },
+                                            "min_score": {
+                                                "type": [
+                                                    "number",
+                                                    "null"
+                                                ],
+                                                "minimum": 0,
+                                                "maximum": 1
+                                            },
+                                            "principals": {
+                                                "type": [
+                                                    "array",
+                                                    "null"
+                                                ],
+                                                "description": "Principals of the end user (everyone, user:{id}, role:{name}, permission:{name}).",
+                                                "items": {
+                                                    "type": "string",
+                                                    "maxLength": 200
+                                                },
+                                                "maxItems": 200
+                                            }
+                                        },
+                                        "required": [
+                                            "query"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "hits": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "hits"
+                                            ]
+                                        },
+                                        "usage": {
+                                            "type": "object",
+                                            "properties": {
+                                                "cost": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "latency_ms": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "cost",
+                                                "latency_ms"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "usage"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/ai/transcriptions": {
             "post": {
                 "operationId": "v1.ai.transcriptions.store",
@@ -15618,6 +16006,18 @@
                             "null"
                         ],
                         "description": "Force exact (true) or approximate (false) vector search."
+                    },
+                    "principals": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "description": "Only return what these principals may also read (a service searching for its own end user); never widens your access.",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 200
                     }
                 },
                 "required": [

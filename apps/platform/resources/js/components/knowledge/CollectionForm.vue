@@ -14,13 +14,20 @@ import {
 import { Textarea } from '@starter/ui/components/textarea';
 import { t } from '@/lib/i18n';
 import { languageLabels, methodLabels } from '@/lib/knowledge';
-import type { Chunking, EmbeddingProfile, SearchSettings } from '@/types';
+import type {
+    Chunking,
+    EmbeddingProfile,
+    RemoteCatalog,
+    SearchSettings,
+} from '@/types';
 
 export type CollectionFormData = {
     name: string;
     slug: string;
     description: string;
     embedding_profile_id: number | null;
+    /** Collection id in the retrieval API (remote collections). */
+    external_id?: string | null;
     language: string;
     chunking: Chunking;
     search: SearchSettings;
@@ -33,6 +40,8 @@ const props = defineProps<{
     profiles: EmbeddingProfile[];
     languages: string[];
     editing?: boolean;
+    /** The collection is served by a retrieval API. */
+    remote?: RemoteCatalog | null;
 }>();
 
 const error = (key: string) =>
@@ -69,7 +78,52 @@ const profileValue = (value: unknown) =>
             />
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div v-if="remote" class="grid gap-2">
+            <Label for="collection-external">{{
+                t('Collection in the retrieval API')
+            }}</Label>
+            <Select
+                v-if="remote.collections?.length"
+                :model-value="form.external_id ?? ''"
+                @update:model-value="
+                    (value) => (form.external_id = value ? String(value) : null)
+                "
+            >
+                <SelectTrigger
+                    id="collection-external"
+                    data-test="collection-external"
+                >
+                    <SelectValue :placeholder="t('Choose a collection')" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem
+                        v-for="option in remote.collections"
+                        :key="option.id"
+                        :value="option.id"
+                        >{{ option.name }} · {{ option.id }}</SelectItem
+                    >
+                </SelectContent>
+            </Select>
+            <Input
+                v-else
+                id="collection-external"
+                v-model="form.external_id"
+                data-test="collection-external"
+            />
+            <p class="text-xs text-muted-foreground">
+                {{
+                    t(
+                        'The service embeds, indexes and ranks; this installation keeps the access list, the search settings and the traces.',
+                    )
+                }}
+            </p>
+            <p v-if="remote.error" class="text-xs text-destructive">
+                {{ remote.error }}
+            </p>
+            <InputError :message="error('external_id')" />
+        </div>
+
+        <div v-if="!remote" class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label>{{ t('Embedding profile') }}</Label>
                 <Select
@@ -122,7 +176,7 @@ const profileValue = (value: unknown) =>
             </div>
         </div>
 
-        <fieldset class="grid gap-3 rounded-md border p-3">
+        <fieldset v-if="!remote" class="grid gap-3 rounded-md border p-3">
             <legend class="px-1 text-sm font-medium">
                 {{ t('Chunking (estimated tokens, ≈4 characters each)') }}
             </legend>
@@ -233,6 +287,16 @@ const profileValue = (value: unknown) =>
                 {{
                     t(
                         'Who can retrieve this knowledge. The filter is applied inside the search query, before anything reaches the model.',
+                    )
+                }}
+            </p>
+            <p
+                v-if="remote && !remote.isolated"
+                class="text-xs text-amber-700 dark:text-amber-400"
+            >
+                {{
+                    t(
+                        'This retrieval API does not guarantee isolation: only public collections (every authenticated user) are allowed.',
                     )
                 }}
             </p>

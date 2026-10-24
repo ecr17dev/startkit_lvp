@@ -21,6 +21,11 @@ import SourceDialog from '@/components/knowledge/SourceDialog.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import Pagination from '@/components/Pagination.vue';
 import StatCard from '@/components/StatCard.vue';
+import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+} from '@starter/ui/components/alert';
 import { Badge } from '@starter/ui/components/badge';
 import { Button } from '@starter/ui/components/button';
 import {
@@ -80,6 +85,7 @@ import type {
     PaginatedDocuments,
     RagJobSummary,
     SourceSummary,
+    RemoteDocuments,
 } from '@/types';
 
 const props = defineProps<{
@@ -92,6 +98,8 @@ const props = defineProps<{
     profiles: EmbeddingProfile[];
     options: KnowledgeOptions;
     access: { readContent: boolean };
+    /** Documents listed live by the retrieval API (remote collections). */
+    remote: RemoteDocuments | null;
 }>();
 
 defineOptions({
@@ -110,7 +118,8 @@ const { can } = usePermissions();
 const supports = (capability: string) =>
     props.collection.connection.capabilities.includes(capability);
 const tab = ref(
-    new URLSearchParams(window.location.search).get('tab') ?? 'sources',
+    new URLSearchParams(window.location.search).get('tab') ??
+        (props.collection.remote ? 'documents' : 'sources'),
 );
 
 const sourceOpen = ref(false);
@@ -149,6 +158,7 @@ const settingsForm = useForm<CollectionFormData>({
     slug: props.collection.slug,
     description: props.collection.description ?? '',
     embedding_profile_id: props.collection.embedding_profile_id,
+    external_id: props.collection.external_id,
     language: props.collection.language,
     chunking: { ...props.collection.chunking },
     search: { ...props.collection.search },
@@ -267,7 +277,24 @@ onBeforeUnmount(() => clearInterval(timer));
             </Button>
         </PageHeader>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Alert v-if="collection.remote">
+            <AlertTitle>{{
+                t('Served by :connection', {
+                    connection: collection.connection.label,
+                })
+            }}</AlertTitle>
+            <AlertDescription>{{
+                t(
+                    'Remote collection :id: the retrieval API embeds, indexes and ranks. This installation applies the access list, sends the user principals with every search and keeps the traces.',
+                    { id: collection.external_id ?? '' },
+                )
+            }}</AlertDescription>
+        </Alert>
+
+        <div
+            v-if="!collection.remote"
+            class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
             <StatCard
                 :title="t('Documents')"
                 :value="formatNumber(collection.documents)"
@@ -286,7 +313,7 @@ onBeforeUnmount(() => clearInterval(timer));
             />
             <StatCard
                 :title="t('Profile')"
-                :value="collection.profile"
+                :value="collection.profile ?? '—'"
                 :hint="
                     collection.needs_reindex
                         ? t('Changed settings: reindex to apply')
@@ -319,16 +346,20 @@ onBeforeUnmount(() => clearInterval(timer));
 
         <Tabs v-model="tab">
             <TabsList class="flex-wrap">
-                <TabsTrigger value="sources">{{ t('Sources') }}</TabsTrigger>
+                <TabsTrigger v-if="!collection.remote" value="sources">{{
+                    t('Sources')
+                }}</TabsTrigger>
                 <TabsTrigger
                     value="documents"
                     :disabled="!access.readContent"
                     >{{ t('Documents') }}</TabsTrigger
                 >
-                <TabsTrigger value="jobs">{{ t('Jobs') }}</TabsTrigger>
-                <TabsTrigger value="versions">{{
-                    t('Index versions')
-                }}</TabsTrigger>
+                <template v-if="!collection.remote">
+                    <TabsTrigger value="jobs">{{ t('Jobs') }}</TabsTrigger>
+                    <TabsTrigger value="versions">{{
+                        t('Index versions')
+                    }}</TabsTrigger>
+                </template>
                 <TabsTrigger
                     v-if="can('rag.collections.manage')"
                     value="settings"
@@ -599,7 +630,118 @@ onBeforeUnmount(() => clearInterval(timer));
             </TabsContent>
 
             <TabsContent value="documents" class="grid gap-3">
-                <template v-if="documents">
+                <template v-if="collection.remote">
+                    <p
+                        v-if="remote && !remote.available"
+                        class="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground"
+                    >
+                        {{
+                            t('The retrieval API does not list its documents.')
+                        }}
+                    </p>
+                    <p
+                        v-else-if="remote?.error"
+                        class="text-sm text-destructive"
+                    >
+                        {{ remote.error }}
+                    </p>
+                    <div
+                        v-else-if="remote"
+                        class="overflow-x-auto rounded-lg border"
+                        data-test="remote-documents"
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{{ t('Document') }}</TableHead>
+                                    <TableHead>{{ t('Updated') }}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow
+                                    v-for="document in remote.documents"
+                                    :key="document.id"
+                                >
+                                    <TableCell>
+                                        <a
+                                            v-if="document.uri"
+                                            :href="document.uri"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="font-medium hover:underline"
+                                            >{{ document.title }}</a
+                                        >
+                                        <span v-else class="font-medium">{{
+                                            document.title
+                                        }}</span>
+                                        <p
+                                            class="font-mono text-xs text-muted-foreground"
+                                        >
+                                            {{ document.id }}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell
+                                        class="text-xs text-muted-foreground"
+                                        >{{
+                                            document.updated_at
+                                                ? formatDate(
+                                                      document.updated_at,
+                                                  )
+                                                : '—'
+                                        }}</TableCell
+                                    >
+                                </TableRow>
+                                <TableEmpty
+                                    v-if="!remote.documents.length"
+                                    :colspan="2"
+                                    >{{ t('No documents.') }}</TableEmpty
+                                >
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <div
+                        v-if="remote && (remote.page > 1 || remote.next_page)"
+                        class="flex justify-end gap-2"
+                    >
+                        <Button
+                            v-if="remote.page > 1"
+                            variant="outline"
+                            size="sm"
+                            as-child
+                        >
+                            <Link
+                                :href="
+                                    collectionRoutes.show(collection.id, {
+                                        query: {
+                                            tab: 'documents',
+                                            page: remote.page - 1,
+                                        },
+                                    })
+                                "
+                                >{{ t('Previous') }}</Link
+                            >
+                        </Button>
+                        <Button
+                            v-if="remote.next_page"
+                            variant="outline"
+                            size="sm"
+                            as-child
+                        >
+                            <Link
+                                :href="
+                                    collectionRoutes.show(collection.id, {
+                                        query: {
+                                            tab: 'documents',
+                                            page: remote.next_page,
+                                        },
+                                    })
+                                "
+                                >{{ t('Next') }}</Link
+                            >
+                        </Button>
+                    </div>
+                </template>
+                <template v-else-if="documents">
                     <div class="flex flex-wrap gap-2">
                         <Input
                             v-model="search"
@@ -842,6 +984,15 @@ onBeforeUnmount(() => clearInterval(timer));
                         :form="settingsForm"
                         :profiles="profiles"
                         :languages="options.languages"
+                        :remote="
+                            collection.remote
+                                ? {
+                                      collections: null,
+                                      isolated: true,
+                                      error: null,
+                                  }
+                                : null
+                        "
                         editing
                     />
                     <InputError

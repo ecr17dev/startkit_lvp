@@ -25,14 +25,25 @@ final class Hit
         public ?float $textScore = null,
         public int $rank = 0,
         public int $connectionId = 0,
+        public ?string $externalId = null,
+        public ?string $externalDocumentId = null,
     ) {}
 
     /**
-     * Identity across connections (chunk ids are per data plane).
+     * Identity across connections (chunk ids are per data plane, external
+     * ids per service).
      */
     public function key(): string
     {
-        return $this->connectionId.':'.$this->chunkId;
+        return $this->connectionId.':'.($this->externalId ?? $this->chunkId);
+    }
+
+    /**
+     * Returned by a retrieval API: no local document or chunk.
+     */
+    public function isExternal(): bool
+    {
+        return $this->externalId !== null;
     }
 
     public function title(): string
@@ -45,6 +56,11 @@ final class Hit
      */
     public function location(): ?string
     {
+        // A retrieval API describes the location itself...
+        if (is_string($this->metadata['location'] ?? null) && $this->metadata['location'] !== '') {
+            return $this->metadata['location'];
+        }
+
         $parts = array_filter([
             self::section($this->metadata['section'] ?? null, $this->metadata['title'] ?? null),
             isset($this->metadata['page_start'])
@@ -86,8 +102,10 @@ final class Hit
     {
         return array_filter([
             'rank' => $this->rank,
-            'chunk_id' => $this->chunkId,
-            'document_id' => $this->documentId,
+            'chunk_id' => $this->isExternal() ? null : $this->chunkId,
+            'document_id' => $this->isExternal() ? null : $this->documentId,
+            'external_id' => $this->externalId,
+            'external_document_id' => $this->externalDocumentId,
             'collection_id' => $this->collectionId,
             'source_id' => $this->sourceId,
             'title' => $this->title(),

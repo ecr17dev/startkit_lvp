@@ -66,15 +66,26 @@ class DeleteKnowledge
         return $job;
     }
 
-    public function collection(User $actor, Collection $collection, string $confirmation): RagJob
+    /**
+     * Deleting a remote collection only removes its registration here
+     * (nothing is deleted on the retrieval API, and there is no job).
+     */
+    public function collection(User $actor, Collection $collection, string $confirmation): ?RagJob
     {
         Gate::forUser($actor)->authorize('rag.collections.manage');
-
-        $this->knowledge->ensureFor($collection, Capability::Delete);
 
         if ($confirmation !== $collection->slug) {
             throw ValidationException::withMessages(['confirmation' => __('Type the collection identifier to confirm.')]);
         }
+
+        if ($collection->isRemote()) {
+            $collection->delete();
+            audit('rag.collections.deleted', null, ['name' => $collection->name, 'remote' => $collection->external_id], $actor);
+
+            return null;
+        }
+
+        $this->knowledge->ensureFor($collection, Capability::Delete);
 
         $this->cancelOpenJobs($collection->jobs()->whereNull('parent_id')->whereIn('status', JobStatus::open())->get());
         $collection->forceFill(['status' => Collection::DELETING])->save();

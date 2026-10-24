@@ -47,6 +47,32 @@ export type RagConnectionDetail = RagConnection & {
     profiles: number;
 };
 
+export type RemoteCollectionOption = {
+    id: string;
+    name: string;
+    description: string | null;
+    documents: number | null;
+};
+
+export type RemoteCatalog = {
+    isolated: boolean;
+    collections: RemoteCollectionOption[] | null;
+    error: string | null;
+};
+
+export type RemoteDocuments = {
+    documents: {
+        id: string;
+        title: string;
+        uri: string | null;
+        updated_at: string | null;
+    }[];
+    next_page: number | null;
+    page: number;
+    error: string | null;
+    available: boolean;
+};
+
 export type RagStatus = {
     feature: boolean;
     mode: string;
@@ -122,8 +148,11 @@ export type CollectionSummary = {
     description: string | null;
     status: string;
     language: string;
-    embedding_profile_id: number;
-    profile: string;
+    embedding_profile_id: number | null;
+    profile: string | null;
+    /** Collection id in the retrieval API (remote collections only). */
+    external_id: string | null;
+    remote: boolean;
     chunking: Chunking;
     search: SearchSettings;
     acl: string[];
@@ -308,8 +337,11 @@ export type PaginatedDocuments = {
 
 export type RetrievalHitRow = {
     rank: number;
-    chunk_id: number;
-    document_id: number;
+    /** Absent for passages of a retrieval API (no local chunk or document). */
+    chunk_id?: number;
+    document_id?: number;
+    external_id?: string;
+    external_document_id?: string;
     collection_id: number;
     source_id: number;
     title: string;

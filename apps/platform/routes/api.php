@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Ai\TranscriptionController;
+use App\Http\Controllers\Api\Retrieval\RetrievalServerController;
 use App\Http\Controllers\Api\V1\ActionProposalController;
 use App\Http\Controllers\Api\V1\Ai\AgentController as AiAgentController;
 use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
@@ -151,4 +152,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
         });
     });
+});
+
+// Retrieval API contract v1 (reference server): another installation can use
+// this one as its external knowledge with a token of a user that may search...
+Route::prefix('retrieval/v1')->name('retrieval.v1.')->middleware(['auth:sanctum', 'throttle:api', 'ability:read'])->group(function () {
+    Route::get('capabilities', [RetrievalServerController::class, 'capabilities'])->name('capabilities');
+    Route::get('collections', [RetrievalServerController::class, 'collections'])->name('collections');
+    Route::get('collections/{collection}/documents', [RetrievalServerController::class, 'documents'])->name('documents');
+    Route::post('search', [RetrievalServerController::class, 'search'])->middleware('throttle:ai')->name('search');
 });

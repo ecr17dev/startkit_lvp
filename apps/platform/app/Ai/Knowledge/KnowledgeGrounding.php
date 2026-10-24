@@ -245,8 +245,8 @@ class KnowledgeGrounding
     protected function citation(Hit $hit): array
     {
         return [
-            'document_id' => $hit->documentId,
-            'chunk_id' => $hit->chunkId,
+            'document_id' => $hit->isExternal() ? null : $hit->documentId,
+            'chunk_id' => $hit->isExternal() ? null : $hit->chunkId,
             'title' => $hit->title(),
             'location' => $hit->location(),
             'uri' => $hit->metadata['uri'] ?? null,
@@ -259,6 +259,11 @@ class KnowledgeGrounding
      */
     protected static function location(array $location, ?string $title): ?string
     {
+        // Described by a retrieval API...
+        if (is_string($location['text'] ?? null) && $location['text'] !== '') {
+            return $location['text'];
+        }
+
         $parts = array_filter([
             Hit::section($location['section'] ?? null, $title),
             isset($location['page_start']) ? (string) __('page :n', ['n' => $location['page_start']]) : null,
