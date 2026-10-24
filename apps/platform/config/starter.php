@@ -58,6 +58,10 @@ return [
             'ttl' => (int) env('STARTER_OTP_TTL', 5),
             'max_attempts' => (int) env('STARTER_OTP_MAX_ATTEMPTS', 5),
             'resend_cooldown' => (int) env('STARTER_OTP_RESEND_COOLDOWN', 60),
+            // Requests per client IP per minute and per address per hour
+            // (raise them only for automated tests)...
+            'requests_per_minute' => (int) env('STARTER_OTP_REQUESTS_PER_MINUTE', 6),
+            'requests_per_hour' => (int) env('STARTER_OTP_REQUESTS_PER_HOUR', 10),
         ],
         'invitation_ttl_days' => (int) env('STARTER_INVITATION_TTL_DAYS', 7),
     ],

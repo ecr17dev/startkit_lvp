@@ -16,5 +16,8 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "api:client:generate": "pnpm --filter @starter/api-client generate"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.63.0"
     }
 }

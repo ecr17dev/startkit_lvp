@@ -6,6 +6,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@starter/ui/components/sidebar';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import type { NavItem } from '@/types';
@@ -16,6 +17,14 @@ defineProps<{
 }>();
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
+
+// On phones the sidebar is a sheet: close it once a page is chosen...
+const { isMobile, setOpenMobile } = useSidebar();
+const close = () => {
+    if (isMobile.value) {
+        setOpenMobile(false);
+    }
+};
 </script>
 
 <template>
@@ -30,7 +39,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                     "
                     :tooltip="item.title"
                 >
-                    <Link :href="item.href">
+                    <Link :href="item.href" @click="close">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                     </Link>

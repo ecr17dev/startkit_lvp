@@ -1,0 +1,114 @@
+name: e2e
+
+# Playwright against a real Laravel + PostgreSQL (pgvector) + queue worker.
+# Chromium on every push and pull request; Firefox and WebKit on the weekly
+# schedule, on demand and for release tags. Reports and traces of failures
+# are kept for 7 days and never contain secrets (local test values only).
+
+on:
+    push:
+        branches: [main]
+        tags: ['v*.*.*']
+    pull_request:
+    schedule:
+        - cron: '17 6 * * 1'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: e2e-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    e2e:
+        name: Playwright (${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && 'chromium' || 'all browsers' }})
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+
+        services:
+            postgres:
+                image: pgvector/pgvector:0.8.1-pg17
+                env:
+                    POSTGRES_DB: starter_e2e
+                    POSTGRES_USER: starter
+                    POSTGRES_PASSWORD: secret
+                ports: ['5432:5432']
+                options: >-
+                    --health-cmd "pg_isready -U starter -d starter_e2e"
+                    --health-interval 5s --health-timeout 5s --health-retries 20
+
+        env:
+            CI: 'true'
+            E2E_ALL_BROWSERS: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && '0' || '1' }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+              with:
+                  php-version: '8.4'
+                  extensions: pdo_pgsql, intl, zip, bcmath
+                  tools: composer:v2
+                  coverage: none
+
+            - name: Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: '22'
+
+            - name: Enable pnpm
+              run: corepack enable
+
+            - name: Install dependencies
+              run: |
+                  composer install --working-dir=apps/platform --no-interaction --prefer-dist
+                  pnpm install --frozen-lockfile
+
+            - name: Prepare the application (simulated AI, internal RAG, codes in the log)
+              working-directory: apps/platform
+              run: |
+                  cp .env.example .env
+                  php artisan key:generate
+                  {
+                    echo "DB_HOST=127.0.0.1"
+                    echo "DB_DATABASE=starter_e2e"
+                    echo "APP_URL=http://127.0.0.1:8000"
+                    echo "MAIL_MAILER=log"
+                    echo "STARTER_FEATURE_RAG=true"
+                    echo "STARTER_AI_SIMULATED=true"
+                    echo "STARTER_OTP_RESEND_COOLDOWN=0"
+                    echo "STARTER_OTP_REQUESTS_PER_MINUTE=120"
+                    echo "STARTER_OTP_REQUESTS_PER_HOUR=120"
+                  } >> .env
+                  php artisan migrate --seed --force
+                  php artisan queue:work --stop-when-empty --queue=mail,default,ingest,sync,maintenance
+
+            - name: Build assets
+              run: pnpm build
+
+            - name: Install browsers
+              run: pnpm exec playwright install --with-deps ${{ env.E2E_ALL_BROWSERS == '1' && 'chromium firefox webkit' || 'chromium' }}
+
+            - name: Start the queue worker
+              working-directory: apps/platform
+              run: nohup php artisan queue:work --sleep=1 --queue=mail,default,ingest,sync,maintenance > storage/logs/worker.log 2>&1 &
+
+            - name: Run Playwright
+              run: pnpm test:e2e
+
+            - name: Keep the report and traces
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-${{ github.run_id }}
+                  path: |
+                      playwright-report/
+                      test-results/
+                      apps/platform/storage/logs/worker.log
+                  retention-days: 7

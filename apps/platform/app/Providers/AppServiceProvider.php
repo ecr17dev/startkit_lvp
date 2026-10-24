@@ -121,8 +121,8 @@ class AppServiceProvider extends ServiceProvider
         // One-time codes: the broker already enforces a resend cooldown per
         // email; these limits stop floods per address and per client...
         RateLimiter::for('otp-request', fn (Request $request) => [
-            Limit::perMinute(6)->by('ip:'.$request->ip()),
-            Limit::perHour(10)->by('email:'.Str::lower((string) ($request->input('email')
+            Limit::perMinute((int) config('starter.auth.otp.requests_per_minute', 6))->by('ip:'.$request->ip()),
+            Limit::perHour((int) config('starter.auth.otp.requests_per_hour', 10))->by('email:'.Str::lower((string) ($request->input('email')
                 ?? $request->user()?->getAttribute('email')
                 ?? ($request->hasSession() ? $request->session()->getId() : $request->ip())))),
         ]);

@@ -105,6 +105,12 @@ jobs:
               working-directory: apps/platform
               run: php artisan test
 
+            - name: Starter verification (doctor, config, contracts, migrations, permissions)
+              working-directory: apps/platform
+              run: |
+                  php artisan starter:permissions
+                  php artisan starter:verify
+
             - name: Stack manifest is up to date
               working-directory: apps/platform
               run: php artisan starter:manifest --check || echo "::warning::starter.manifest.json differs from the CI environment"
@@ -115,6 +121,68 @@ jobs:
                     docker compose -f docker/compose.yaml -f docker/compose.dev.yaml $profiles config --quiet
                     docker compose -f docker/compose.yaml -f docker/compose.production.yaml $profiles config --quiet
                   done
+
+    installer:
+        name: Installer (laravel-starter new)
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: pgvector/pgvector:0.8.1-pg17
+                env:
+                    POSTGRES_DB: demo
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: secret
+                ports: ['5432:5432']
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d demo"
+                    --health-interval 5s --health-timeout 5s --health-retries 20
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+              with:
+                  php-version: '8.4'
+                  extensions: pdo_pgsql, intl, zip, bcmath, phar
+                  tools: composer:v2
+                  coverage: none
+
+            - name: Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: '22'
+
+            - name: Enable pnpm
+              run: corepack enable
+
+            - name: Install the installer (standalone package)
+              run: composer install --working-dir=tooling/create-starter --no-interaction --prefer-dist
+
+            - name: Create a project from this checkout with an external database
+              env:
+                  DEMO_DB_URL: pgsql://postgres:secret@127.0.0.1:5432/demo
+              run: |
+                  jq '.database = {"mode": "external", "ref": "env:DEMO_DB_URL"}
+                      | .features.rag = true
+                      | .rag = {"mode": "internal", "embeddingProfileRef": "default"}
+                      | .ai = {"connectionRef": "local", "connections": [{"ref": "local", "driver": "simulated"}], "agent": {"systemPrompt": "Assistant of the CI project.", "modelRef": "simulated-chat"}}
+                      | .mail = {"transport": "log", "from": "ci@example.com"}' \
+                      starter.config.example.json > "$RUNNER_TEMP/starter.config.json"
+                  php tooling/create-starter/bin/laravel-starter new "$RUNNER_TEMP/demo" \
+                      --template=. --config="$RUNNER_TEMP/starter.config.json" --no-interaction --json | tee "$RUNNER_TEMP/install.json"
+                  test "$(jq -r .ok "$RUNNER_TEMP/install.json")" = "true"
+
+            - name: The installed project is healthy
+              working-directory: ${{ runner.temp }}/demo/apps/platform
+              run: |
+                  php artisan starter:doctor
+                  php artisan starter:verify --skip-contracts
+                  php artisan starter:config-apply ../../starter.config.json --dry-run
 
     docker:
         name: Docker image
