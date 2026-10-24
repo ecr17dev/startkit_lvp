@@ -207,8 +207,11 @@ database_reachable() {
 # --- Project -----------------------------------------------------------------
 
 slugify() { # Compose project name: lowercase letters, digits and dashes
-    local slug
-    slug=$(printf '%s' "$1" | iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null || printf '%s' "$1")
+    local slug="$1"
+    # Drop the accents (Ágil -> Agil) when Perl is there; otherwise they become dashes...
+    if have perl; then
+        slug=$(printf '%s' "$slug" | perl -CS -MUnicode::Normalize -pe '$_ = NFD($_); s/\p{Mn}//g' 2>/dev/null || printf '%s' "$1")
+    fi
     slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
     printf '%s' "${slug:-laravel-starter}"
 }
