@@ -4,6 +4,7 @@ namespace Starter\Ai\Console;
 
 use Illuminate\Console\Command;
 use Starter\Ai\Agents\ActionProposals;
+use Starter\Ai\Attachments\AttachmentStore;
 use Starter\Ai\Budgets\BudgetManager;
 use Starter\Ai\Enums\RequestStatus;
 use Starter\Ai\Ledger\UsageLedger;
@@ -23,9 +24,9 @@ class MaintainLedgerCommand extends Command
     /**
      * @var string
      */
-    protected $description = 'Mark interrupted AI requests, release expired budget reservations and expire action proposals';
+    protected $description = 'Mark interrupted AI requests, release expired budget reservations, expire action proposals and delete expired attachments';
 
-    public function handle(UsageLedger $ledger, BudgetManager $budgets, ActionProposals $proposals): int
+    public function handle(UsageLedger $ledger, BudgetManager $budgets, ActionProposals $proposals, AttachmentStore $attachments): int
     {
         $interrupted = 0;
 
@@ -41,8 +42,9 @@ class MaintainLedgerCommand extends Command
 
         $released = $budgets->releaseExpired();
         $expired = $proposals->expireStale();
+        $pruned = $attachments->prune();
 
-        $this->components->info("Interrupted requests: {$interrupted}. Released reservations: {$released}. Expired proposals: {$expired}.");
+        $this->components->info("Interrupted requests: {$interrupted}. Released reservations: {$released}. Expired proposals: {$expired}. Deleted attachments: {$pruned}.");
 
         return self::SUCCESS;
     }

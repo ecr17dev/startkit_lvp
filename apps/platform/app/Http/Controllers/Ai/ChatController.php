@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Ai\AiService;
+use App\Ai\ChatAttachments;
 use App\Ai\ChatPresenter;
 use App\Ai\ProposalResumer;
 use App\Http\Controllers\Controller;
@@ -11,20 +12,24 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Approvals\PendingApproval;
 use Laravel\Ai\Streaming\Events\ToolApprovalRequest;
 use Starter\Ai\Agents\ActionProposals;
 use Starter\Ai\Agents\AgentManager;
+use Starter\Ai\Attachments\AttachmentStore;
 use Starter\Ai\Connections\ErrorClassifier;
 use Starter\Ai\Exceptions\AgentLimitExceededException;
 use Starter\Ai\Exceptions\AgentNotAvailableException;
 use Starter\Ai\Exceptions\BudgetExceededException;
 use Starter\Ai\Exceptions\ModelNotUsableException;
 use Starter\Ai\Exceptions\ProposalNotPendingException;
+use Starter\Ai\Jobs\GenerateConversationTitle;
 use Starter\Ai\Models\ActionProposal;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
@@ -93,7 +98,7 @@ class ChatController extends Controller
      * Stream the assistant answer as server-sent events. The input is either
      * a message or the decision on a proposal (which resumes the paused run).
      */
-    public function stream(Request $request, ProposalResumer $resumer, ActionProposals $proposals): StreamedResponse|RedirectResponse
+    public function stream(Request $request, ProposalResumer $resumer, ActionProposals $proposals, ChatAttachments $attachments, AttachmentStore $store): StreamedResponse|RedirectResponse
     {
         $user = $this->actor($request);
 
@@ -105,6 +110,7 @@ class ChatController extends Controller
             'agent_id' => ['nullable', 'integer'],
             'model_id' => ['nullable', 'integer', Rule::exists('ai_models', 'id')->where('is_enabled', true)],
             'surface' => ['nullable', Rule::in(['page', 'floating'])],
+            'files' => ['nullable', 'array', 'prohibits:proposal_id'],
         ]);
 
         $surface = $validated['surface'] ?? 'page';
@@ -129,26 +135,38 @@ class ChatController extends Controller
                 }
 
                 $version = $this->agents->resolve($user, $validated['agent_id'] ?? null, $surface);
-                $input = (string) $validated['message'];
+                $input = (string) ($validated['message'] ?? '');
+                $model = $this->ai->resolveModel($version, $model);
+
+                /** @var array<int, UploadedFile> $files */
+                $files = array_values(array_filter((array) $request->file('files', []), fn (mixed $file) => $file instanceof UploadedFile));
+                $uploaded = $attachments->accept($files, $user, $version, $model);
             }
 
             ['response' => $stream, 'request' => $ledger, 'release' => $release] = $this->ai->stream(
                 $user,
                 $version,
                 $input,
+                $uploaded['files'] ?? [],
                 model: $model,
                 conversationId: $conversationId,
                 surface: $surface,
             );
         } catch (AgentNotAvailableException|AgentLimitExceededException|BudgetExceededException|ModelNotUsableException|ProposalNotPendingException $e) {
             return $this->errorStream($e->getMessage());
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (Throwable $e) {
             report($e);
 
             return $this->errorStream(__(ErrorClassifier::classify($e)->message()));
         }
 
-        return response()->stream(function () use ($stream, $ledger, $release, $user, $decided, $proposals, $version) {
+        $stored = $uploaded['models'] ?? [];
+        $isNew = $decided === null && ($validated['conversation_id'] ?? null) === null;
+        $firstMessage = (string) ($validated['message'] ?? '');
+
+        return response()->stream(function () use ($stream, $ledger, $release, $user, $decided, $proposals, $version, $stored, $store, $isNew, $firstMessage) {
             try {
                 foreach ($stream as $event) {
                     yield 'data: '.$event."\n\n";
@@ -171,6 +189,8 @@ class ChatController extends Controller
                     $proposals->attachConversation($ledger->id, $stream->conversationId);
                 }
 
+                $store->link($stored, $ledger->id, $stream->conversationId);
+
                 // The decided proposal ends executed, failed or rejected...
                 if ($decided !== null) {
                     yield 'data: '.json_encode(['type' => 'proposal', 'proposal' => $decided->refresh()->present()])."\n\n";
@@ -189,6 +209,11 @@ class ChatController extends Controller
                     'output_tokens' => $request?->output_tokens,
                     'agent_version' => $version->number,
                 ])."\n\n";
+
+                // Name new conversations with the model (recorded in the ledger)...
+                if ($isNew && $stream->conversationId !== null && $request?->model_id !== null && config('starter.ai.generate_titles')) {
+                    GenerateConversationTitle::dispatch($stream->conversationId, $firstMessage, $request->model_id, $user->id);
+                }
             } catch (Throwable $e) {
                 Log::error('AI chat stream failed: '.$e->getMessage(), ['exception' => $e]);
 

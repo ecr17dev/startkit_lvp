@@ -2,6 +2,7 @@
 
 use Starter\Ai\Agents\ConfiguredAgent;
 use Starter\Ai\Agents\PingAgent;
+use Starter\Ai\Agents\TitleAgent;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +73,8 @@ return [
     | simulated: the seeder installs the simulated provider (no network,
     | clearly labelled) so a local installation works without credentials.
     | proposal_ttl_minutes: time to confirm a change prepared by an agent.
+    | generate_titles: name new conversations with the model (ledger: title).
+    | attachments: private disk and retention of chat attachments (0 = keep).
     |
     */
 
@@ -85,9 +88,15 @@ return [
         'agent_features' => [
             ConfiguredAgent::class => 'chat',
             PingAgent::class => 'test',
+            TitleAgent::class => 'title',
         ],
         'simulated' => (bool) env('STARTER_AI_SIMULATED', env('APP_ENV', 'production') !== 'production'),
         'proposal_ttl_minutes' => (int) env('STARTER_AI_PROPOSAL_TTL', 10),
+        'generate_titles' => (bool) env('STARTER_AI_GENERATE_TITLES', true),
+        'attachments' => [
+            'disk' => env('STARTER_AI_ATTACHMENTS_DISK', 'local'),
+            'retention_days' => (int) env('STARTER_AI_ATTACHMENTS_RETENTION_DAYS', 30),
+        ],
         'interrupt_after_minutes' => (int) env('STARTER_AI_INTERRUPT_AFTER_MINUTES', 15),
     ],
 

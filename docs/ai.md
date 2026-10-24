@@ -154,6 +154,7 @@ escritura con `write`, además del permiso correspondiente.
 | `POST agents/{id}/versions/{version}/restore` | Reversión (publica de nuevo una versión anterior) |
 | `GET /api/v1/admin/action-proposals`, `GET …/{id}` | Propuestas propias de cambios preparados por agentes (habilidad `ai`) |
 | `POST …/{id}/confirm`, `POST …/{id}/reject` | Confirmar (reanuda la conversación y ejecuta) o cancelar |
+| `POST transcriptions` | Audio grabado a texto con el modelo de transcripción del agente (habilidad `ai`) |
 | `GET/POST connections`, `GET/PATCH/DELETE connections/{id}` | Conexiones |
 | `POST connections/{id}/test`, `POST connections/{id}/discover` | Prueba y descubrimiento |
 | `GET/POST models`, `GET/PATCH models/{id}`, `POST models/{id}/verify` | Catálogo |
@@ -284,8 +285,44 @@ servidor (`Agents\ToolContext`), nunca desde los argumentos del modelo.
   `tool_approval_request`). En la API, `POST /api/v1/ai/chat` devuelve las
   propuestas pendientes y se confirman en `/api/v1/admin/action-proposals`.
 
+## Chat flotante, adjuntos, micrófono y títulos
+
+- **Chat flotante** (`components/chat/FloatingChat.vue`, en el layout
+  autenticado): botón fijo, vista compacta y ampliada (pantalla completa en
+  móvil), historial, nueva conversación, enlace a la página de chat, streaming
+  y detener. Comparte estado y componentes con la página `/ai/chat`
+  (`composables/useChat.ts`, `ChatPanel`, `ChatComposer`, `ProposalCard`) y usa
+  la superficie `floating` de los agentes. Sin configuración válida, quien puede
+  configurar ve accesos a Conexiones o Agentes; los demás, un estado
+  explicativo. Quien tiene `ai.usage.read` ve en cada respuesta modelo,
+  proveedor, versión, tokens, latencia y costo.
+- **Transporte**: `@starter/chat` (`useAiStream`) consume los eventos del SDK en
+  SSE (`text_delta`, `tool_call`, `tool_result`, `tool_approval_request`,
+  `stream_end`) más los propios (`proposal`, `summary`, `error`), con sesión y
+  CSRF; admite cuerpos JSON o `FormData` y cancelación.
+- **Adjuntos** (`App\Ai\ChatAttachments`, `Starter\Ai\Attachments`): se
+  validan en el servidor por contenido (tipo MIME detectado), tamaño, cantidad,
+  tipos permitidos por el agente y capacidad del modelo (`vision` o
+  `documents` declarada o verificada). Se guardan en un disco privado
+  (`STARTER_AI_ATTACHMENTS_DISK`, `local`) y llegan al SDK como archivos
+  almacenados (la conversación guarda la ruta, no el contenido). Se eliminan al
+  vencer la retención (`STARTER_AI_ATTACHMENTS_RETENTION_DAYS`, 30) en
+  `starter:ai-maintain`; el contexto omite los archivos ya borrados. Nunca se
+  agregan a una colección de conocimiento.
+- **Micrófono** (`composables/useRecorder.ts`, `App\Ai\Transcriber`): permiso,
+  grabación con temporizador y corte en la duración máxima, cancelar grabación o
+  transcripción, texto editable y envío automático opcional. El audio
+  completado se valida por contenido y tamaño, se transcribe con el modelo de
+  transcripción del agente (independiente del de chat) a través del gateway
+  (función `transcription`, costo propio en el libro) y no se conserva. Requiere
+  HTTPS en producción; los navegadores sin soporte o sin permiso muestran el
+  motivo.
+- **Títulos**: la generación del SDK está deshabilitada; tras la primera
+  respuesta, `GenerateConversationTitle` pide un título breve al mismo modelo a
+  través del gateway (función `title`). Con el proveedor simulado o ante un
+  error se conserva un título derivado del primer mensaje
+  (`STARTER_AI_GENERATE_TITLES`).
+
 ## Pendiente (resto de la etapa 4)
 
-- Chat flotante, adjuntos, transcripción con micrófono y títulos de conversación
-  generados a través del gateway.
 - Recomendador de modelos (7.3 de la especificación) y laboratorio de pruebas.

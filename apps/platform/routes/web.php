@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Ai\ChatController;
+use App\Http\Controllers\Ai\TranscriptionController;
 use App\Http\Controllers\Auth\ConfirmWithCodeController;
 use App\Http\Controllers\Auth\InvitationAcceptanceController;
 use App\Http\Controllers\Auth\OneTimeCodeController;
@@ -65,6 +66,7 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
         Route::get('conversations/{conversation}', [ChatController::class, 'conversation'])->name('conversations.show');
         Route::get('chat/{conversation?}', [ChatController::class, 'index'])->name('chat');
         Route::post('chat/stream', [ChatController::class, 'stream'])->middleware('throttle:ai')->name('chat.stream');
+        Route::post('transcriptions', TranscriptionController::class)->middleware('throttle:ai')->name('transcriptions.store');
         Route::patch('chat/{conversation}', [ChatController::class, 'update'])->name('chat.update');
         Route::delete('chat/{conversation}', [ChatController::class, 'destroy'])->name('chat.destroy');
     });

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Ai\TranscriptionController;
 use App\Http\Controllers\Api\V1\ActionProposalController;
 use App\Http\Controllers\Api\V1\Ai\AgentController as AiAgentController;
 use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
@@ -60,6 +61,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('chat/agents', [AiController::class, 'agents'])->name('chat.agents');
             Route::post('chat', [AiController::class, 'chat'])->middleware('throttle:ai')->name('chat');
             Route::get('me/usage', [AiController::class, 'usage'])->name('me.usage');
+            Route::post('transcriptions', TranscriptionController::class)->middleware('throttle:ai')->name('transcriptions.store');
         });
 
         // Changes prepared by agent tools, confirmed or cancelled by their actor...

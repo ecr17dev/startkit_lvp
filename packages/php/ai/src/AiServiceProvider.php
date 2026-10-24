@@ -12,6 +12,7 @@ use Starter\Ai\Agents\ActionProposals;
 use Starter\Ai\Agents\AgentLimiter;
 use Starter\Ai\Agents\AgentManager;
 use Starter\Ai\Agents\ToolRegistry;
+use Starter\Ai\Attachments\AttachmentStore;
 use Starter\Ai\Budgets\BudgetManager;
 use Starter\Ai\Catalog\CatalogManager;
 use Starter\Ai\Catalog\ModelDiscovery;
@@ -21,6 +22,7 @@ use Starter\Ai\Connections\ConnectionResolver;
 use Starter\Ai\Connections\ConnectionTester;
 use Starter\Ai\Console\MaintainLedgerCommand;
 use Starter\Ai\Console\SyncPricesCommand;
+use Starter\Ai\Conversations\ConversationTitles;
 use Starter\Ai\Currency\ExchangeRates;
 use Starter\Ai\Ledger\ExecutionContext;
 use Starter\Ai\Ledger\UsageLedger;
@@ -30,6 +32,7 @@ use Starter\Ai\Models\Agent;
 use Starter\Ai\Models\AgentVersion;
 use Starter\Ai\Models\AiModel;
 use Starter\Ai\Models\AiRequest;
+use Starter\Ai\Models\Attachment;
 use Starter\Ai\Models\Budget;
 use Starter\Ai\Models\Connection;
 use Starter\Ai\Pricing\CostCalculator;
@@ -49,7 +52,7 @@ class AiServiceProvider extends ServiceProvider
 
         foreach ([ConnectionResolver::class, CostCalculator::class, CostEstimator::class, PriceBook::class, BudgetManager::class,
             UsageLedger::class, AiGateway::class, ModelDiscovery::class, OpenRouterCatalog::class, CatalogManager::class,
-            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class, ActionProposals::class] as $service) {
+            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class, ActionProposals::class, AttachmentStore::class, ConversationTitles::class] as $service) {
             $this->app->scoped($service);
         }
 
@@ -78,6 +81,7 @@ class AiServiceProvider extends ServiceProvider
             'ai_agent' => Agent::class,
             'ai_agent_version' => AgentVersion::class,
             'ai_action_proposal' => ActionProposal::class,
+            'ai_attachment' => Attachment::class,
         ]);
 
         if ($this->app->runningInConsole()) {

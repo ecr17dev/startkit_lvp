@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FloatingChat from '@/components/chat/FloatingChat.vue';
 import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -23,5 +24,6 @@ withDefaults(defineProps<Props>(), {
             <slot />
         </AppContent>
         <Toaster />
+        <FloatingChat />
     </AppShell>
 </template>

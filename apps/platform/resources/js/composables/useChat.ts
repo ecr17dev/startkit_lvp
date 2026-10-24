@@ -267,7 +267,14 @@ export function useChat(options: {
             items.value = items.value.filter((item) => item.id !== answer.id);
         }
 
-        void loadConversations().catch(() => undefined);
+        void loadConversations()
+            .then(() => {
+                title.value =
+                    conversations.value.find(
+                        (item) => item.id === conversationId.value,
+                    )?.title ?? title.value;
+            })
+            .catch(() => undefined);
         void loadBootstrap().catch(() => undefined);
 
         if (conversationId.value && conversationId.value !== previous) {
