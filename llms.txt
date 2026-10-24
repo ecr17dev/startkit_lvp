@@ -12,12 +12,17 @@
 - [Conocimiento (RAG)](docs/knowledge.md): activación con diagnóstico de pgvector, perfiles de embeddings, colecciones, fuentes (archivos, URLs sin SSRF, sitemap, adaptadores, discos), pipeline durable, versiones del índice, bajas, recuperación vectorial/texto/híbrida con ACL, respuestas con citas validadas, laboratorio con juicios de relevancia, panel de operación y calidad, conjuntos de evaluación (recall@k, MRR), feedback de respuestas, retención, API y permisos.
 - [Conocimiento externo](docs/rag-external.md): conexiones PostgreSQL externas (TLS, esquema dedicado, solo lectura, secretos), API de recuperación y matriz de capacidades.
 - [PostgREST](docs/postgrest.md): esquema `api` con vistas y RPC filtradas por los principales de un JWT corto firmado por Laravel, roles mínimos, sin escrituras.
+- [Módulos](docs/modules.md): generador `starter:make-module` (migración, Policy, permisos, Actions, Inertia, API, herramientas IA, pruebas) y el módulo de referencia [Proyectos](docs/modules/projects.md).
+- [Instalador](docs/installer.md): `laravel-starter new` con plantilla verificada (SHA-256), `starter.config.json`, secretos por referencia, códigos de salida y `starter:config-apply`.
+- [Referencia de la API](docs/api-reference.md): generada desde el OpenAPI (`starter:api-docs`).
+- [Pruebas E2E](docs/e2e.md): Playwright contra Laravel + PostgreSQL + worker, recorridos y CI.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
 
 ## Para agentes
 
 - [AGENTS.md](AGENTS.md): stack fijo, límites entre paquetes, comandos y reglas.
+- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`) y cómo instalarlas.
 - [Manifiesto de versiones](starter.manifest.json)
 - [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
 - [OpenAPI](tooling/contracts/openapi.json)

@@ -11,15 +11,17 @@ packages/php/
   identity/               OTP por correo, registro, invitaciones, catálogo de permisos (Starter\Identity)
   ai/                     Laravel AI SDK: conexiones, catálogo, tarifas, consumo, presupuestos, agentes (Starter\Ai)
   knowledge/              RAG: colecciones, fuentes, indexación, pgvector, citas (Starter\Knowledge)
-  starter-console/        Comandos Artisan starter:* (Starter\Console)
+  starter-console/        Comandos starter:* (doctor, verify, contratos, api-docs) y generador make-module (Starter\Console)
 packages/js/
   ui/                     Componentes shadcn-vue (@starter/ui)
   chat/                   Composable de streaming del chat (@starter/chat)
   api-client/             Cliente TypeScript generado desde OpenAPI (@starter/api-client)
-tooling/contracts/        OpenAPI exportado, esquemas JSON (configuración y manifiesto)
+tooling/create-starter/   Instalador laravel-starter y validador de starter.config.json (Starter\Installer)
+tooling/contracts/        OpenAPI exportado, esquemas JSON (configuración y manifiesto), contrato de recuperación
 docker/                   Imagen PHP multi-stage, Nginx y Compose con perfiles
 docs/                     Documentación Markdown
 skills/                   Skills para agentes de desarrollo
+tests/e2e/                Pruebas Playwright
 ```
 
 ## Reglas de dependencia
@@ -32,7 +34,13 @@ skills/                   Skills para agentes de desarrollo
 - El frontend comparte código con `workspace:*` de pnpm. El único `pnpm-lock.yaml`
   vive en la raíz.
 - `administration` no depende de otros módulos. `identity`, `ai` y `starter-console`
-  dependen de `administration`; `knowledge` depende de `ai`.
+  dependen de `administration`; `knowledge` depende de `ai`; `starter-console` usa además
+  `identity` y el validador de `tooling/create-starter` (también *path repository*).
+- `tooling/create-starter` solo depende de `symfony/console` y `symfony/process`: corre antes
+  de que exista un proyecto.
+- Los módulos de negocio generados (`starter:make-module`) viven en `apps/platform` con la
+  estructura estándar de Laravel; sus rutas se cargan desde `routes/modules/` y su proveedor
+  (`app/Providers/Modules`) registra permisos y herramientas IA.
 - La capa HTTP (controladores, Form Requests, API Resources), las páginas Vue y el
   modelo `User` viven en `apps/platform`. Los paquetes aportan modelos de dominio,
   servicios, migraciones, comandos y rutas técnicas (p. ej. `/health/*`).

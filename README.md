@@ -31,7 +31,9 @@ cd apps/platform && composer dev  # http://localhost:8000
 ```
 
 Con Docker: ver [`docs/installation.md`](docs/installation.md) y
-[`docs/docker.md`](docs/docker.md).
+[`docs/docker.md`](docs/docker.md). Para crear un proyecto nuevo con el instalador
+(`laravel-starter new mi-proyecto --config=starter.config.json`), ver
+[`docs/installer.md`](docs/installer.md).
 
 ## Estructura
 
@@ -39,7 +41,10 @@ Con Docker: ver [`docs/installation.md`](docs/installation.md) y
 apps/platform/         Aplicación Laravel 13 + Inertia + Vue
 packages/php/          administration · identity · ai · knowledge · starter-console
 packages/js/           @starter/ui · @starter/chat · @starter/api-client
+tooling/create-starter/ Instalador laravel-starter (Composer)
 tooling/contracts/     OpenAPI y esquemas JSON
+skills/                Skills para agentes de desarrollo
+tests/e2e/             Pruebas Playwright
 docker/                Imagen, Nginx y Compose
 docs/                  Documentación
 ```
@@ -57,20 +62,27 @@ implementado y verificado de lo pendiente.
 | 4. Agentes versionados, chat flotante con herramientas, multimedia, recomendador y laboratorio | Implementada (sin búsqueda web de catálogo ni voz de salida, fuera de alcance) |
 | 5–6. RAG interno y operación | Implementadas: activación, fuentes, pipeline durable, recuperación híbrida con ACL, citas validadas, laboratorio con juicios, API, panel de conocimiento, conjuntos de evaluación (recall@k, MRR), feedback de respuestas y retención de versiones |
 | 7. PostgreSQL externo, retrieval API y PostgREST | Implementada: conexiones PostgreSQL externas (TLS, esquema dedicado, solo lectura), API de recuperación con contrato v1 y servidor de referencia, PostgREST opcional con esquema `api` filtrado por JWT. El proceso PostgREST real no se ejecutó en este entorno (ver docs/postgrest.md) |
-| 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Pendiente (OpenAPI y cliente tipado ya generados) |
+| 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Implementada: comandos `starter:*` (config, contratos, verify, modelos, tarifas, RAG), generador `starter:make-module` con el módulo Proyectos, instalador `laravel-starter` con plantilla verificada y releases, referencia de API generada, skills y Playwright E2E en CI. `composer install` del instalador y Firefox/WebKit se verifican en CI (no en este entorno) |
 
 ## Comandos útiles
 
 ```bash
-php artisan starter:doctor     # diagnóstico del entorno y servicios
-php artisan starter:health     # chequeos de /health/ready
-php artisan starter:manifest   # registra versiones en starter.manifest.json
+php artisan starter:doctor            # diagnóstico del entorno y servicios
+php artisan starter:verify            # doctor + config + contratos + migraciones + permisos
+php artisan starter:config-validate   # valida starter.config.json (esquema, secretos, reglas)
+php artisan starter:config-apply      # aplica la configuración (ajustes, IA, agente, RAG, propietario)
 php artisan starter:owner tu@correo.com --name="Tu Nombre"  # propietario
-php artisan starter:permissions                              # catálogo y roles de sistema
-php artisan starter:ai-prices-sync                           # tarifas de OpenRouter
-php artisan starter:ai-maintain                              # interrumpe colgadas y libera reservas
-php artisan test               # tests sobre PostgreSQL
-pnpm check && pnpm types:check # lint/format y vue-tsc
+php artisan starter:permissions       # catálogo y roles de sistema
+php artisan starter:make-module Task --field="title:string" --ai   # módulo completo
+php artisan starter:api-docs          # OpenAPI + docs/api-reference.md (luego pnpm api:client:generate)
+php artisan starter:contracts-check   # contratos al día con el código
+php artisan starter:ai-models-sync    # modelos de las conexiones IA
+php artisan starter:ai-prices-sync    # tarifas de OpenRouter
+php artisan starter:rag-doctor        # diagnóstico del conocimiento
+php artisan starter:rag-reindex handbook --as=tu@correo.com  # reindexación versionada
+php artisan test                      # tests sobre PostgreSQL
+pnpm check && pnpm types:check        # lint/format y vue-tsc
+pnpm test:e2e                         # Playwright
 ```
 
 ## Documentación
@@ -79,6 +91,9 @@ pnpm check && pnpm types:check # lint/format y vue-tsc
 - [Instalación](docs/installation.md)
 - [Identidad, acceso y auditoría](docs/identity.md)
 - [IA: conexiones, catálogo, tarifas, consumo y presupuestos](docs/ai.md)
+- [Conocimiento (RAG)](docs/knowledge.md), [externo](docs/rag-external.md) y [PostgREST](docs/postgrest.md)
+- [Módulos y generador](docs/modules.md) · [Instalador](docs/installer.md) · [Referencia de la API](docs/api-reference.md)
+- [Pruebas E2E](docs/e2e.md) · [Skills](docs/skills.md)
 - [Docker](docs/docker.md)
 - [Actualizaciones](docs/upgrades.md)
 - [AGENTS.md](AGENTS.md) y [llms.txt](llms.txt) para agentes de desarrollo

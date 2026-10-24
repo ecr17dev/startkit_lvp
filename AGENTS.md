@@ -68,16 +68,24 @@ cd apps/platform
 composer install
 php artisan migrate --seed
 php artisan test                                 # PHPUnit sobre PostgreSQL (starter_testing)
-composer lint && composer types:check            # Pint + PHPStan (incluye packages/php)
+composer lint && composer types:check            # Pint + PHPStan (incluye packages/php y tooling/create-starter)
 cd ../.. && pnpm check && pnpm types:check       # lint/format + vue-tsc
+pnpm test:e2e                                    # Playwright (docs/e2e.md)
 php apps/platform/artisan starter:doctor         # diagnóstico
+php apps/platform/artisan starter:verify         # doctor, config, contratos, migraciones, permisos
+php apps/platform/artisan starter:make-module    # módulo completo (docs/modules.md)
 ```
+
+Skills para agentes de desarrollo en `skills/` (instalación en `docs/skills.md`; no se cargan
+solas por estar en el repositorio).
 
 ## Verificación antes de terminar
 
 1. `php artisan test` en verde (PostgreSQL real, no SQLite).
 2. `composer lint:check`, `composer types:check`, `pnpm check`, `pnpm types:check`.
-3. `pnpm build` y, si cambiaste la API, `php artisan scramble:export --path=../../tooling/contracts/openapi.json`
-   seguido de `pnpm api:client:generate`.
-4. Distingue siempre en tu reporte qué está implementado, qué es configuración
+3. `pnpm build` y, si cambiaste la API, `php artisan starter:api-docs` (OpenAPI estable y
+   `docs/api-reference.md`) seguido de `pnpm api:client:generate`; `php artisan
+   starter:contracts-check` confirma que todo coincide.
+4. Si tocaste flujos de usuario, `pnpm test:e2e`.
+5. Distingue siempre en tu reporte qué está implementado, qué es configuración
    pendiente, qué es simulado y qué verificaste de verdad.
