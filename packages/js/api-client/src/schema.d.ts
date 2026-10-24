@@ -1836,7 +1836,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @constant */
-                        message: "Token revocado.";
+                        message: "Token revoked.";
                     };
                 };
             };
@@ -1975,7 +1975,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @constant */
-                        message: "Usuario eliminado.";
+                        message: "User deleted.";
                     };
                 };
             };
@@ -2148,7 +2148,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @constant */
-                        message: "Rol eliminado.";
+                        message: "Role deleted.";
                     };
                 };
             };
@@ -3933,7 +3933,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @constant */
-                        message: "Conexión eliminada.";
+                        message: "Connection deleted.";
                     };
                 };
             };
@@ -4765,7 +4765,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @constant */
-                        message: "Presupuesto eliminado.";
+                        message: "Budget deleted.";
                     };
                 };
             };

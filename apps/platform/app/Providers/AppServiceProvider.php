@@ -13,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Dedoc\Scramble\Support\Generator\Server;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -138,8 +139,17 @@ class AppServiceProvider extends ServiceProvider
     {
         Scramble::configure()
             ->withDocumentTransformers(function (OpenApi $openApi) {
-                $openApi->info->title = config('app.name').' API';
-                $openApi->info->description = (string) __('REST API secured with Laravel Sanctum. Create a token from Settings → API tokens or with the one-time code endpoints (POST /v1/auth/otp and /v1/auth/otp/verify) and send it as `Authorization: Bearer <token>`.');
+                $description = 'REST API secured with Laravel Sanctum. Create a token from Settings → API tokens or with the one-time code endpoints (POST /v1/auth/otp and /v1/auth/otp/verify) and send it as `Authorization: Bearer <token>`.';
+
+                // The exported contract is stable (no branding, locale or host)...
+                if (app()->runningInConsole()) {
+                    $openApi->info->title = (string) config('starter.api.title');
+                    $openApi->info->description = $description;
+                    $openApi->servers = [Server::make('/api')];
+                } else {
+                    $openApi->info->title = config('app.name').' API';
+                    $openApi->info->description = (string) __($description);
+                }
 
                 $openApi->secure(SecurityScheme::http('bearer'));
             });

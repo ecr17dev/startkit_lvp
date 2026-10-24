@@ -70,7 +70,7 @@ ventana de contexto, salida máxima y capacidades (`streaming`, `tools`,
 | `request`, `web_search` | por solicitud |
 
 Admite niveles (`tier`), moneda y origen (`ai_price_sources`: manual u
-OpenRouter). `starter:ai-sync-prices` (diario, 03:17) importa las tarifas de
+OpenRouter). `starter:ai-prices-sync` (diario, 03:17) importa las tarifas de
 OpenRouter con registro de ejecución (`ai_price_sync_runs`); las manuales no se
 tocan.
 
@@ -171,7 +171,7 @@ El contrato completo está en `tooling/contracts/openapi.json` y en `/docs/api`.
 | Comando | Frecuencia |
 | --- | --- |
 | `starter:ai-maintain` | Cada 5 minutos |
-| `starter:ai-sync-prices` | Diario a las 03:17 |
+| `starter:ai-prices-sync` | Diario a las 03:17 |
 
 ## Agentes configurables
 

@@ -22,6 +22,7 @@ use Starter\Ai\Catalog\OpenRouterCatalog;
 use Starter\Ai\Connections\ConnectionResolver;
 use Starter\Ai\Connections\ConnectionTester;
 use Starter\Ai\Console\MaintainLedgerCommand;
+use Starter\Ai\Console\SyncModelsCommand;
 use Starter\Ai\Console\SyncPricesCommand;
 use Starter\Ai\Conversations\ConversationTitles;
 use Starter\Ai\Currency\ExchangeRates;
@@ -89,12 +90,12 @@ class AiServiceProvider extends ServiceProvider
         ]);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([MaintainLedgerCommand::class, SyncPricesCommand::class]);
+            $this->commands([MaintainLedgerCommand::class, SyncPricesCommand::class, SyncModelsCommand::class]);
         }
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('starter:ai-maintain')->everyFiveMinutes()->name('starter:ai-maintain')->onOneServer()->withoutOverlapping();
-            $schedule->command('starter:ai-sync-prices')->dailyAt('03:17')->name('starter:ai-sync-prices')->onOneServer()->withoutOverlapping();
+            $schedule->command('starter:ai-prices-sync')->dailyAt('03:17')->name('starter:ai-prices-sync')->onOneServer()->withoutOverlapping();
         });
     }
 }

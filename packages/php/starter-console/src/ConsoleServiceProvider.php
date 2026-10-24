@@ -3,9 +3,13 @@
 namespace Starter\Console;
 
 use Illuminate\Support\ServiceProvider;
+use Starter\Console\Commands\ApiDocsCommand;
+use Starter\Console\Commands\ConfigValidateCommand;
+use Starter\Console\Commands\ContractsCheckCommand;
 use Starter\Console\Commands\DoctorCommand;
 use Starter\Console\Commands\HealthCommand;
 use Starter\Console\Commands\ManifestCommand;
+use Starter\Console\Commands\VerifyCommand;
 
 class ConsoleServiceProvider extends ServiceProvider
 {
@@ -16,9 +20,13 @@ class ConsoleServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                ApiDocsCommand::class,
+                ConfigValidateCommand::class,
+                ContractsCheckCommand::class,
                 DoctorCommand::class,
                 HealthCommand::class,
                 ManifestCommand::class,
+                VerifyCommand::class,
             ]);
         }
     }

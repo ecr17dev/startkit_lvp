@@ -1,13 +1,13 @@
 {
     "openapi": "3.1.2",
     "info": {
-        "title": "Acme Starter API",
+        "title": "Laravel Starter API",
         "version": "1.0.0",
-        "description": "API REST protegida con Laravel Sanctum. Crea un token desde Ajustes \u2192 Tokens de API o con los endpoints de c\u00f3digo de un solo uso (POST /v1/auth/otp y /v1/auth/otp/verify) y env\u00edalo como `Authorization: Bearer <token>`."
+        "description": "REST API secured with Laravel Sanctum. Create a token from Settings \u2192 API tokens or with the one-time code endpoints (POST /v1/auth/otp and /v1/auth/otp/verify) and send it as `Authorization: Bearer <token>`."
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api"
+            "url": "/api"
         }
     ],
     "tags": [
@@ -411,7 +411,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Token revocado."
+                                            "const": "Token revoked."
                                         }
                                     },
                                     "required": [
@@ -861,7 +861,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Usuario eliminado."
+                                            "const": "User deleted."
                                         }
                                     },
                                     "required": [
@@ -1216,7 +1216,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Rol eliminado."
+                                            "const": "Role deleted."
                                         }
                                     },
                                     "required": [
@@ -7102,7 +7102,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Conexi\u00f3n eliminada."
+                                            "const": "Connection deleted."
                                         }
                                     },
                                     "required": [
@@ -9785,7 +9785,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "const": "Presupuesto eliminado."
+                                            "const": "Budget deleted."
                                         }
                                     },
                                     "required": [

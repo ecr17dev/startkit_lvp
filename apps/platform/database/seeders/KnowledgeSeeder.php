@@ -41,7 +41,7 @@ class KnowledgeSeeder extends Seeder
             $report = $knowledge->activate(RagMode::Internal);
 
             if (! $report->passed()) {
-                $this->command?->warn('Knowledge (RAG) was not activated: run `php artisan starter:rag-diagnose`.');
+                $this->command?->warn('Knowledge (RAG) was not activated: run `php artisan starter:rag-doctor`.');
 
                 return;
             }

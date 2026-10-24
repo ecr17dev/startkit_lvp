@@ -67,7 +67,7 @@ php artisan starter:health     # chequeos de /health/ready
 php artisan starter:manifest   # registra versiones en starter.manifest.json
 php artisan starter:owner tu@correo.com --name="Tu Nombre"  # propietario
 php artisan starter:permissions                              # catálogo y roles de sistema
-php artisan starter:ai-sync-prices                           # tarifas de OpenRouter
+php artisan starter:ai-prices-sync                           # tarifas de OpenRouter
 php artisan starter:ai-maintain                              # interrumpe colgadas y libera reservas
 php artisan test               # tests sobre PostgreSQL
 pnpm check && pnpm types:check # lint/format y vue-tsc

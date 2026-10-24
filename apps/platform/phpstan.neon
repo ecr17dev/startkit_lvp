@@ -14,5 +14,6 @@ parameters:
         - ../../packages/php/ai/src/
         - ../../packages/php/knowledge/src/
         - ../../packages/php/starter-console/src/
+        - ../../tooling/create-starter/src/
 
     level: 7

@@ -1,0 +1,24 @@
+{
+    "name": "ecortes/laravel-starter-installer",
+    "description": "Installer of the Laravel 13 + Laravel AI SDK starter kit: creates a project from a verifiable release, validates starter.config.json and prepares the environment.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0",
+    "keywords": ["laravel", "starter", "installer", "ai", "rag"],
+    "require": {
+        "php": "^8.3",
+        "ext-json": "*",
+        "symfony/console": "^7.2|^8.0",
+        "symfony/process": "^7.2|^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Starter\\Installer\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/laravel-starter"
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

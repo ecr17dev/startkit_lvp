@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "225771a21d8a674896909d5cece69d43",
+    "content-hash": "bbb35cbb8434a10634370a8db4cc9a68",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -677,6 +677,45 @@
                 }
             ],
             "time": "2026-10-19T17:53:57+00:00"
+        },
+        {
+            "name": "ecortes/laravel-starter-installer",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "../../tooling/create-starter",
+                "reference": "59b148db9c3b1524db139a4ee07578aea7beed02"
+            },
+            "require": {
+                "ext-json": "*",
+                "php": "^8.3",
+                "symfony/console": "^7.2|^8.0",
+                "symfony/process": "^7.2|^8.0"
+            },
+            "bin": [
+                "bin/laravel-starter"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Starter\\Installer\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Installer of the Laravel 13 + Laravel AI SDK starter kit: creates a project from a verifiable release, validates starter.config.json and prepares the environment.",
+            "keywords": [
+                "ai",
+                "installer",
+                "laravel",
+                "rag",
+                "starter"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "egulias/email-validator",
@@ -4791,12 +4830,14 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/php/starter-console",
-                "reference": "cd534a786ea94b8ff03f85976661189008579d01"
+                "reference": "ccf98fc055ee4d32577ca266dd47db213b30e8b2"
             },
             "require": {
+                "ecortes/laravel-starter-installer": "^0.1",
                 "laravel/framework": "^13.17",
                 "php": "^8.3",
-                "starter/administration": "^0.1"
+                "starter/administration": "^0.1",
+                "starter/identity": "^0.1"
             },
             "type": "library",
             "autoload": {
@@ -4848,14 +4889,16 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/php/knowledge",
-                "reference": "b9abf61166ca9822751cb44e0d6bf638cdd3a431"
+                "reference": "8a5d0b6cd441e39a2ed4b7172535d0d1ae0b34aa"
             },
             "require": {
                 "ext-dom": "*",
                 "laravel/framework": "^13.17",
                 "php": "^8.3",
                 "smalot/pdfparser": "^2.13",
-                "starter/ai": "^0.1"
+                "starter/administration": "^0.1",
+                "starter/ai": "^0.1",
+                "starter/identity": "^0.1"
             },
             "type": "library",
             "autoload": {
@@ -9559,10 +9602,10 @@
             "name": "phpstan/phpstan",
             "version": "2.3.1",
             "dist": {
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/6155239b488e95d26d1ebd95c6b4bb294d7f09db",
                 "type": "zip",
-                "shasum": "",
-                "reference": "6155239b488e95d26d1ebd95c6b4bb294d7f09db"
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/6155239b488e95d26d1ebd95c6b4bb294d7f09db",
+                "reference": "6155239b488e95d26d1ebd95c6b4bb294d7f09db",
+                "shasum": ""
             },
             "require": {
                 "php": "^7.4|^8.0"

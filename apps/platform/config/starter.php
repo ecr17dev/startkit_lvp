@@ -284,6 +284,21 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | JSON API contract
+    |--------------------------------------------------------------------------
+    |
+    | The exported OpenAPI (starter:api-docs) must not depend on the branding
+    | or the locale stored in the database, so CI can compare it with the
+    | committed contract. The interactive documentation keeps the branding.
+    |
+    */
+
+    'api' => [
+        'title' => env('STARTER_API_TITLE', 'Laravel Starter API'),
+    ],
+
     'fonts' => [
         'Instrument Sans', 'Inter', 'Figtree', 'Geist', 'Roboto', 'Open Sans',
         'Lato', 'Poppins', 'Montserrat', 'Nunito', 'Nunito Sans', 'DM Sans',

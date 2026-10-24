@@ -22,7 +22,7 @@ Admin → Conocimiento → *Diagnosticar y activar* (permiso `settings.update`) 
 
 El modo (`rag.mode` en la tabla `settings`) solo cambia si todas las verificaciones pasan.
 Desactivar detiene trabajos nuevos y recuperación, cancela de forma cooperativa los
-abiertos y **no** borra documentos ni tablas. `php artisan starter:rag-diagnose` repite el
+abiertos y **no** borra documentos ni tablas. `php artisan starter:rag-doctor` repite el
 diagnóstico desde la consola.
 
 Modos: `disabled`, `internal` (este PostgreSQL con pgvector), `external_pgsql` (otra base

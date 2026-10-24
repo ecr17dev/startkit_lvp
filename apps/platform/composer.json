@@ -15,6 +15,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../tooling/create-starter",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -73,11 +80,11 @@
         ],
         "lint": [
             "pint --parallel",
-            "pint --parallel ../../packages/php"
+            "pint --parallel ../../packages/php ../../tooling/create-starter"
         ],
         "lint:check": [
             "pint --parallel --test",
-            "pint --parallel --test ../../packages/php"
+            "pint --parallel --test ../../packages/php ../../tooling/create-starter"
         ],
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",

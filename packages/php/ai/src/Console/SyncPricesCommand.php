@@ -12,7 +12,12 @@ class SyncPricesCommand extends Command
     /**
      * @var string
      */
-    protected $signature = 'starter:ai-sync-prices {--rates : Also fetch the USD/CLP exchange rate}';
+    protected $signature = 'starter:ai-prices-sync {--rates : Also fetch the USD/CLP exchange rate}';
+
+    /**
+     * @var list<string>
+     */
+    protected $aliases = ['starter:ai-sync-prices'];
 
     /**
      * @var string

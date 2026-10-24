@@ -1,0 +1,153 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/bluesmilecl/startkit_laravel/tooling/contracts/starter.config.schema.json",
+    "title": "Starter configuration",
+    "description": "Exportable configuration of a Laravel starter project. It never contains secrets: credentials are referenced (env:NAME or file:/path).",
+    "type": "object",
+    "required": ["schemaVersion", "project", "features", "auth"],
+    "additionalProperties": false,
+    "$defs": {
+        "secretRef": {
+            "description": "Reference to a secret: env:NAME or file:/absolute/path. Plain secrets are rejected.",
+            "type": ["string", "null"],
+            "pattern": "^(env:[A-Z][A-Z0-9_]*|file:/.+)$"
+        },
+        "ref": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9-]{0,62}$" }
+    },
+    "properties": {
+        "$schema": { "type": "string" },
+        "schemaVersion": { "const": 1 },
+        "project": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+                "locale": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+                "timezone": { "type": "string" }
+            }
+        },
+        "features": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "organizations": { "type": "boolean" },
+                "ai": { "type": "boolean" },
+                "rag": { "type": "boolean" },
+                "postgrest": { "type": "boolean" }
+            }
+        },
+        "auth": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "method": { "enum": ["email-otp", "email-otp+password"] },
+                "registration": { "enum": ["open", "invite-only", "closed"] }
+            }
+        },
+        "owner": {
+            "type": "object",
+            "required": ["email"],
+            "additionalProperties": false,
+            "properties": {
+                "email": { "type": "string", "format": "email" },
+                "name": { "type": "string" }
+            }
+        },
+        "database": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "mode": { "enum": ["docker", "external"] },
+                "ref": { "$ref": "#/$defs/secretRef" }
+            }
+        },
+        "mail": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "transport": { "enum": ["mailpit", "smtp", "resend", "log"] },
+                "from": { "type": "string", "format": "email" },
+                "credentialRef": { "$ref": "#/$defs/secretRef" }
+            }
+        },
+        "ai": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "connectionRef": { "$ref": "#/$defs/ref" },
+                "connections": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["ref", "driver"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "ref": { "$ref": "#/$defs/ref" },
+                            "driver": { "enum": ["openai", "anthropic", "gemini", "deepseek", "openrouter", "bedrock", "azure", "groq", "mistral", "xai", "ollama", "openai-compatible", "simulated"] },
+                            "label": { "type": "string" },
+                            "baseUrl": { "type": "string", "format": "uri" },
+                            "credentialRef": { "$ref": "#/$defs/secretRef" }
+                        }
+                    }
+                },
+                "agent": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "name": { "type": "string" },
+                        "systemPrompt": { "type": "string" },
+                        "modelRef": { "type": ["string", "null"] },
+                        "maxOutputTokens": { "type": "integer", "minimum": 1 },
+                        "media": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": { "images": { "type": "boolean" }, "documents": { "type": "boolean" } }
+                        },
+                        "microphone": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": { "type": "boolean" },
+                                "connectionRef": { "$ref": "#/$defs/ref" },
+                                "modelRef": { "type": ["string", "null"] },
+                                "maxSeconds": { "type": "integer", "minimum": 1, "maximum": 600 },
+                                "autoSend": { "type": "boolean" }
+                            }
+                        }
+                    }
+                },
+                "usage": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": { "record": { "type": "boolean" }, "dashboard": { "type": "boolean" } }
+                }
+            }
+        },
+        "rag": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "mode": { "enum": ["disabled", "internal", "external-postgres", "external-api"] },
+                "connectionRef": { "$ref": "#/$defs/ref" },
+                "embeddingProfileRef": { "$ref": "#/$defs/ref" },
+                "retrieval": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "strategy": { "enum": ["vector", "text", "hybrid"] },
+                        "topK": { "type": "integer", "minimum": 1, "maximum": 50 }
+                    }
+                },
+                "indexing": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "automatic": { "type": "boolean" },
+                        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32 }
+                    }
+                }
+            }
+        }
+    }
+}
