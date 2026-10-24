@@ -251,3 +251,89 @@ export type AgentTestResult =
           tools: string[];
       }
     | { ok: false; version: number; error: string };
+
+export type RecommendationCapability = { status: string; verified: boolean };
+
+export type RecommendationCandidate = {
+    id: number;
+    label: string;
+    model: string;
+    connection: string;
+    status: string;
+    context_window: number | null;
+    input_price: string | null;
+    output_price: string | null;
+    capabilities: Record<string, RecommendationCapability>;
+    score: number;
+    reasons: string[];
+    rank?: number;
+    source?: 'deterministic' | 'evaluator';
+    explanation?: string;
+};
+
+export type RecommendationResult = {
+    candidates: RecommendationCandidate[];
+    recommendations: RecommendationCandidate[];
+    source: 'deterministic' | 'evaluator';
+    summary: string | null;
+    evaluator: {
+        model: string;
+        request_id: string | null;
+        cost: string | null;
+        cost_status: string | null;
+        valid: boolean;
+    } | null;
+    excluded: number;
+};
+
+export type LabModelOption = {
+    id: number;
+    label: string;
+    connection: string;
+    is_default: boolean;
+};
+
+export type LabRunSummary = {
+    id: number;
+    name: string;
+    status: 'queued' | 'running' | 'completed' | 'cancelled';
+    prompts: string[];
+    system_prompt: string | null;
+    max_tokens: number | null;
+    max_cost: string;
+    max_concurrency: number;
+    spent: string;
+    reserved: string;
+    counts: {
+        total: number;
+        pending: number;
+        succeeded: number;
+        failed: number;
+        skipped: number;
+    };
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: string;
+};
+
+export type LabResultRow = {
+    id: number;
+    model_id: number | null;
+    prompt_index: number;
+    status: 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+    output: string | null;
+    error: string | null;
+    latency_ms: number | null;
+    ttft_ms: number | null;
+    input_tokens: number;
+    output_tokens: number;
+    estimated_cost: string | null;
+    cost: string | null;
+    cost_status: string | null;
+    request_id: string | null;
+};
+
+export type LabRunDetail = LabRunSummary & {
+    models: { id: number; label: string; connection: string | null }[];
+    results: LabResultRow[];
+};

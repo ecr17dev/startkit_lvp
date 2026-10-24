@@ -3,8 +3,10 @@
 use App\Http\Controllers\Admin\Ai\AgentController;
 use App\Http\Controllers\Admin\Ai\BudgetController;
 use App\Http\Controllers\Admin\Ai\ConnectionController;
+use App\Http\Controllers\Admin\Ai\LabController;
 use App\Http\Controllers\Admin\Ai\ModelController;
 use App\Http\Controllers\Admin\Ai\PriceController;
+use App\Http\Controllers\Admin\Ai\RecommenderController;
 use App\Http\Controllers\Admin\Ai\UsageController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\InvitationController;
@@ -82,6 +84,12 @@ Route::middleware(['auth', 'verified', 'onboarded'])->prefix('admin')->name('adm
             Route::post('models/{model}/verify', [ModelController::class, 'verify'])->middleware('throttle:20,1')->name('models.verify');
             Route::post('models/{model}/prices', [ModelController::class, 'price'])->name('models.prices.store');
             Route::get('prices', [PriceController::class, 'index'])->name('prices.index');
+            Route::get('recommender', [RecommenderController::class, 'index'])->name('recommender');
+            Route::post('recommender', [RecommenderController::class, 'store'])->middleware('throttle:10,1')->name('recommender.store');
+            Route::get('lab', [LabController::class, 'index'])->name('lab.index');
+            Route::post('lab', [LabController::class, 'store'])->middleware('throttle:10,1')->name('lab.store');
+            Route::get('lab/{run}', [LabController::class, 'show'])->name('lab.show');
+            Route::post('lab/{run}/cancel', [LabController::class, 'cancel'])->name('lab.cancel');
             Route::post('prices/sync', [PriceController::class, 'sync'])->middleware('throttle:5,1')->name('prices.sync');
         });
 

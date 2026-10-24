@@ -1,7 +1,9 @@
 <?php
 
 use Starter\Ai\Agents\ConfiguredAgent;
+use Starter\Ai\Agents\LabAgent;
 use Starter\Ai\Agents\PingAgent;
+use Starter\Ai\Agents\RecommendationAgent;
 use Starter\Ai\Agents\TitleAgent;
 
 /*
@@ -89,6 +91,8 @@ return [
             ConfiguredAgent::class => 'chat',
             PingAgent::class => 'test',
             TitleAgent::class => 'title',
+            RecommendationAgent::class => 'recommendation',
+            LabAgent::class => 'lab',
         ],
         'simulated' => (bool) env('STARTER_AI_SIMULATED', env('APP_ENV', 'production') !== 'production'),
         'proposal_ttl_minutes' => (int) env('STARTER_AI_PROPOSAL_TTL', 10),

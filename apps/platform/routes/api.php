@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\ActionProposalController;
 use App\Http\Controllers\Api\V1\Ai\AgentController as AiAgentController;
 use App\Http\Controllers\Api\V1\Ai\BudgetController as AiBudgetController;
 use App\Http\Controllers\Api\V1\Ai\ConnectionController as AiConnectionController;
+use App\Http\Controllers\Api\V1\Ai\LabController as AiLabController;
 use App\Http\Controllers\Api\V1\Ai\ModelController as AiModelController;
 use App\Http\Controllers\Api\V1\Ai\UsageController as AiUsageController;
 use App\Http\Controllers\Api\V1\AiController;
@@ -85,6 +86,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('budgets', [AiBudgetController::class, 'index'])->name('budgets.index');
                 Route::get('agents', [AiAgentController::class, 'index'])->name('agents.index');
                 Route::get('agents/{agent}', [AiAgentController::class, 'show'])->name('agents.show');
+                Route::get('lab-runs', [AiLabController::class, 'index'])->name('lab-runs.index');
+                Route::get('lab-runs/{run}', [AiLabController::class, 'show'])->name('lab-runs.show');
             });
 
             Route::middleware('ability:write')->group(function () {
@@ -106,6 +109,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('agents/{agent}/publish', [AiAgentController::class, 'publish'])->name('agents.publish');
                 Route::post('agents/{agent}/versions/{version}/restore', [AiAgentController::class, 'restore'])->scopeBindings()->name('agents.versions.restore');
                 Route::post('agents/{agent}/test', [AiAgentController::class, 'test'])->middleware('throttle:20,1')->name('agents.test');
+                Route::post('recommendations', [AiLabController::class, 'recommend'])->middleware('throttle:10,1')->name('recommendations.store');
+                Route::post('lab-runs', [AiLabController::class, 'store'])->middleware('throttle:10,1')->name('lab-runs.store');
+                Route::post('lab-runs/{run}/cancel', [AiLabController::class, 'cancel'])->name('lab-runs.cancel');
             });
         });
     });

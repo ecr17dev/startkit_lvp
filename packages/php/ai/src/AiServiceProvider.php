@@ -16,6 +16,7 @@ use Starter\Ai\Attachments\AttachmentStore;
 use Starter\Ai\Budgets\BudgetManager;
 use Starter\Ai\Catalog\CatalogManager;
 use Starter\Ai\Catalog\ModelDiscovery;
+use Starter\Ai\Catalog\ModelRecommender;
 use Starter\Ai\Catalog\ModelVerifier;
 use Starter\Ai\Catalog\OpenRouterCatalog;
 use Starter\Ai\Connections\ConnectionResolver;
@@ -24,6 +25,7 @@ use Starter\Ai\Console\MaintainLedgerCommand;
 use Starter\Ai\Console\SyncPricesCommand;
 use Starter\Ai\Conversations\ConversationTitles;
 use Starter\Ai\Currency\ExchangeRates;
+use Starter\Ai\Lab\LabRunner;
 use Starter\Ai\Ledger\ExecutionContext;
 use Starter\Ai\Ledger\UsageLedger;
 use Starter\Ai\Listeners\RecordSdkUsage;
@@ -35,6 +37,7 @@ use Starter\Ai\Models\AiRequest;
 use Starter\Ai\Models\Attachment;
 use Starter\Ai\Models\Budget;
 use Starter\Ai\Models\Connection;
+use Starter\Ai\Models\LabRun;
 use Starter\Ai\Pricing\CostCalculator;
 use Starter\Ai\Pricing\CostEstimator;
 use Starter\Ai\Pricing\PriceBook;
@@ -52,7 +55,7 @@ class AiServiceProvider extends ServiceProvider
 
         foreach ([ConnectionResolver::class, CostCalculator::class, CostEstimator::class, PriceBook::class, BudgetManager::class,
             UsageLedger::class, AiGateway::class, ModelDiscovery::class, OpenRouterCatalog::class, CatalogManager::class,
-            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class, ActionProposals::class, AttachmentStore::class, ConversationTitles::class] as $service) {
+            ModelVerifier::class, ConnectionTester::class, ExchangeRates::class, AgentManager::class, AgentLimiter::class, ActionProposals::class, AttachmentStore::class, ConversationTitles::class, ModelRecommender::class, LabRunner::class] as $service) {
             $this->app->scoped($service);
         }
 
@@ -82,6 +85,7 @@ class AiServiceProvider extends ServiceProvider
             'ai_agent_version' => AgentVersion::class,
             'ai_action_proposal' => ActionProposal::class,
             'ai_attachment' => Attachment::class,
+            'ai_lab_run' => LabRun::class,
         ]);
 
         if ($this->app->runningInConsole()) {

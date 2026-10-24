@@ -539,6 +539,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/lab-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the latest lab runs */
+        get: operations["v1.ai.lab-runs.index"];
+        put?: never;
+        /** Start a lab run. Tasks run in the queue; poll the run to follow them */
+        post: operations["v1.ai.lab-runs.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/lab-runs/{run}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Show a run with every result (output, error, latency, time to first
+         *     token, tokens and cost)
+         */
+        get: operations["v1.ai.lab-runs.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recommend models for a use case
+         * @description Candidates are filtered by verifiable requirements and ranked
+         *     deterministically; an evaluator model, when given, compares only those
+         *     candidates and unknown ids are discarded. Its cost is recorded.
+         */
+        post: operations["v1.ai.recommendations.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/lab-runs/{run}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel the pending tasks of a run */
+        post: operations["v1.ai.lab-runs.cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/connections": {
         parameters: {
             query?: never;
@@ -865,6 +942,22 @@ export interface components {
          * @enum {string}
          */
         ProposalStatus: "pending" | "approved" | "executing" | "executed" | "failed" | "rejected" | "expired" | "superseded";
+        /** RecommendModels */
+        RecommendModels: {
+            /** @description What the model will be used for. */
+            use_case: string;
+            /** @enum {string|null} */
+            function?: "text" | "embeddings" | "image" | "audio" | "transcription" | "reranking" | null;
+            /** @description Capabilities the model must support (declared or verified). */
+            capabilities?: components["schemas"]["Capability"][] | null;
+            /** @description Maximum input price in USD per million tokens. */
+            max_input_price?: number | null;
+            /** @description Maximum output price in USD per million tokens. */
+            max_output_price?: number | null;
+            min_context?: number | null;
+            /** @description Model that compares the candidates; null uses only the deterministic ranking. */
+            evaluator_model_id?: number | null;
+        };
         /** RoleRequest */
         RoleRequest: {
             name: string;
@@ -879,6 +972,19 @@ export interface components {
             users_count?: number;
             /** Format: date-time */
             created_at: string | null;
+        };
+        /** RunLab */
+        RunLab: {
+            name: string;
+            /** @description Prompts to send to every model (1 to 10). */
+            prompts: string[];
+            system_prompt?: string | null;
+            /** @description Catalog models to compare (1 to 6). */
+            model_ids: number[];
+            max_tokens?: number | null;
+            /** @description Maximum cost in USD for the whole run. */
+            max_cost: number;
+            max_concurrency: number;
         };
         /** SaveBudget */
         SaveBudget: {
@@ -2671,6 +2777,378 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    "v1.ai.lab-runs.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            status: string;
+                            prompts: string[];
+                            system_prompt: string | null;
+                            max_tokens: number | null;
+                            max_cost: string;
+                            max_concurrency: number;
+                            spent: string;
+                            reserved: string;
+                            counts: {
+                                total: number;
+                                pending: number;
+                                succeeded: number;
+                                failed: number;
+                                skipped: number;
+                            };
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                            models: unknown[];
+                            results: {
+                                id: number;
+                                model_id: number | null;
+                                prompt_index: number;
+                                status: string;
+                                output: string | null;
+                                error: string | null;
+                                latency_ms: number | null;
+                                ttft_ms: number | null;
+                                input_tokens: number;
+                                output_tokens: number;
+                                estimated_cost: string | null;
+                                cost: string | null;
+                                cost_status: string | null;
+                                request_id: string | null;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.ai.lab-runs.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RunLab"] & {
+                    name: string;
+                    /** @description Prompts to send to every model (1 to 10). */
+                    prompts: string[];
+                    system_prompt?: string | null;
+                    /** @description Catalog models to compare (1 to 6). */
+                    model_ids: number[];
+                    max_tokens?: number | null;
+                    /** @description Maximum cost in USD for the whole run. */
+                    max_cost: number;
+                    max_concurrency: number;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            status: string;
+                            prompts: string[];
+                            system_prompt: string | null;
+                            max_tokens: number | null;
+                            max_cost: string;
+                            max_concurrency: number;
+                            spent: string;
+                            reserved: string;
+                            counts: {
+                                total: number;
+                                pending: number;
+                                succeeded: number;
+                                failed: number;
+                                skipped: number;
+                            };
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                            models: unknown[];
+                            results: {
+                                id: number;
+                                model_id: number | null;
+                                prompt_index: number;
+                                status: string;
+                                output: string | null;
+                                error: string | null;
+                                latency_ms: number | null;
+                                ttft_ms: number | null;
+                                input_tokens: number;
+                                output_tokens: number;
+                                estimated_cost: string | null;
+                                cost: string | null;
+                                cost_status: string | null;
+                                request_id: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.lab-runs.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The run ID */
+                run: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            status: string;
+                            prompts: string[];
+                            system_prompt: string | null;
+                            max_tokens: number | null;
+                            max_cost: string;
+                            max_concurrency: number;
+                            spent: string;
+                            reserved: string;
+                            counts: {
+                                total: number;
+                                pending: number;
+                                succeeded: number;
+                                failed: number;
+                                skipped: number;
+                            };
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                            models: unknown[];
+                            results: {
+                                id: number;
+                                model_id: number | null;
+                                prompt_index: number;
+                                status: string;
+                                output: string | null;
+                                error: string | null;
+                                latency_ms: number | null;
+                                ttft_ms: number | null;
+                                input_tokens: number;
+                                output_tokens: number;
+                                estimated_cost: string | null;
+                                cost: string | null;
+                                cost_status: string | null;
+                                request_id: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.ai.recommendations.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecommendModels"] & {
+                    /** @description What the model will be used for. */
+                    use_case: string;
+                    /** @enum {string|null} */
+                    function?: "text" | "embeddings" | "image" | "audio" | "transcription" | "reranking" | null;
+                    /** @description Capabilities the model must support (declared or verified). */
+                    capabilities?: components["schemas"]["Capability"][] | null;
+                    /** @description Maximum input price in USD per million tokens. */
+                    max_input_price?: number | null;
+                    /** @description Maximum output price in USD per million tokens. */
+                    max_output_price?: number | null;
+                    min_context?: number | null;
+                    /** @description Model that compares the candidates; null uses only the deterministic ranking. */
+                    evaluator_model_id?: number | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            candidates: unknown[];
+                            recommendations: unknown[];
+                            /** @constant */
+                            source: "evaluator";
+                            summary: string | null;
+                            evaluator: {
+                                model: string;
+                                request_id: null;
+                                cost: string | null;
+                                cost_status: null;
+                                valid: boolean;
+                            };
+                            excluded: number;
+                        } | {
+                            candidates: unknown[];
+                            recommendations: unknown[];
+                            /** @constant */
+                            source: "deterministic";
+                            summary: null;
+                            evaluator: null;
+                            excluded: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.ai.lab-runs.cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The run ID */
+                run: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: number;
+                            name: string;
+                            status: string;
+                            prompts: string[];
+                            system_prompt: string | null;
+                            max_tokens: number | null;
+                            max_cost: string;
+                            max_concurrency: number;
+                            spent: string;
+                            reserved: string;
+                            counts: {
+                                total: number;
+                                pending: number;
+                                succeeded: number;
+                                failed: number;
+                                skipped: number;
+                            };
+                            started_at: string | null;
+                            finished_at: string | null;
+                            created_at: string;
+                            models: unknown[];
+                            results: {
+                                id: number;
+                                model_id: number | null;
+                                prompt_index: number;
+                                status: string;
+                                output: string | null;
+                                error: string | null;
+                                latency_ms: number | null;
+                                ttft_ms: number | null;
+                                input_tokens: number;
+                                output_tokens: number;
+                                estimated_cost: string | null;
+                                cost: string | null;
+                                cost_status: string | null;
+                                request_id: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Error overview.
+                         * @example
+                         */
+                        message: string;
+                    };
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
         };
     };
     "v1.ai.connections.index": {

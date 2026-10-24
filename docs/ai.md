@@ -155,6 +155,8 @@ escritura con `write`, además del permiso correspondiente.
 | `GET /api/v1/admin/action-proposals`, `GET …/{id}` | Propuestas propias de cambios preparados por agentes (habilidad `ai`) |
 | `POST …/{id}/confirm`, `POST …/{id}/reject` | Confirmar (reanuda la conversación y ejecuta) o cancelar |
 | `POST transcriptions` | Audio grabado a texto con el modelo de transcripción del agente (habilidad `ai`) |
+| `POST recommendations` | Recomendación de modelos para un caso de uso (`ai.models.manage`) |
+| `GET/POST lab-runs`, `GET lab-runs/{id}`, `POST lab-runs/{id}/cancel` | Laboratorio de modelos (`ai.models.manage`) |
 | `GET/POST connections`, `GET/PATCH/DELETE connections/{id}` | Conexiones |
 | `POST connections/{id}/test`, `POST connections/{id}/discover` | Prueba y descubrimiento |
 | `GET/POST models`, `GET/PATCH models/{id}`, `POST models/{id}/verify` | Catálogo |
@@ -323,6 +325,49 @@ servidor (`Agents\ToolContext`), nunca desde los argumentos del modelo.
   error se conserva un título derivado del primer mensaje
   (`STARTER_AI_GENERATE_TITLES`).
 
-## Pendiente (resto de la etapa 4)
+## Recomendador de modelos
 
-- Recomendador de modelos (7.3 de la especificación) y laboratorio de pruebas.
+**IA → Recomendador de modelos** (`Catalog\ModelRecommender`):
+
+1. El administrador describe el caso de uso y requisitos verificables
+   (función, capacidades requeridas, precio máximo de entrada y salida por
+   millón de tokens, ventana de contexto mínima).
+2. El catálogo se filtra con esos requisitos: una capacidad cuenta solo si está
+   declarada o verificada, y un precio máximo excluye modelos con precio
+   desconocido.
+3. Una puntuación determinista (precio combinado 75/25, capacidades
+   verificadas, contexto y acceso verificado) ordena hasta 8 candidatos, con sus
+   motivos.
+4. Si se elige un **modelo evaluador**, `RecommendationAgent` (salida
+   estructurada del SDK) compara solo esos candidatos y devuelve ids y
+   justificaciones. Los ids que no son candidatos se descartan; si no queda
+   ninguno, se usa la clasificación determinista. La llamada pasa por el
+   gateway (función `recommendation`) y su costo queda registrado.
+5. Precios y capacidades se muestran siempre desde el catálogo: la IA no los
+   inventa.
+
+## Laboratorio
+
+**IA → Laboratorio** (`Lab\LabRunner`, `ai_lab_runs`, `ai_lab_results`):
+ejecuta hasta 10 prompts contra hasta 6 modelos con un **costo máximo** y una
+**concurrencia máxima** (1 a 4).
+
+- Se encolan tantos trabajadores (`RunLabTasks`) como la concurrencia; cada uno
+  reclama tareas pendientes con `FOR UPDATE SKIP LOCKED`.
+- Antes de cada tarea se reserva su costo estimado de forma atómica contra el
+  máximo de la ejecución (`spent + reserved + estimado <= max_cost`); si no
+  cabe, o si el precio es desconocido, la tarea se omite. Al terminar, la
+  reserva se reemplaza por el costo real.
+- Cada resultado guarda respuesta, error, latencia, tiempo hasta el primer token
+  (medido en el stream), tokens, costo y la solicitud del libro (función
+  `lab`). La página se actualiza mientras la ejecución está activa y permite
+  cancelarla.
+- Requiere un trabajador de cola (`composer dev` o el servicio `queue` de
+  Docker).
+
+## Fuera del alcance de esta versión
+
+- Búsqueda web para proponer actualizaciones del catálogo (la especificación la
+  deja opcional y sujeta a evidencia y aprobación).
+- Voz de salida (texto a voz) y conversación de voz en tiempo real.
+- RAG dentro de los agentes: llega con el módulo de conocimiento (etapas 5 y 6).

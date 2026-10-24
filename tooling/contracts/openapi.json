@@ -33,6 +33,9 @@
             "name": "AI agents"
         },
         {
+            "name": "AI catalog"
+        },
+        {
             "name": "AI usage and budgets"
         }
     ],
@@ -4474,6 +4477,1315 @@
                 }
             }
         },
+        "/v1/ai/lab-runs": {
+            "get": {
+                "operationId": "v1.ai.lab-runs.index",
+                "summary": "List the latest lab runs",
+                "tags": [
+                    "AI catalog"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "prompts": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "system_prompt": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "max_tokens": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "max_cost": {
+                                                        "type": "string"
+                                                    },
+                                                    "max_concurrency": {
+                                                        "type": "integer"
+                                                    },
+                                                    "spent": {
+                                                        "type": "string"
+                                                    },
+                                                    "reserved": {
+                                                        "type": "string"
+                                                    },
+                                                    "counts": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "total": {
+                                                                "type": "integer"
+                                                            },
+                                                            "pending": {
+                                                                "type": "integer"
+                                                            },
+                                                            "succeeded": {
+                                                                "type": "integer"
+                                                            },
+                                                            "failed": {
+                                                                "type": "integer"
+                                                            },
+                                                            "skipped": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "total",
+                                                            "pending",
+                                                            "succeeded",
+                                                            "failed",
+                                                            "skipped"
+                                                        ]
+                                                    },
+                                                    "started_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "finished_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string"
+                                                    },
+                                                    "models": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    },
+                                                    "results": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "model_id": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "prompt_index": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "status": {
+                                                                    "type": "string"
+                                                                },
+                                                                "output": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "error": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "latency_ms": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "ttft_ms": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "input_tokens": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "output_tokens": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "estimated_cost": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "cost": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "cost_status": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "request_id": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "model_id",
+                                                                "prompt_index",
+                                                                "status",
+                                                                "output",
+                                                                "error",
+                                                                "latency_ms",
+                                                                "ttft_ms",
+                                                                "input_tokens",
+                                                                "output_tokens",
+                                                                "estimated_cost",
+                                                                "cost",
+                                                                "cost_status",
+                                                                "request_id"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "status",
+                                                    "prompts",
+                                                    "system_prompt",
+                                                    "max_tokens",
+                                                    "max_cost",
+                                                    "max_concurrency",
+                                                    "spent",
+                                                    "reserved",
+                                                    "counts",
+                                                    "started_at",
+                                                    "finished_at",
+                                                    "created_at",
+                                                    "models",
+                                                    "results"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.ai.lab-runs.store",
+                "summary": "Start a lab run. Tasks run in the queue; poll the run to follow them",
+                "tags": [
+                    "AI catalog"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/RunLab"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "maxLength": 120
+                                            },
+                                            "prompts": {
+                                                "type": "array",
+                                                "description": "Prompts to send to every model (1 to 10).",
+                                                "items": {
+                                                    "type": "string",
+                                                    "maxLength": 4000
+                                                },
+                                                "minItems": 1,
+                                                "maxItems": 10
+                                            },
+                                            "system_prompt": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "maxLength": 8000
+                                            },
+                                            "model_ids": {
+                                                "type": "array",
+                                                "description": "Catalog models to compare (1 to 6).",
+                                                "items": {
+                                                    "type": "integer"
+                                                },
+                                                "minItems": 1,
+                                                "maxItems": 6,
+                                                "uniqueItems": true
+                                            },
+                                            "max_tokens": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "minimum": 16,
+                                                "maximum": 8000
+                                            },
+                                            "max_cost": {
+                                                "type": "number",
+                                                "description": "Maximum cost in USD for the whole run.",
+                                                "minimum": 0,
+                                                "maximum": 1000
+                                            },
+                                            "max_concurrency": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 4
+                                            }
+                                        },
+                                        "required": [
+                                            "name",
+                                            "prompts",
+                                            "model_ids",
+                                            "max_cost",
+                                            "max_concurrency"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "prompts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "system_prompt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_tokens": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_cost": {
+                                                    "type": "string"
+                                                },
+                                                "max_concurrency": {
+                                                    "type": "integer"
+                                                },
+                                                "spent": {
+                                                    "type": "string"
+                                                },
+                                                "reserved": {
+                                                    "type": "string"
+                                                },
+                                                "counts": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "pending": {
+                                                            "type": "integer"
+                                                        },
+                                                        "succeeded": {
+                                                            "type": "integer"
+                                                        },
+                                                        "failed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "skipped": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "total",
+                                                        "pending",
+                                                        "succeeded",
+                                                        "failed",
+                                                        "skipped"
+                                                    ]
+                                                },
+                                                "started_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "finished_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": "string"
+                                                },
+                                                "models": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "results": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "model_id": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "prompt_index": {
+                                                                "type": "integer"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "output": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "error": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "latency_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "ttft_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "input_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "output_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "estimated_cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost_status": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "request_id": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "model_id",
+                                                            "prompt_index",
+                                                            "status",
+                                                            "output",
+                                                            "error",
+                                                            "latency_ms",
+                                                            "ttft_ms",
+                                                            "input_tokens",
+                                                            "output_tokens",
+                                                            "estimated_cost",
+                                                            "cost",
+                                                            "cost_status",
+                                                            "request_id"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "status",
+                                                "prompts",
+                                                "system_prompt",
+                                                "max_tokens",
+                                                "max_cost",
+                                                "max_concurrency",
+                                                "spent",
+                                                "reserved",
+                                                "counts",
+                                                "started_at",
+                                                "finished_at",
+                                                "created_at",
+                                                "models",
+                                                "results"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/lab-runs/{run}": {
+            "get": {
+                "operationId": "v1.ai.lab-runs.show",
+                "summary": "Show a run with every result (output, error, latency, time to first\ntoken, tokens and cost)",
+                "tags": [
+                    "AI catalog"
+                ],
+                "parameters": [
+                    {
+                        "name": "run",
+                        "in": "path",
+                        "required": true,
+                        "description": "The run ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "prompts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "system_prompt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_tokens": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_cost": {
+                                                    "type": "string"
+                                                },
+                                                "max_concurrency": {
+                                                    "type": "integer"
+                                                },
+                                                "spent": {
+                                                    "type": "string"
+                                                },
+                                                "reserved": {
+                                                    "type": "string"
+                                                },
+                                                "counts": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "pending": {
+                                                            "type": "integer"
+                                                        },
+                                                        "succeeded": {
+                                                            "type": "integer"
+                                                        },
+                                                        "failed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "skipped": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "total",
+                                                        "pending",
+                                                        "succeeded",
+                                                        "failed",
+                                                        "skipped"
+                                                    ]
+                                                },
+                                                "started_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "finished_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": "string"
+                                                },
+                                                "models": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "results": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "model_id": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "prompt_index": {
+                                                                "type": "integer"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "output": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "error": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "latency_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "ttft_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "input_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "output_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "estimated_cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost_status": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "request_id": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "model_id",
+                                                            "prompt_index",
+                                                            "status",
+                                                            "output",
+                                                            "error",
+                                                            "latency_ms",
+                                                            "ttft_ms",
+                                                            "input_tokens",
+                                                            "output_tokens",
+                                                            "estimated_cost",
+                                                            "cost",
+                                                            "cost_status",
+                                                            "request_id"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "status",
+                                                "prompts",
+                                                "system_prompt",
+                                                "max_tokens",
+                                                "max_cost",
+                                                "max_concurrency",
+                                                "spent",
+                                                "reserved",
+                                                "counts",
+                                                "started_at",
+                                                "finished_at",
+                                                "created_at",
+                                                "models",
+                                                "results"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/recommendations": {
+            "post": {
+                "operationId": "v1.ai.recommendations.store",
+                "description": "Candidates are filtered by verifiable requirements and ranked\ndeterministically; an evaluator model, when given, compares only those\ncandidates and unknown ids are discarded. Its cost is recorded.",
+                "summary": "Recommend models for a use case",
+                "tags": [
+                    "AI catalog"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/RecommendModels"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "use_case": {
+                                                "type": "string",
+                                                "description": "What the model will be used for.",
+                                                "maxLength": 4000
+                                            },
+                                            "function": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "enum": [
+                                                    "text",
+                                                    "embeddings",
+                                                    "image",
+                                                    "audio",
+                                                    "transcription",
+                                                    "reranking",
+                                                    null
+                                                ]
+                                            },
+                                            "capabilities": {
+                                                "type": [
+                                                    "array",
+                                                    "null"
+                                                ],
+                                                "description": "Capabilities the model must support (declared or verified).",
+                                                "items": {
+                                                    "$ref": "#/components/schemas/Capability"
+                                                }
+                                            },
+                                            "max_input_price": {
+                                                "type": [
+                                                    "number",
+                                                    "null"
+                                                ],
+                                                "description": "Maximum input price in USD per million tokens.",
+                                                "minimum": 0
+                                            },
+                                            "max_output_price": {
+                                                "type": [
+                                                    "number",
+                                                    "null"
+                                                ],
+                                                "description": "Maximum output price in USD per million tokens.",
+                                                "minimum": 0
+                                            },
+                                            "min_context": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "minimum": 1
+                                            },
+                                            "evaluator_model_id": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "description": "Model that compares the candidates; null uses only the deterministic ranking."
+                                            }
+                                        },
+                                        "required": [
+                                            "use_case"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "candidates": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "recommendations": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "source": {
+                                                            "type": "string",
+                                                            "const": "evaluator"
+                                                        },
+                                                        "summary": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "evaluator": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "model": {
+                                                                    "type": "string"
+                                                                },
+                                                                "request_id": {
+                                                                    "type": "null"
+                                                                },
+                                                                "cost": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "cost_status": {
+                                                                    "type": "null"
+                                                                },
+                                                                "valid": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "model",
+                                                                "request_id",
+                                                                "cost",
+                                                                "cost_status",
+                                                                "valid"
+                                                            ]
+                                                        },
+                                                        "excluded": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "candidates",
+                                                        "recommendations",
+                                                        "source",
+                                                        "summary",
+                                                        "evaluator",
+                                                        "excluded"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "candidates": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "recommendations": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "source": {
+                                                            "type": "string",
+                                                            "const": "deterministic"
+                                                        },
+                                                        "summary": {
+                                                            "type": "null"
+                                                        },
+                                                        "evaluator": {
+                                                            "type": "null"
+                                                        },
+                                                        "excluded": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "candidates",
+                                                        "recommendations",
+                                                        "source",
+                                                        "summary",
+                                                        "evaluator",
+                                                        "excluded"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/ai/lab-runs/{run}/cancel": {
+            "post": {
+                "operationId": "v1.ai.lab-runs.cancel",
+                "summary": "Cancel the pending tasks of a run",
+                "tags": [
+                    "AI catalog"
+                ],
+                "parameters": [
+                    {
+                        "name": "run",
+                        "in": "path",
+                        "required": true,
+                        "description": "The run ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "prompts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "system_prompt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_tokens": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "max_cost": {
+                                                    "type": "string"
+                                                },
+                                                "max_concurrency": {
+                                                    "type": "integer"
+                                                },
+                                                "spent": {
+                                                    "type": "string"
+                                                },
+                                                "reserved": {
+                                                    "type": "string"
+                                                },
+                                                "counts": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "pending": {
+                                                            "type": "integer"
+                                                        },
+                                                        "succeeded": {
+                                                            "type": "integer"
+                                                        },
+                                                        "failed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "skipped": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "total",
+                                                        "pending",
+                                                        "succeeded",
+                                                        "failed",
+                                                        "skipped"
+                                                    ]
+                                                },
+                                                "started_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "finished_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": "string"
+                                                },
+                                                "models": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "results": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "model_id": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "prompt_index": {
+                                                                "type": "integer"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "output": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "error": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "latency_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "ttft_ms": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "input_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "output_tokens": {
+                                                                "type": "integer"
+                                                            },
+                                                            "estimated_cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "cost_status": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "request_id": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "model_id",
+                                                            "prompt_index",
+                                                            "status",
+                                                            "output",
+                                                            "error",
+                                                            "latency_ms",
+                                                            "ttft_ms",
+                                                            "input_tokens",
+                                                            "output_tokens",
+                                                            "estimated_cost",
+                                                            "cost",
+                                                            "cost_status",
+                                                            "request_id"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "status",
+                                                "prompts",
+                                                "system_prompt",
+                                                "max_tokens",
+                                                "max_cost",
+                                                "max_concurrency",
+                                                "spent",
+                                                "reserved",
+                                                "counts",
+                                                "started_at",
+                                                "finished_at",
+                                                "created_at",
+                                                "models",
+                                                "results"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/ai/connections": {
             "get": {
                 "operationId": "v1.ai.connections.index",
@@ -8497,6 +9809,75 @@
                 ],
                 "title": "ProposalStatus"
             },
+            "RecommendModels": {
+                "type": "object",
+                "properties": {
+                    "use_case": {
+                        "type": "string",
+                        "description": "What the model will be used for.",
+                        "maxLength": 4000
+                    },
+                    "function": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "text",
+                            "embeddings",
+                            "image",
+                            "audio",
+                            "transcription",
+                            "reranking",
+                            null
+                        ]
+                    },
+                    "capabilities": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "description": "Capabilities the model must support (declared or verified).",
+                        "items": {
+                            "$ref": "#/components/schemas/Capability"
+                        }
+                    },
+                    "max_input_price": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Maximum input price in USD per million tokens.",
+                        "minimum": 0
+                    },
+                    "max_output_price": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Maximum output price in USD per million tokens.",
+                        "minimum": 0
+                    },
+                    "min_context": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "evaluator_model_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Model that compares the candidates; null uses only the deterministic ranking."
+                    }
+                },
+                "required": [
+                    "use_case"
+                ],
+                "title": "RecommendModels"
+            },
             "RoleRequest": {
                 "type": "object",
                 "properties": {
@@ -8585,6 +9966,69 @@
                     "created_at"
                 ],
                 "title": "RoleResource"
+            },
+            "RunLab": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "prompts": {
+                        "type": "array",
+                        "description": "Prompts to send to every model (1 to 10).",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 4000
+                        },
+                        "minItems": 1,
+                        "maxItems": 10
+                    },
+                    "system_prompt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 8000
+                    },
+                    "model_ids": {
+                        "type": "array",
+                        "description": "Catalog models to compare (1 to 6).",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "minItems": 1,
+                        "maxItems": 6,
+                        "uniqueItems": true
+                    },
+                    "max_tokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 16,
+                        "maximum": 8000
+                    },
+                    "max_cost": {
+                        "type": "number",
+                        "description": "Maximum cost in USD for the whole run.",
+                        "minimum": 0,
+                        "maximum": 1000
+                    },
+                    "max_concurrency": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 4
+                    }
+                },
+                "required": [
+                    "name",
+                    "prompts",
+                    "model_ids",
+                    "max_cost",
+                    "max_concurrency"
+                ],
+                "title": "RunLab"
             },
             "SaveBudget": {
                 "type": "object",

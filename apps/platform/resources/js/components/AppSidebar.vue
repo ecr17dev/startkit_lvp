@@ -5,6 +5,7 @@ import {
     Bot,
     Brain,
     ChartColumn,
+    FlaskConical,
     History,
     LayoutGrid,
     MessageSquareText,
@@ -12,8 +13,9 @@ import {
     PiggyBank,
     Plug,
     Settings2,
-    Tags,
     ShieldCheck,
+    Sparkles,
+    Tags,
     Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -35,12 +37,13 @@ import { usePermissions } from '@/composables/usePermissions';
 import { t } from '@/lib/i18n';
 import { dashboard } from '@/routes';
 import { chat } from '@/routes/ai';
-import { usage } from '@/routes/admin/ai';
+import { recommender, usage } from '@/routes/admin/ai';
 import { index as budgets } from '@/routes/admin/ai/budgets';
 import { index as connections } from '@/routes/admin/ai/connections';
 import { index as models } from '@/routes/admin/ai/models';
 import { index as prices } from '@/routes/admin/ai/prices';
 import { index as agents } from '@/routes/admin/ai/agents';
+import { index as labIndex } from '@/routes/admin/ai/lab';
 import { index as audit } from '@/routes/admin/audit';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
@@ -137,6 +140,18 @@ const sections = computed<NavSection[]>(() => {
                     title: t('Prices'),
                     href: prices(),
                     icon: Tags,
+                    can: 'ai.models.manage',
+                },
+                {
+                    title: t('Model recommender'),
+                    href: recommender(),
+                    icon: Sparkles,
+                    can: 'ai.models.manage',
+                },
+                {
+                    title: t('Lab'),
+                    href: labIndex(),
+                    icon: FlaskConical,
                     can: 'ai.models.manage',
                 },
                 {
