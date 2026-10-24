@@ -1,0 +1,19 @@
+{
+    "name": "starter/knowledge",
+    "description": "Optional RAG: collections, sources, indexing pipeline, pgvector retrieval and citations.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.17",
+        "starter/ai": "^0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Starter\\Knowledge\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

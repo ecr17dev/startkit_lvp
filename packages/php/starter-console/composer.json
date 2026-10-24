@@ -1,0 +1,19 @@
+{
+    "name": "starter/console",
+    "description": "Artisan commands of the starter: doctor, verify, generators and maintenance.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.17",
+        "starter/administration": "^0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Starter\\Console\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

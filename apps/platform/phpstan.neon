@@ -1,0 +1,18 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - bootstrap/app.php
+        - config/
+        - database/
+        - routes/
+        - ../../packages/php/administration/src/
+        - ../../packages/php/identity/src/
+        - ../../packages/php/ai/src/
+        - ../../packages/php/knowledge/src/
+        - ../../packages/php/starter-console/src/
+
+    level: 7

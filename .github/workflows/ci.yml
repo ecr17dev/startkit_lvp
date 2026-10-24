@@ -1,0 +1,132 @@
+name: ci
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    platform:
+        name: PHP + Vue (PostgreSQL ${{ matrix.postgres }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                php: ['8.4']
+                postgres: ['0.8.1-pg17']
+
+        services:
+            postgres:
+                image: pgvector/pgvector:${{ matrix.postgres }}
+                env:
+                    POSTGRES_DB: starter_testing
+                    POSTGRES_USER: starter
+                    POSTGRES_PASSWORD: secret
+                ports: ['5432:5432']
+                options: >-
+                    --health-cmd "pg_isready -U starter -d starter_testing"
+                    --health-interval 5s --health-timeout 5s --health-retries 20
+
+        env:
+            DB_HOST: 127.0.0.1
+            DB_USERNAME: starter
+            DB_PASSWORD: secret
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  extensions: pdo_pgsql, intl, zip, bcmath
+                  tools: composer:v2
+                  coverage: none
+
+            - name: Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: '22'
+
+            - name: Enable pnpm
+              run: corepack enable
+
+            - name: Validate composer.json
+              run: composer validate --working-dir=apps/platform --no-check-publish
+
+            - name: Install PHP dependencies
+              run: composer install --working-dir=apps/platform --no-interaction --prefer-dist
+
+            - name: Audit PHP dependencies
+              run: composer audit --working-dir=apps/platform
+
+            - name: Install Node dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Prepare environment
+              working-directory: apps/platform
+              run: |
+                  cp .env.example .env
+                  php artisan key:generate
+                  php -r "file_put_contents('.env', str_replace('DB_DATABASE=starter', 'DB_DATABASE=starter_testing', file_get_contents('.env')));"
+                  php artisan migrate --force
+
+            - name: Build assets
+              run: pnpm build
+
+            - name: Lint PHP (Pint)
+              working-directory: apps/platform
+              run: composer lint:check
+
+            - name: Static analysis (PHPStan/Larastan)
+              working-directory: apps/platform
+              run: composer types:check
+
+            - name: Lint and format front-end
+              run: pnpm check
+
+            - name: Type check Vue
+              run: pnpm types:check
+
+            - name: Front-end unit tests
+              run: pnpm test
+
+            - name: PHP tests
+              working-directory: apps/platform
+              run: php artisan test
+
+            - name: Stack manifest is up to date
+              working-directory: apps/platform
+              run: php artisan starter:manifest --check || echo "::warning::starter.manifest.json differs from the CI environment"
+
+            - name: Docker Compose configurations
+              run: |
+                  for profiles in "" "--profile local-db --profile dev-mail" "--profile rag-db" "--profile postgrest" "--profile inertia-ssr"; do
+                    docker compose -f docker/compose.yaml -f docker/compose.dev.yaml $profiles config --quiet
+                    docker compose -f docker/compose.yaml -f docker/compose.production.yaml $profiles config --quiet
+                  done
+
+    docker:
+        name: Docker image
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Build app image
+              run: docker build -f docker/app.Dockerfile --target app -t starter-app:ci .
+
+            - name: Build web image
+              run: docker build -f docker/app.Dockerfile --target web -t starter-web:ci .

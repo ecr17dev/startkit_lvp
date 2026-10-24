@@ -1,0 +1,132 @@
+# Base services. Combine with compose.dev.yaml or compose.production.yaml.
+#
+#   docker compose -f docker/compose.yaml -f docker/compose.dev.yaml --profile local-db --profile dev-mail up -d
+#   docker compose -f docker/compose.yaml run --rm migrate
+#
+# Profiles select infrastructure (local-db, rag-db, postgrest, dev-mail,
+# inertia-ssr). Laravel feature flags (STARTER_FEATURE_*) enable capabilities.
+
+name: laravel-starter
+
+x-app: &app
+    build:
+        context: ..
+        dockerfile: docker/app.Dockerfile
+        target: app
+    image: ${STARTER_IMAGE:-laravel-starter-app}:${STARTER_TAG:-local}
+    env_file:
+        - path: ../apps/platform/.env
+          required: false
+    environment:
+        DB_HOST: ${DB_HOST:-postgres}
+    volumes:
+        - storage:/srv/apps/platform/storage/app
+    restart: unless-stopped
+
+services:
+    web:
+        build:
+            context: ..
+            dockerfile: docker/app.Dockerfile
+            target: web
+        image: ${STARTER_IMAGE:-laravel-starter-app}-web:${STARTER_TAG:-local}
+        ports:
+            - '${STARTER_HTTP_PORT:-8080}:8080'
+        depends_on:
+            app:
+                condition: service_started
+        restart: unless-stopped
+
+    app:
+        <<: *app
+        command: ['php-fpm']
+
+    queue:
+        <<: *app
+        command: ['php', 'artisan', 'queue:work', 'database', '--queue=mail,default,ingest,sync,maintenance', '--sleep=1', '--tries=3', '--max-time=3600', '--timeout=600']
+        healthcheck:
+            disable: true
+
+    scheduler:
+        <<: *app
+        command: ['php', 'artisan', 'schedule:work']
+        healthcheck:
+            disable: true
+
+    migrate:
+        <<: *app
+        profiles: ['ops']
+        restart: 'no'
+        command: ['php', 'artisan', 'migrate', '--force', '--isolated']
+        healthcheck:
+            disable: true
+
+    postgres:
+        image: pgvector/pgvector:${PGVECTOR_TAG:-0.8.1-pg17}
+        profiles: ['local-db']
+        environment:
+            POSTGRES_DB: ${DB_DATABASE:-starter}
+            POSTGRES_USER: ${DB_USERNAME:-starter}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+        volumes:
+            - postgres:/var/lib/postgresql/data
+            - ./postgres/init:/docker-entrypoint-initdb.d:ro
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-starter} -d ${DB_DATABASE:-starter}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+    rag-postgres:
+        image: pgvector/pgvector:${PGVECTOR_TAG:-0.8.1-pg17}
+        profiles: ['rag-db']
+        environment:
+            POSTGRES_DB: ${RAG_DB_DATABASE:-knowledge}
+            POSTGRES_USER: ${RAG_DB_USERNAME:-knowledge}
+            POSTGRES_PASSWORD: ${RAG_DB_PASSWORD:-secret}
+        volumes:
+            - rag-postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${RAG_DB_USERNAME:-knowledge} -d ${RAG_DB_DATABASE:-knowledge}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+    postgrest:
+        image: postgrest/postgrest:${POSTGREST_TAG:-v13.0.7}
+        profiles: ['postgrest']
+        environment:
+            PGRST_DB_URI: postgres://${POSTGREST_DB_USER:-starter_postgrest_authenticator}:${POSTGREST_DB_PASSWORD:-change-me}@${DB_HOST:-postgres}:5432/${DB_DATABASE:-starter}
+            PGRST_DB_SCHEMAS: ${POSTGREST_SCHEMAS:-api}
+            PGRST_DB_ANON_ROLE: ${POSTGREST_ANON_ROLE:-starter_postgrest_anon}
+            # Required by the postgrest profile (at least 32 characters).
+            PGRST_JWT_SECRET: ${POSTGREST_JWT_SECRET:-}
+            PGRST_DB_MAX_ROWS: ${POSTGREST_MAX_ROWS:-1000}
+            PGRST_SERVER_PORT: 3000
+        # Private by default: only reachable from the internal network.
+        expose:
+            - '3000'
+        restart: unless-stopped
+
+    mailpit:
+        image: axllent/mailpit:${MAILPIT_TAG:-v1.27}
+        profiles: ['dev-mail']
+        ports:
+            - '${MAILPIT_UI_PORT:-8025}:8025'
+        expose:
+            - '1025'
+        restart: unless-stopped
+
+    ssr:
+        <<: *app
+        profiles: ['inertia-ssr']
+        command: ['node', 'bootstrap/ssr/ssr.js']
+        healthcheck:
+            disable: true
+
+volumes:
+    storage:
+    postgres:
+    rag-postgres:

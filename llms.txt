@@ -1,0 +1,18 @@
+# Laravel Starter (Laravel 13 + AI SDK + Vue/Inertia + PostgreSQL)
+
+> Starter kit para nuevos proyectos: login por código de un solo uso, roles y permisos, panel shadcn-vue, IA con Laravel AI SDK (conexiones, modelos, tarifas, costos, agentes), RAG opcional con pgvector, API REST con Sanctum y OpenAPI, Docker.
+
+## Documentación
+
+- [Especificación](docs/especificacion.md): alcance y criterios de aceptación.
+- [Arquitectura](docs/architecture.md): monorepo, módulos y procesos.
+- [Instalación](docs/installation.md): Docker y local.
+- [Docker](docs/docker.md): imagen, servicios y perfiles.
+- [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
+
+## Para agentes
+
+- [AGENTS.md](AGENTS.md): stack fijo, límites entre paquetes, comandos y reglas.
+- [Manifiesto de versiones](starter.manifest.json)
+- [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
+- [OpenAPI](tooling/contracts/openapi.json)

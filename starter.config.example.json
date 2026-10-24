@@ -1,0 +1,65 @@
+{
+    "$schema": "./tooling/contracts/starter.config.schema.json",
+    "schemaVersion": 1,
+    "project": {
+        "name": "Mi proyecto",
+        "locale": "es-CL",
+        "timezone": "America/Santiago"
+    },
+    "features": {
+        "organizations": false,
+        "ai": true,
+        "rag": false,
+        "postgrest": false
+    },
+    "auth": {
+        "method": "email-otp",
+        "registration": "invite-only"
+    },
+    "owner": {
+        "email": "owner@example.com",
+        "name": "Owner"
+    },
+    "database": {
+        "mode": "docker",
+        "ref": "env:DB_URL"
+    },
+    "mail": {
+        "transport": "mailpit",
+        "from": "hola@example.com",
+        "credentialRef": null
+    },
+    "ai": {
+        "connectionRef": "primary-ai",
+        "connections": [
+            {
+                "ref": "primary-ai",
+                "driver": "openai",
+                "label": "OpenAI",
+                "credentialRef": "env:OPENAI_API_KEY"
+            }
+        ],
+        "agent": {
+            "name": "Asistente",
+            "systemPrompt": "Ayuda al usuario con las funciones autorizadas de esta aplicación.",
+            "modelRef": null,
+            "maxOutputTokens": 1200,
+            "media": { "images": false, "documents": false },
+            "microphone": {
+                "enabled": false,
+                "connectionRef": null,
+                "modelRef": null,
+                "maxSeconds": 60,
+                "autoSend": false
+            }
+        },
+        "usage": { "record": true, "dashboard": true }
+    },
+    "rag": {
+        "mode": "disabled",
+        "connectionRef": null,
+        "embeddingProfileRef": null,
+        "retrieval": { "strategy": "hybrid", "topK": 6 },
+        "indexing": { "automatic": false, "concurrency": 2 }
+    }
+}

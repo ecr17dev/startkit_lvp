@@ -1,0 +1,45 @@
+<?php
+
+namespace Starter\Administration;
+
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\ServiceProvider;
+use Starter\Administration\Health\HealthChecker;
+use Starter\Administration\Settings\Branding;
+use Starter\Administration\Settings\RuntimeConfiguration;
+use Starter\Administration\Settings\SettingsManager;
+
+class AdministrationServiceProvider extends ServiceProvider
+{
+    /**
+     * Register the module services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(SettingsManager::class);
+        $this->app->singleton(RuntimeConfiguration::class);
+        $this->app->singleton(Branding::class);
+        $this->app->singleton(HealthChecker::class);
+    }
+
+    /**
+     * Bootstrap the module services.
+     */
+    public function boot(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadRoutesFrom(__DIR__.'/../routes/health.php');
+
+        // The readiness check warns when the scheduler stops beating...
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            $schedule->call(fn () => Cache::put(HealthChecker::SCHEDULER_HEARTBEAT_KEY, now()->toIso8601String(), 600))
+                ->everyMinute()
+                ->name('starter:scheduler-heartbeat')
+                ->onOneServer()
+                ->withoutOverlapping();
+        });
+
+        $this->app->booted(fn () => $this->app->make(RuntimeConfiguration::class)->apply());
+    }
+}

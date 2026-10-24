@@ -1,0 +1,20 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "name": "@starter/api-client",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Typed client of the JSON API (/api/v1), generated from tooling/contracts/openapi.json.",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "generate": "openapi-typescript ../../../tooling/contracts/openapi.json --output src/schema.d.ts"
+    },
+    "dependencies": {
+        "openapi-fetch": "^0.14.1"
+    },
+    "devDependencies": {
+        "openapi-typescript": "^7.13.0"
+    }
+}

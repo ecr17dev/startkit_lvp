@@ -1,0 +1,20 @@
+{
+    "name": "starter/ai",
+    "description": "Laravel AI SDK integration: connections, model catalog, prices, usage ledger, budgets and agents.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.17",
+        "laravel/ai": "^1.3",
+        "starter/administration": "^0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Starter\\Ai\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

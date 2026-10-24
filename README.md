@@ -1,27 +1,82 @@
-# Laravel + Vue Starter Kit
+# Laravel Starter — Laravel 13 + IA
 
-## Introduction
+Base para comenzar proyectos con autenticación por código, roles y permisos,
+panel de administración, inteligencia artificial con **Laravel AI SDK** y RAG
+opcional, listos para usar.
 
-Our Vue starter kit provides a robust, modern starting point for building Laravel applications with a Vue frontend using [Inertia](https://inertiajs.com).
+| Capa | Tecnología |
+| --- | --- |
+| Backend | Laravel 13 (PHP 8.3+), Fortify, Sanctum, spatie/laravel-permission |
+| IA | `laravel/ai` (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Amazon Bedrock, Azure, Groq, Mistral, xAI, Ollama y APIs compatibles con OpenAI) |
+| Frontend | Vue 3 + Inertia v3 + TypeScript estricto, shadcn-vue (reka-ui), Tailwind CSS 4, Vite |
+| Datos | PostgreSQL (datos, sesiones, caché y cola) + pgvector para RAG |
+| API | REST `/api/v1` con Sanctum, OpenAPI autogenerado con Scramble y cliente TypeScript |
+| Operación | Docker Compose con perfiles, cola y scheduler sobre PostgreSQL |
+| Repositorio | Monorepo Composer (path repositories) + pnpm workspaces |
 
-Inertia allows you to build modern, single-page Vue applications using classic server-side routing and controllers. This lets you enjoy the frontend power of Vue combined with the incredible backend productivity of Laravel and lightning-fast Vite compilation.
+La especificación completa (visión, alcance y criterios de aceptación) está en
+[`docs/especificacion.md`](docs/especificacion.md).
 
-This Vue starter kit utilizes Vue 3 and the Composition API, TypeScript, Tailwind, and the [shadcn-vue](https://www.shadcn-vue.com) component library.
+## Inicio rápido
 
-## Official Documentation
+```bash
+corepack enable && pnpm install
+cd apps/platform
+cp .env.example .env              # PostgreSQL en DB_*; Mailpit en :1025
+composer install
+php artisan key:generate
+php artisan migrate --seed
+cd ../.. && pnpm build
+cd apps/platform && composer dev  # http://localhost:8000
+```
 
-Documentation for all Laravel starter kits can be found on the [Laravel website](https://laravel.com/docs/starter-kits).
+Con Docker: ver [`docs/installation.md`](docs/installation.md) y
+[`docs/docker.md`](docs/docker.md).
 
-## Contributing
+## Estructura
 
-Thank you for considering contributing to our starter kit! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```text
+apps/platform/         Aplicación Laravel 13 + Inertia + Vue
+packages/php/          administration · identity · ai · knowledge · starter-console
+packages/js/           @starter/ui · @starter/chat · @starter/api-client
+tooling/contracts/     OpenAPI y esquemas JSON
+docker/                Imagen, Nginx y Compose
+docs/                  Documentación
+```
 
-All contributions to the Starter Kits from now on should be made through [Maestro](https://github.com/laravel/maestro).
+## Estado de la implementación
 
-## Code of Conduct
+El plan sigue las etapas de la especificación. Esta tabla distingue lo
+implementado y verificado de lo pendiente.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Etapa | Estado |
+| --- | --- |
+| 1. Fundamentos: monorepo, PostgreSQL, Docker, salud, manifiesto, CI | Implementada |
+| 2. Identidad: OTP, registro/invitaciones, roles, permisos, auditoría, sesiones | En curso |
+| 3. IA: conexiones, catálogo, tarifas, libro de consumo, presupuestos | Pendiente (existe una primera versión: proveedores, modelos con precio, prompts, uso y chat) |
+| 4. Agentes versionados, chat flotante con herramientas, multimedia | Pendiente |
+| 5–6. RAG interno y operación | Pendiente |
+| 7. PostgreSQL externo, retrieval API y PostgREST | Pendiente |
+| 8. Instalador, generador, OpenAPI/cliente, skills y E2E | Pendiente (OpenAPI y cliente tipado ya generados) |
 
-## License
+## Comandos útiles
 
-The Laravel + Vue starter kit is open-sourced software licensed under the MIT license.
+```bash
+php artisan starter:doctor     # diagnóstico del entorno y servicios
+php artisan starter:health     # chequeos de /health/ready
+php artisan starter:manifest   # registra versiones en starter.manifest.json
+php artisan test               # tests sobre PostgreSQL
+pnpm check && pnpm types:check # lint/format y vue-tsc
+```
+
+## Documentación
+
+- [Arquitectura](docs/architecture.md)
+- [Instalación](docs/installation.md)
+- [Docker](docs/docker.md)
+- [Actualizaciones](docs/upgrades.md)
+- [AGENTS.md](AGENTS.md) y [llms.txt](llms.txt) para agentes de desarrollo
+
+## Licencia
+
+MIT.

@@ -1,0 +1,23 @@
+# Development overrides: source code mounted, debug enabled, Mailpit SMTP.
+services:
+    app: &dev
+        environment:
+            APP_ENV: local
+            APP_DEBUG: 'true'
+            STARTER_CACHE_CONFIG: 'false'
+            PHP_OPCACHE_VALIDATE_TIMESTAMPS: '1'
+            MAIL_HOST: mailpit
+            MAIL_PORT: '1025'
+            DB_HOST: ${DB_HOST:-postgres}
+        volumes:
+            - ../apps/platform:/srv/apps/platform
+            - ../packages:/srv/packages
+    queue: *dev
+    scheduler: *dev
+    migrate: *dev
+    web:
+        volumes:
+            - ../apps/platform/public:/srv/apps/platform/public:ro
+    postgres:
+        ports:
+            - '${DB_FORWARD_PORT:-5432}:5432'

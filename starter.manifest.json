@@ -1,0 +1,41 @@
+{
+    "$schema": "./tooling/contracts/starter.manifest.schema.json",
+    "starter": {
+        "version": "0.1.0",
+        "laravel_branch": "13.x"
+    },
+    "runtime": {
+        "php": "8.3",
+        "php_minimum": "8.3",
+        "node": "v22.22.0",
+        "pnpm": "10.28.0",
+        "composer": "2.8.12"
+    },
+    "composer": {
+        "laravel/framework": "v13.38.0",
+        "laravel/ai": "v1.3.0",
+        "laravel/fortify": "v1.41.0",
+        "laravel/sanctum": "v4.3.3",
+        "inertiajs/inertia-laravel": "v3.5.2",
+        "laravel/wayfinder": "v0.1.23",
+        "spatie/laravel-permission": "8.3.2",
+        "dedoc/scramble": "v0.13.49"
+    },
+    "npm": {
+        "vue": "3.5.44",
+        "@inertiajs/vue3": "3.9.1",
+        "tailwindcss": "4.3.3",
+        "reka-ui": "2.11.0",
+        "vite-plus": "1.4.0",
+        "typescript": "5.9.3"
+    },
+    "ui": {
+        "shadcn-vue_style": "new-york-v4"
+    },
+    "services": {
+        "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+        "pgvector": "0.6.0",
+        "postgrest": "v13.0.7 (docker image tag)"
+    },
+    "reviewed_at": "2026-10-24"
+}

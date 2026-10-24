@@ -1,5 +1,15 @@
 packages:
-    - '.'
+    - apps/*
+    - packages/js/*
+    - tooling/*
 
 publicHoistPattern:
     - '@inertiajs/core'
+
+# vite-plus ships its own Vite core; make every package use it.
+overrides:
+    vite: 'npm:@voidzero-dev/vite-plus-core@1.4.0'
+
+peerDependencyRules:
+    allowAny:
+        - vite

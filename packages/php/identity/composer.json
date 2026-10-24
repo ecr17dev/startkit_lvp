@@ -1,0 +1,20 @@
+{
+    "name": "starter/identity",
+    "description": "Email OTP authentication, registration policy, invitations, roles and permission catalog.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.17",
+        "spatie/laravel-permission": "^8.3",
+        "starter/administration": "^0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Starter\\Identity\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

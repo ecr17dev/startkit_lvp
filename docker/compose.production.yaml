@@ -1,0 +1,21 @@
+# Production overrides. Use an external PostgreSQL (DB_HOST, DB_SSLMODE=require)
+# or add --profile local-db. Never publish PostgreSQL, Mailpit or PostgREST.
+services:
+    app: &prod
+        environment:
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            SESSION_SECURE_COOKIE: 'true'
+            STARTER_CACHE_CONFIG: 'true'
+        deploy:
+            resources:
+                limits:
+                    memory: 1g
+        read_only: false
+        security_opt:
+            - no-new-privileges:true
+    queue: *prod
+    scheduler: *prod
+    web:
+        security_opt:
+            - no-new-privileges:true
