@@ -14,6 +14,9 @@ Docker, organizado como monorepo Composer + pnpm. La especificación completa es
   https://github.com/bluesmilecl/startkit_laravel.git mi-app && cd mi-app && ./setup.sh
   --new-project="Mi App" --owner=correo` (historial nuevo, la plantilla queda como remoto
   `starter`, proyecto de Docker propio).
+- **Desplegar (siempre en Dokploy)**: servicio Compose desde GitHub con
+  `docker/compose.dokploy.yaml`, aislado, con Auto Deploy y dominio HTTPS; sigue
+  `skills/deploy-dokploy/SKILL.md` (MCP de Dokploy) y `docs/dokploy.md`.
 - **Estado de una instalación**: `php apps/platform/artisan starter:doctor` (o `starter:verify`).
 - No edites `apps/platform/.env` a mano salvo para agregar claves; nunca lo subas ni muestres sus
   secretos.
@@ -23,6 +26,7 @@ Docker, organizado como monorepo Composer + pnpm. La especificación completa es
 | Tarea | Lee primero | Atajo |
 | --- | --- | --- |
 | Instalar, configurar, diagnosticar | `skills/install-starter/SKILL.md` | `./setup.sh`, `starter:doctor` |
+| Desplegar un piloto o producción en Dokploy | `skills/deploy-dokploy/SKILL.md`, `docs/dokploy.md` | MCP de Dokploy, `docker/compose.dokploy.yaml` |
 | Módulo nuevo: tabla, permisos, Actions, API, pantallas, herramientas IA | `skills/extend-starter/SKILL.md`, `docs/modules.md` | `php artisan starter:make-module` |
 | Pantallas: listados, formularios, wizards, gráficos, modales | `skills/build-ui/SKILL.md`, `docs/ui-kit.md` | catálogo en `/ui-kit` |
 | IA: conexiones, modelos, tarifas, presupuestos, agentes | `skills/configure-ai/SKILL.md`, `docs/ai.md` | proveedor simulado sin claves |

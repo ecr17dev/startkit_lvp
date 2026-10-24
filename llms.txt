@@ -27,12 +27,13 @@
 - [Kit de UI](docs/ui-kit.md): formularios, wizard, tablas con modo tarjetas, gráficos, carruseles, botones, menús, barra lateral, alertas, toasts, modales e íconos sobre shadcn-vue; catálogo en vivo en `/ui-kit`.
 - [Pruebas E2E](docs/e2e.md): Playwright contra Laravel + PostgreSQL + worker, recorridos y CI.
 - [Docker](docs/docker.md): imagen, servicios y perfiles.
+- [Dokploy](docs/dokploy.md): despliegue estándar (servicio Compose desde GitHub con `docker/compose.dokploy.yaml`, aislado, Auto Deploy, dominio HTTPS, Resend), con el panel o el MCP de Dokploy.
 - [Actualizaciones](docs/upgrades.md): Renovate y verificaciones.
 
 ## Para agentes
 
 - [AGENTS.md](AGENTS.md): empieza aquí, qué leer según la tarea, mapa del repositorio, stack fijo, reglas, comandos y verificación. Claude Code lo recibe por [CLAUDE.md](CLAUDE.md) y Gemini CLI por [GEMINI.md](GEMINI.md).
-- [Skills](docs/skills.md): `install-starter`, `extend-starter`, `build-ui`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`, enlazadas en `.claude/skills/` para Claude Code).
+- [Skills](docs/skills.md): `install-starter`, `deploy-dokploy`, `extend-starter`, `build-ui`, `configure-ai`, `manage-rag` (`skills/*/SKILL.md`, enlazadas en `.claude/skills/` para Claude Code).
 - [Manifiesto de versiones](starter.manifest.json)
 - [Configuración exportable (ejemplo)](starter.config.example.json) y su [esquema](tooling/contracts/starter.config.schema.json)
 - [OpenAPI](tooling/contracts/openapi.json)

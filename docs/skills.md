@@ -1,11 +1,12 @@
 # Skills y desarrollo asistido
 
-El repositorio distribuye cinco skills (formato `SKILL.md` con metadatos `name` y
+El repositorio distribuye seis skills (formato `SKILL.md` con metadatos `name` y
 `description`) para agentes de desarrollo compatibles:
 
 | Skill | Para qué |
 | --- | --- |
 | [`install-starter`](../skills/install-starter/SKILL.md) | instalar con `laravel-starter`, configurar, Docker y diagnóstico |
+| [`deploy-dokploy`](../skills/deploy-dokploy/SKILL.md) | desplegar en Dokploy (panel o MCP): Compose desde GitHub, entorno, dominio HTTPS, verificación y correo |
 | [`extend-starter`](../skills/extend-starter/SKILL.md) | módulo completo con `starter:make-module`, desde la migración y la Policy hasta Vue/Inertia y E2E |
 | [`build-ui`](../skills/build-ui/SKILL.md) | pantallas con el kit de UI: listados, formularios, wizards, paneles con gráficos, modales y menús |
 | [`configure-ai`](../skills/configure-ai/SKILL.md) | conexiones, modelos, tarifas, presupuestos, versiones de agentes y pruebas |

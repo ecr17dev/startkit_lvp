@@ -62,7 +62,8 @@ docker compose -f docker/compose.yaml -f docker/compose.production.yaml up -d we
 ## Dokploy (o cualquier host con un solo archivo Compose)
 
 `docker/compose.dokploy.yaml` es autocontenido: web, app, cola, scheduler, migraciones y
-PostgreSQL con pgvector, sin puertos publicados y con `TRUSTED_PROXIES=*`.
+PostgreSQL con pgvector, sin puertos publicados y con `TRUSTED_PROXIES=*`. Guía completa,
+convenciones y receta con el MCP de Dokploy en [dokploy.md](dokploy.md).
 
 1. Crea un servicio **Compose** desde el repositorio (proveedor GitHub), rama a desplegar y
    *Compose Path* `./docker/compose.dokploy.yaml`. Activa **Isolated Deployment** para que los

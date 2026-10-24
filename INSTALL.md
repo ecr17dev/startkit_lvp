@@ -57,6 +57,21 @@ git remote add origin git@github.com:tu-usuario/mi-app.git && git push -u origin
 Después: módulos con `php artisan starter:make-module` ([docs/modules.md](docs/modules.md)),
 pantallas con el [kit de UI](docs/ui-kit.md) y las reglas de [AGENTS.md](AGENTS.md).
 
+## Publícalo en Dokploy
+
+El despliegue estándar es un servicio Compose de Dokploy desde GitHub con
+`docker/compose.dokploy.yaml` (web, app, cola, scheduler, migraciones y PostgreSQL), aislado,
+con Auto Deploy y dominio HTTPS. Pídeselo a tu agente con el MCP de Dokploy conectado:
+
+```text
+Despliega este proyecto en mi Dokploy siguiendo docs/dokploy.md (skill deploy-dokploy):
+entorno de desarrollo, dominio app.midominio.cl, propietario tu@correo.com.
+Al terminar dime la URL, qué registro DNS falta y cómo entro.
+```
+
+Pasos con el panel, variables de entorno, DNS, correo con Resend y respaldos en
+[docs/dokploy.md](docs/dokploy.md).
+
 ## 1. Elige el modo
 
 | | **Docker** (recomendado para probar) | **Local** (para desarrollar) |

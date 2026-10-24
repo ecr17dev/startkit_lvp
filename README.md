@@ -38,6 +38,9 @@ problemas frecuentes en **[INSTALL.md](INSTALL.md)**.
 `RESEND_API_KEY=re_… ./setup.sh --mail-from=hola@tudominio.com`; también SMTP, Postmark o
 Mailgun ([docs/mail.md](docs/mail.md)).
 
+**Despliegue**: Dokploy con `docker/compose.dokploy.yaml` (servicio Compose desde GitHub,
+dominio HTTPS, Auto Deploy); guía y receta para agentes en [docs/dokploy.md](docs/dokploy.md).
+
 **¿Con un agente de IA?** Dale este mensaje; al abrir el repositorio recibe el contexto solo
 (`AGENTS.md`, `CLAUDE.md` con las skills de `.claude/skills/`, `GEMINI.md`):
 
