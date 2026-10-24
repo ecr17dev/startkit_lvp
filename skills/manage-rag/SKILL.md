@@ -31,7 +31,7 @@ recuperación); las listas de acceso y la trazabilidad se aplican igual en todos
 2. Activar: Admin → Conocimiento (interno) o Conexiones (externo: diagnosticar y activar), o
    `rag.mode` en `starter.config.json` + `php artisan starter:config-apply`.
 3. Crear el perfil de embeddings y las colecciones con su lista de acceso.
-4. Agregar fuentes y sincronizar; seguir los trabajos en la página de la colección y confirmar el
+4. Agregar fuentes y sincronizar; seguir los trabajos en Conocimiento (Trabajos recientes) y confirmar el
    presupuesto si se pausan.
 5. Probar en el laboratorio de recuperación y guardar preguntas en un conjunto de evaluación;
    ejecutar la evaluación (recall@k, MRR).
@@ -60,4 +60,4 @@ recuperación); las listas de acceso y la trazabilidad se aplican igual en todos
 | Trabajo pausado | confirma `max_cost` o reduce la fuente; no lo fuerces sin autorización |
 | `The knowledge connection does not support this operation` | conexión de solo lectura o API: ingesta/bajas se hacen en el origen |
 | Sin resultados para un usuario | revisa ACL de colección, fuente y documento: es el comportamiento esperado si no tiene acceso |
-| Reindexación rechazada | ya hay una en curso: espera o cancela el trabajo en la página de la colección |
+| Reindexación rechazada | ya hay una en curso: espera o cancela el trabajo en Conocimiento → Trabajos recientes |
