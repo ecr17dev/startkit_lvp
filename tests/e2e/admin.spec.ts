@@ -60,3 +60,23 @@ test('mail settings guide each provider without breaking the login mail', async 
     await expect(page.getByLabel(/^host/i)).toHaveValue('smtp.gmail.com');
     await expect(page.getByLabel(/^puerto/i)).toHaveValue('587');
 });
+
+test('the sidebar groups the administration pages', async ({ page }) => {
+    await page.goto('/admin/users');
+
+    // The group of the current page opens by itself...
+    await expect(page.getByTestId('nav-group-access')).toHaveAttribute(
+        'data-state',
+        'open',
+    );
+    await page.getByTestId('nav-group-mail').click();
+    await page.getByRole('link', { name: 'Plantillas' }).click();
+    await expect(page).toHaveURL(/admin\/mail\/templates/);
+
+    // With only icons visible, each group is a dropdown menu...
+    await page.keyboard.press('ControlOrMeta+b');
+    await page.getByTestId('nav-group-ai').click();
+    await page.getByRole('menuitem', { name: 'Agentes' }).click();
+    await expect(page).toHaveURL(/admin\/ai\/agents/);
+    await page.keyboard.press('ControlOrMeta+b');
+});

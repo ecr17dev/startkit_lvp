@@ -22,13 +22,17 @@ class UiKitWizardRequest extends FormRequest
      */
     public function rules(): array
     {
+        // A date without time is a day of the workspace calendar, not of the
+        // server clock (UTC): at night in America, UTC is already tomorrow...
+        $today = now((string) (settings('general.timezone') ?: config('app.timezone')))->toDateString();
+
         return [
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'not_regex:/@example\.(com|org|net)$/i'],
             'company' => ['nullable', 'string', 'max:100'],
             'plan' => ['required', Rule::in(['starter', 'team', 'enterprise'])],
             'seats' => ['required', 'integer', 'min:1', 'max:500'],
-            'starts_on' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'starts_on' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$today],
             'channels' => ['array'],
             'channels.*' => [Rule::in(['email', 'chat', 'phone'])],
             'terms' => ['accepted'],

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\UiKitController;
 use App\Models\Project;
 use App\Support\TableSort;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Inertia\Support\SessionKey;
@@ -28,7 +29,7 @@ class UiKitTest extends TestCase
             'email' => 'ana@acme.cl',
             'plan' => 'team',
             'seats' => 5,
-            'starts_on' => now()->toDateString(),
+            'starts_on' => now()->addWeek()->toDateString(),
             'channels' => ['email'],
             'terms' => true,
             ...$overrides,
@@ -81,7 +82,7 @@ class UiKitTest extends TestCase
             ->assertRedirect(route('ui-kit.show', 'wizard'))
             ->assertSessionHasErrors(['email', 'terms']);
 
-        $this->actingAs($user)->post(route('ui-kit.wizard'), $this->wizard(['starts_on' => now()->subDay()->toDateString()]))
+        $this->actingAs($user)->post(route('ui-kit.wizard'), $this->wizard(['starts_on' => now()->subDays(2)->toDateString()]))
             ->assertSessionHasErrors('starts_on');
 
         $this->actingAs($user)->from(route('ui-kit.show', 'wizard'))
@@ -90,6 +91,21 @@ class UiKitTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame('success', data_get(session(SessionKey::FLASH_DATA), 'toast.type'));
+    }
+
+    public function test_the_demo_wizard_takes_today_from_the_workspace_time_zone(): void
+    {
+        config(['starter.features.ui_kit' => true]);
+        $user = $this->userWithRole('reader');
+        settings()->set(['general.timezone' => 'America/Santiago']);
+
+        // 22:00 on the 24th in Santiago is already the 25th in UTC...
+        $this->travelTo(CarbonImmutable::parse('2026-10-25 01:00:00', 'UTC'));
+
+        $this->actingAs($user)->post(route('ui-kit.wizard'), $this->wizard(['starts_on' => '2026-10-24']))
+            ->assertSessionHasNoErrors();
+        $this->actingAs($user)->post(route('ui-kit.wizard'), $this->wizard(['starts_on' => '2026-10-23']))
+            ->assertSessionHasErrors('starts_on');
     }
 
     public function test_table_sort_only_orders_by_allowed_columns(): void

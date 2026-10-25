@@ -205,8 +205,18 @@ página.
 ### Barra lateral
 
 Cada módulo agrega su entrada con `resources/js/modules/<slug>/navigation.ts`
-(`title`, `href`, `icon` y `can` con el permiso); `AppSidebar.vue` la recoge sola. Las secciones
-fijas (administración, IA, conocimiento, desarrollo) están en `AppSidebar.vue`.
+(`title`, `href`, `icon` y `can` con el permiso); `AppSidebar.vue` la recoge sola en
+**Plataforma**. La administración se agrupa en menús desplegables (`NavGroup`: Usuarios y acceso,
+Correo, Configuración, Inteligencia artificial, Conocimiento), definidos en `AppSidebar.vue` con
+`group(id, título, ícono, páginas)`:
+
+- un grupo muestra solo las páginas que el usuario puede abrir y desaparece si no puede ninguna;
+- se abre solo cuando visitas una de sus páginas y recuerda en el navegador si lo dejaste abierto;
+- con la barra contraída a íconos (`Ctrl/⌘+B`), cada grupo es un menú flotante a la derecha;
+- en teléfonos se despliega dentro del panel lateral.
+
+Para una página nueva de administración, agrégala al grupo que corresponda en vez de crear una
+entrada suelta.
 
 ## Reglas
 

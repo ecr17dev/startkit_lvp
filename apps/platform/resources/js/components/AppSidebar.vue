@@ -3,27 +3,13 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     Blocks,
     BookOpenText,
-    Bot,
-    Cable,
-    Brain,
-    ChartColumn,
-    ClipboardCheck,
-    FlaskConical,
-    History,
-    Library,
     LayoutGrid,
+    Library,
     Mail,
     MessageSquareText,
-    MonitorSmartphone,
-    PiggyBank,
-    Plug,
-    Search,
     Settings2,
-    ShieldCheck,
     Sparkles,
-    Tags,
     Users,
-    Waypoints,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -59,15 +45,20 @@ import {
 import { index as knowledgeConnections } from '@/routes/admin/knowledge/connections';
 import { index as knowledgeEvaluations } from '@/routes/admin/knowledge/evaluations';
 import { index as audit } from '@/routes/admin/audit';
+import { index as mailAutomations } from '@/routes/admin/mail/automations';
+import { index as mailDeliveries } from '@/routes/admin/mail/deliveries';
 import { index as mailTemplates } from '@/routes/admin/mail/templates';
 import { index as roles } from '@/routes/admin/roles';
 import { index as sessions } from '@/routes/admin/sessions';
 import integrations from '@/routes/admin/integrations';
+import authSettings from '@/routes/admin/settings/auth';
+import branding from '@/routes/admin/settings/branding';
 import general from '@/routes/admin/settings/general';
+import mailSettings from '@/routes/admin/settings/mail';
 import { index as users } from '@/routes/admin/users';
 import { ui as apiDocs } from '@/routes/scramble/docs';
 import { index as uiKit } from '@/routes/ui-kit';
-import type { ModuleNavItem, NavItem } from '@/types';
+import type { ModuleNavItem, NavEntry, NavGroup, NavItem } from '@/types';
 
 // Entries of the modules generated with starter:make-module...
 const moduleItems = Object.values(
@@ -82,14 +73,37 @@ const { currentUrl } = useCurrentUrl();
 
 type NavSection = {
     label: string;
-    items: NavItem[];
+    items: NavEntry[];
 };
 
+type Permitted<T> = T & { can?: string | string[] };
+
+const features = computed(
+    () =>
+        (page.props.features ?? {}) as {
+            postgrest?: boolean;
+            rag?: boolean;
+            uiKit?: boolean;
+        },
+);
+
 const sections = computed<NavSection[]>(() => {
-    const filter = (items: (NavItem & { can?: string | string[] })[]) =>
+    const filter = (items: Permitted<NavItem>[]) =>
         items.filter((item) => !item.can || can(item.can));
 
-    const systemSettings = can('settings.read') ? general.edit() : null;
+    // A group shows only the pages the user may open (none: no group)...
+    const group = (
+        id: string,
+        title: string,
+        icon: NavGroup['icon'],
+        items: Permitted<NavItem>[],
+    ): NavGroup[] => {
+        const allowed = filter(items);
+
+        return allowed.length ? [{ id, title, icon, items: allowed }] : [];
+    };
+
+    const url = currentUrl.value;
 
     return [
         {
@@ -110,178 +124,164 @@ const sections = computed<NavSection[]>(() => {
         },
         {
             label: t('Administration'),
-            items: filter([
-                {
-                    title: t('Users'),
-                    href: users(),
-                    icon: Users,
-                    can: 'users.read',
-                },
-                {
-                    title: t('Roles & permissions'),
-                    href: roles(),
-                    icon: ShieldCheck,
-                    can: 'roles.read',
-                },
-                {
-                    title: t('Sessions'),
-                    href: sessions(),
-                    icon: MonitorSmartphone,
-                    can: 'users.read',
-                },
-                {
-                    title: t('Audit trail'),
-                    href: audit(),
-                    icon: History,
-                    can: 'audit.read',
-                },
-                {
-                    title: t('Mail'),
-                    href: mailTemplates(),
-                    icon: Mail,
-                    can: 'mail.read',
-                    isActive: currentUrl.value.startsWith('/admin/mail'),
-                },
-                ...(systemSettings
-                    ? [
+            items: [
+                ...group('access', t('Users & access'), Users, [
+                    { title: t('Users'), href: users(), can: 'users.read' },
+                    {
+                        title: t('Roles & permissions'),
+                        href: roles(),
+                        can: 'roles.read',
+                    },
+                    {
+                        title: t('Sessions'),
+                        href: sessions(),
+                        can: 'users.read',
+                    },
+                    {
+                        title: t('Audit trail'),
+                        href: audit(),
+                        can: 'audit.read',
+                    },
+                ]),
+                ...group('mail', t('Mail'), Mail, [
+                    {
+                        title: t('Templates'),
+                        href: mailTemplates(),
+                        can: 'mail.read',
+                    },
+                    {
+                        title: t('Automations'),
+                        href: mailAutomations(),
+                        can: 'mail.read',
+                    },
+                    {
+                        title: t('Sends'),
+                        href: mailDeliveries(),
+                        can: 'mail.read',
+                    },
+                    {
+                        title: t('Mail server'),
+                        href: mailSettings.edit(),
+                        can: 'settings.read',
+                    },
+                ]),
+                ...group('settings', t('Settings'), Settings2, [
+                    {
+                        title: t('General'),
+                        href: general.edit(),
+                        can: 'settings.read',
+                    },
+                    {
+                        title: t('Branding'),
+                        href: branding.edit(),
+                        can: 'settings.read',
+                    },
+                    {
+                        title: t('Authentication'),
+                        href: authSettings.edit(),
+                        can: 'settings.read',
+                    },
+                    ...(features.value.postgrest
+                        ? [
+                              {
+                                  title: 'PostgREST',
+                                  href: integrations.postgrest(),
+                                  can: 'settings.update',
+                              },
+                          ]
+                        : []),
+                ]),
+                ...group('ai', t('Artificial intelligence'), Sparkles, [
+                    {
+                        title: t('Agents'),
+                        href: agents(),
+                        can: 'ai.agents.manage',
+                    },
+                    {
+                        title: t('Usage & costs'),
+                        href: usage(),
+                        can: 'ai.usage.read',
+                    },
+                    {
+                        title: t('Budgets'),
+                        href: budgets(),
+                        can: 'ai.budgets.manage',
+                    },
+                    {
+                        title: t('Connections'),
+                        href: connections(),
+                        can: 'ai.providers.manage',
+                    },
+                    {
+                        title: t('Model catalog'),
+                        href: models(),
+                        can: 'ai.models.manage',
+                    },
+                    {
+                        title: t('Prices'),
+                        href: prices(),
+                        can: 'ai.models.manage',
+                    },
+                    {
+                        title: t('Model recommender'),
+                        href: recommender(),
+                        can: 'ai.models.manage',
+                    },
+                    {
+                        title: t('Lab'),
+                        href: labIndex(),
+                        can: 'ai.models.manage',
+                    },
+                ]),
+                ...(features.value.rag
+                    ? group('knowledge', t('Knowledge'), Library, [
                           {
-                              title: t('System settings'),
-                              href: systemSettings,
-                              icon: Settings2,
+                              title: t('Collections'),
+                              href: knowledgeIndex(),
+                              can: 'rag.collections.read',
+                              // The other knowledge pages live under the same prefix...
                               isActive:
-                                  currentUrl.value.startsWith(
-                                      '/admin/settings',
-                                  ),
+                                  url.startsWith('/admin/knowledge') &&
+                                  ![
+                                      '/admin/knowledge/lab',
+                                      '/admin/knowledge/dashboard',
+                                      '/admin/knowledge/evaluations',
+                                      '/admin/knowledge/connections',
+                                  ].some((prefix) => url.startsWith(prefix)),
                           },
-                      ]
-                    : []),
-                ...((page.props.features as { postgrest?: boolean } | undefined)
-                    ?.postgrest
-                    ? [
                           {
-                              title: 'PostgREST',
-                              href: integrations.postgrest(),
-                              icon: Waypoints,
+                              title: t('Connections'),
+                              href: knowledgeConnections(),
                               can: 'settings.update',
                           },
-                      ]
+                          {
+                              title: t('Dashboard'),
+                              href: knowledgeDashboard(),
+                              can: 'rag.analytics.read',
+                          },
+                          {
+                              title: t('Retrieval lab'),
+                              href: knowledgeLab(),
+                              can: 'rag.playground.use',
+                          },
+                          {
+                              title: t('Evaluations'),
+                              href: knowledgeEvaluations(),
+                              can: 'rag.playground.use',
+                          },
+                      ])
                     : []),
-            ]),
-        },
-        {
-            label: t('Artificial intelligence'),
-            items: filter([
-                {
-                    title: t('Connections'),
-                    href: connections(),
-                    icon: Plug,
-                    can: 'ai.providers.manage',
-                },
-                {
-                    title: t('Model catalog'),
-                    href: models(),
-                    icon: Brain,
-                    can: 'ai.models.manage',
-                },
-                {
-                    title: t('Prices'),
-                    href: prices(),
-                    icon: Tags,
-                    can: 'ai.models.manage',
-                },
-                {
-                    title: t('Model recommender'),
-                    href: recommender(),
-                    icon: Sparkles,
-                    can: 'ai.models.manage',
-                },
-                {
-                    title: t('Lab'),
-                    href: labIndex(),
-                    icon: FlaskConical,
-                    can: 'ai.models.manage',
-                },
-                {
-                    title: t('Agents'),
-                    href: agents(),
-                    icon: Bot,
-                    can: 'ai.agents.manage',
-                },
-                {
-                    title: t('Usage & costs'),
-                    href: usage(),
-                    icon: ChartColumn,
-                    can: 'ai.usage.read',
-                },
-                {
-                    title: t('Budgets'),
-                    href: budgets(),
-                    icon: PiggyBank,
-                    can: 'ai.budgets.manage',
-                },
-            ]),
-        },
-        {
-            label: t('Knowledge'),
-            items: (page.props.features as { rag?: boolean } | undefined)?.rag
-                ? filter([
-                      {
-                          title: t('Collections'),
-                          href: knowledgeIndex(),
-                          icon: Library,
-                          can: 'rag.collections.read',
-                          isActive:
-                              currentUrl.value.startsWith('/admin/knowledge') &&
-                              !currentUrl.value.startsWith(
-                                  '/admin/knowledge/lab',
-                              ) &&
-                              !currentUrl.value.startsWith(
-                                  '/admin/knowledge/dashboard',
-                              ) &&
-                              !currentUrl.value.startsWith(
-                                  '/admin/knowledge/evaluations',
-                              ) &&
-                              !currentUrl.value.startsWith(
-                                  '/admin/knowledge/connections',
-                              ),
-                      },
-                      {
-                          title: t('Connections'),
-                          href: knowledgeConnections(),
-                          icon: Cable,
-                          can: 'settings.update',
-                      },
-                      {
-                          title: t('Dashboard'),
-                          href: knowledgeDashboard(),
-                          icon: ChartColumn,
-                          can: 'rag.analytics.read',
-                      },
-                      {
-                          title: t('Retrieval lab'),
-                          href: knowledgeLab(),
-                          icon: FlaskConical,
-                          can: 'rag.playground.use',
-                      },
-                      {
-                          title: t('Evaluations'),
-                          href: knowledgeEvaluations(),
-                          icon: ClipboardCheck,
-                          can: 'rag.playground.use',
-                      },
-                  ])
-                : [],
+            ],
         },
         {
             label: t('Development'),
-            items: (page.props.features as { uiKit?: boolean } | undefined)
-                ?.uiKit
+            items: features.value.uiKit
                 ? [
                       {
                           title: t('UI kit'),
                           href: uiKit(),
                           icon: Blocks,
-                          isActive: currentUrl.value.startsWith('/ui-kit'),
+                          isActive: url.startsWith('/ui-kit'),
                       },
                   ]
                 : [],
