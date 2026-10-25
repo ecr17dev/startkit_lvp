@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 378" width="960" height="378" role="img" aria-labelledby="title desc">
+<title id="title">Conocimiento (RAG)</title>
+<desc id="desc">Ingesta: fuente, SafeFetcher, fragmentos, embeddings y pgvector versionado. Recuperación: la pregunta busca por vector y texto, se fusiona con RRF, las listas de acceso se aplican dentro del SQL y la respuesta trae citas validadas.</desc>
+<style>
+svg{--bg:#ffffff;--panel:#f6f8fa;--line:#d8dee4;--ink:#1f2328;--muted:#59636e;--soft:#8c959f;--tint:.09;
+--laravel:#f0503c;--vue:#10b981;--pg:#3b82f6;--ai:#8b5cf6;--mail:#f59e0b;--ops:#14b8a6;--slate:#64748b;
+font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme:dark){svg{--bg:#0d1117;--panel:#151b23;--line:#30363d;--ink:#e6edf3;--muted:#9198a1;--soft:#656c76;--tint:.16}}
+.card{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-dasharray:4 4}
+.h{font-size:15px;font-weight:700;fill:var(--ink)}
+.t{font-size:14px;font-weight:650;fill:var(--ink)}
+.s{font-size:12px;fill:var(--muted)}
+.cap{font-size:11px;font-weight:700;letter-spacing:.14em;fill:var(--muted)}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+.node{fill:var(--c);fill-opacity:var(--tint);stroke:var(--c);stroke-width:1.4;stroke-opacity:.85}
+.bar{fill:var(--c)}
+.dot{fill:var(--c)}
+.flow{fill:none;stroke:var(--soft);stroke-width:1.5;stroke-dasharray:5 6;animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-22}}
+.head{fill:var(--soft)}
+.pk{fill:var(--c)}
+.glow{animation:glow 3.6s ease-in-out infinite}
+@keyframes glow{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.flow,.glow{animation:none}.pk,.motion{display:none}}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="card" x="0.5" y="0.5" width="959" height="377" rx="16"/>
+<path class="flow" d="M202,96.0 L216,96.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M382,96.0 L396,96.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M562,96.0 L576,96.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M742,96.0 L756,96.0" marker-end="url(#arrow)"/>
+<circle class="pk" r="4" style="--c:var(--pg)" cx="0" cy="0"><animateMotion dur="4.0s" begin="0s" repeatCount="indefinite" path="M120.0,96 L840.0,96"/></circle>
+<path class="flow" d="M202,244.0 L216,244.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M382,244.0 L396,244.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M562,244.0 L576,244.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M742,244.0 L756,244.0" marker-end="url(#arrow)"/>
+<path class="flow" d="M840.0,140 C840.0,176 300.0,164 300.0,198" marker-end="url(#arrow)"/>
+<circle class="pk" r="4" style="--c:var(--ai)" cx="0" cy="0"><animateMotion dur="4.0s" begin="-1.3s" repeatCount="indefinite" path="M120.0,244 L840.0,244"/></circle>
+<circle class="pk" r="3.5" style="--c:var(--pg)" cx="0" cy="0"><animateMotion dur="3.0s" begin="-0.5s" repeatCount="indefinite" path="M840.0,138 C840.0,176 300.0,164 300.0,204"/></circle>
+<text class="cap" x="40" y="40">INGESTA DURABLE</text>
+<g style="--c:var(--slate)">
+<rect x="40" y="54" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="40" y="54" width="160" height="84" rx="12"/>
+<rect class="bar" x="54" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="66" y="82">Fuente</text>
+<text class="s" x="66" y="102">archivo · URL</text>
+<text class="s" x="66" y="119">adaptador interno</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="220" y="54" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="220" y="54" width="160" height="84" rx="12"/>
+<rect class="bar" x="234" y="69" width="4" height="16" rx="2"/>
+<text class="t mono" x="246" y="82">SafeFetcher</text>
+<text class="s" x="246" y="102">lee URLs</text>
+<text class="s" x="246" y="119">sin SSRF</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="400" y="54" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="400" y="54" width="160" height="84" rx="12"/>
+<rect class="bar" x="414" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="426" y="82">Fragmentos</text>
+<text class="s" x="426" y="102">por estructura</text>
+<text class="s" x="426" y="119">y por tokens</text>
+</g>
+<g style="--c:var(--ai)">
+<rect x="580" y="54" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="580" y="54" width="160" height="84" rx="12"/>
+<rect class="bar" x="594" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="606" y="82">Embeddings</text>
+<text class="s" x="606" y="102">perfil versionado</text>
+<text class="s" x="606" y="119">vía AiGateway</text>
+</g>
+<g style="--c:var(--pg)">
+<rect x="760" y="54" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="760" y="54" width="160" height="84" rx="12"/>
+<rect class="bar" x="774" y="69" width="4" height="16" rx="2"/>
+<text class="t mono" x="786" y="82">pgvector</text>
+<text class="s" x="786" y="102">índice HNSW</text>
+<text class="s" x="786" y="119">por versión</text>
+</g>
+<text class="cap" x="40" y="188">RECUPERACIÓN CON PERMISOS</text>
+<g style="--c:var(--vue)">
+<rect x="40" y="202" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="40" y="202" width="160" height="84" rx="12"/>
+<rect class="bar" x="54" y="217" width="4" height="16" rx="2"/>
+<text class="t" x="66" y="230">Pregunta</text>
+<text class="s" x="66" y="250">chat · API</text>
+<text class="s" x="66" y="267">laboratorio</text>
+</g>
+<g style="--c:var(--pg)">
+<rect x="220" y="202" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="220" y="202" width="160" height="84" rx="12"/>
+<rect class="bar" x="234" y="217" width="4" height="16" rx="2"/>
+<text class="t" x="246" y="230">Vector + texto</text>
+<text class="s" x="246" y="250">pgvector y</text>
+<text class="s" x="246" y="267">texto completo</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="400" y="202" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="400" y="202" width="160" height="84" rx="12"/>
+<rect class="bar" x="414" y="217" width="4" height="16" rx="2"/>
+<text class="t" x="426" y="230">Fusión RRF</text>
+<text class="s" x="426" y="250">Σ 1/(60 + posición)</text>
+<text class="s" x="426" y="267">sin mezclar puntajes</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="580" y="202" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="580" y="202" width="160" height="84" rx="12"/>
+<rect class="bar" x="594" y="217" width="4" height="16" rx="2"/>
+<text class="t" x="606" y="230">ACL en el SQL</text>
+<text class="s" x="606" y="250">solo lo que</text>
+<text class="s" x="606" y="267">puedes ver</text>
+</g>
+<g style="--c:var(--ai)">
+<rect x="760" y="202" width="160" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="760" y="202" width="160" height="84" rx="12"/>
+<rect class="bar" x="774" y="217" width="4" height="16" rx="2"/>
+<text class="t" x="786" y="230">Respuesta</text>
+<text class="s" x="786" y="250">con citas</text>
+<text class="s" x="786" y="267">validadas</text>
+</g>
+<text class="s" x="40" y="322">Todo el trabajo pesado va por la cola (rag_jobs) y es idempotente · reindexación versionada sin cortar las respuestas</text>
+<text class="s" x="40" y="342">Evaluación con recall@k y MRR · PostgreSQL externo o una API de recuperación · opcional con STARTER_FEATURE_RAG</text>
+</svg>

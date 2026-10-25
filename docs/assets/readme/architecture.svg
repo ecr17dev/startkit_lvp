@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 610" width="960" height="610" role="img" aria-labelledby="title desc">
+<title id="title">Arquitectura del starter</title>
+<desc id="desc">Navegador, integraciones y terminal llegan a la aplicación Laravel 13: rutas, Form Requests, Actions que autorizan, validan y auditan, Policies y paquetes de dominio; debajo PostgreSQL, worker de cola, scheduler y servicios externos.</desc>
+<style>
+svg{--bg:#ffffff;--panel:#f6f8fa;--line:#d8dee4;--ink:#1f2328;--muted:#59636e;--soft:#8c959f;--tint:.09;
+--laravel:#f0503c;--vue:#10b981;--pg:#3b82f6;--ai:#8b5cf6;--mail:#f59e0b;--ops:#14b8a6;--slate:#64748b;
+font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme:dark){svg{--bg:#0d1117;--panel:#151b23;--line:#30363d;--ink:#e6edf3;--muted:#9198a1;--soft:#656c76;--tint:.16}}
+.card{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-dasharray:4 4}
+.h{font-size:15px;font-weight:700;fill:var(--ink)}
+.t{font-size:14px;font-weight:650;fill:var(--ink)}
+.s{font-size:12px;fill:var(--muted)}
+.cap{font-size:11px;font-weight:700;letter-spacing:.14em;fill:var(--muted)}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+.node{fill:var(--c);fill-opacity:var(--tint);stroke:var(--c);stroke-width:1.4;stroke-opacity:.85}
+.bar{fill:var(--c)}
+.dot{fill:var(--c)}
+.flow{fill:none;stroke:var(--soft);stroke-width:1.5;stroke-dasharray:5 6;animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-22}}
+.head{fill:var(--soft)}
+.pk{fill:var(--c)}
+.glow{animation:glow 3.6s ease-in-out infinite}
+@keyframes glow{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.flow,.glow{animation:none}.pk,.motion{display:none}}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="card" x="0.5" y="0.5" width="959" height="609" rx="16"/>
+<rect class="panel" x="40.5" y="170.5" width="879" height="238" rx="14"/>
+<path class="flow" d="M180,130 L180,166" marker-end="url(#arrow)"/>
+<path class="flow" d="M480,130 L480,166" marker-end="url(#arrow)"/>
+<path class="flow" d="M780,130 L780,166" marker-end="url(#arrow)"/>
+<path class="flow" d="M255,241 L273,241" marker-end="url(#arrow)"/>
+<path class="flow" d="M470,241 L488,241" marker-end="url(#arrow)"/>
+<path class="flow" d="M685,241 L703,241" marker-end="url(#arrow)"/>
+<path class="flow" d="M587,274 L587,306" marker-end="url(#arrow)"/>
+<path class="flow" d="M165,410 L165,454" marker-end="url(#arrow)"/>
+<path class="flow" d="M404,410 L404,454" marker-end="url(#arrow)"/>
+<path class="flow" d="M611,410 L611,454" marker-end="url(#arrow)"/>
+<path class="flow" d="M820,410 L820,454" marker-end="url(#arrow)"/>
+<path class="flow" d="M516,502 L506,502" marker-end="url(#arrow)"/>
+<path class="flow" d="M304,502 L294,502" marker-end="url(#arrow)"/>
+<circle class="pk" r="4" style="--c:var(--vue)" cx="0" cy="0"><animateMotion dur="4.2s" begin="0s" repeatCount="indefinite" path="M180,92 L180,241 L587,241 L587,352"/></circle>
+<circle class="pk" r="4" style="--c:var(--ops)" cx="0" cy="0"><animateMotion dur="4.2s" begin="-1.6s" repeatCount="indefinite" path="M480,92 L480,241 L587,241 L587,352"/></circle>
+<circle class="pk" r="4" style="--c:var(--slate)" cx="0" cy="0"><animateMotion dur="2.4s" begin="-0.8s" repeatCount="indefinite" path="M780,92 L780,241"/></circle>
+<circle class="pk" r="4" style="--c:var(--pg)" cx="0" cy="0"><animateMotion dur="2.2s" begin="-0.0s" repeatCount="indefinite" path="M165,392 L165,502"/></circle>
+<circle class="pk" r="4" style="--c:var(--ops)" cx="0" cy="0"><animateMotion dur="2.2s" begin="-0.55s" repeatCount="indefinite" path="M404,392 L404,502"/></circle>
+<circle class="pk" r="4" style="--c:var(--ops)" cx="0" cy="0"><animateMotion dur="2.2s" begin="-1.1s" repeatCount="indefinite" path="M611,392 L611,502"/></circle>
+<circle class="pk" r="4" style="--c:var(--ai)" cx="0" cy="0"><animateMotion dur="2.2s" begin="-1.6500000000000001s" repeatCount="indefinite" path="M820,392 L820,502"/></circle>
+<circle class="pk" r="4" style="--c:var(--ops)" cx="0" cy="0"><animateMotion dur="3.0s" begin="-1.2s" repeatCount="indefinite" path="M611,502 L404,502 L165,502"/></circle>
+<text class="cap" x="40" y="40">CLIENTES</text>
+<g style="--c:var(--vue)">
+<rect x="40" y="54" width="280" height="74" rx="12" fill="var(--bg)"/>
+<rect class="node" x="40" y="54" width="280" height="74" rx="12"/>
+<rect class="bar" x="54" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="66" y="82">Navegador</text>
+<text class="s" x="66" y="102">Vue 3 · Inertia · TypeScript</text>
+<text class="s" x="66" y="119">shadcn-vue · kit de UI · chat flotante</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="340" y="54" width="280" height="74" rx="12" fill="var(--bg)"/>
+<rect class="node" x="340" y="54" width="280" height="74" rx="12"/>
+<rect class="bar" x="354" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="366" y="82">Integraciones</text>
+<text class="s" x="366" y="102">API REST /api/v1 · Sanctum</text>
+<text class="s" x="366" y="119">OpenAPI · cliente TypeScript generado</text>
+</g>
+<g style="--c:var(--slate)">
+<rect x="640" y="54" width="280" height="74" rx="12" fill="var(--bg)"/>
+<rect class="node" x="640" y="54" width="280" height="74" rx="12"/>
+<rect class="bar" x="654" y="69" width="4" height="16" rx="2"/>
+<text class="t" x="666" y="82">Terminal y agentes</text>
+<text class="s" x="666" y="102">./setup.sh · comandos starter:*</text>
+<text class="s" x="666" y="119">AGENTS.md · skills de desarrollo</text>
+</g>
+<text class="cap" x="60" y="196">APPS/PLATFORM · LARAVEL 13</text>
+<g style="--c:var(--laravel)">
+<rect x="60" y="210" width="195" height="62" rx="12" fill="var(--bg)"/>
+<rect class="node" x="60" y="210" width="195" height="62" rx="12"/>
+<rect class="bar" x="74" y="225" width="4" height="16" rx="2"/>
+<text class="t" x="86" y="238">Rutas y controladores</text>
+<text class="s" x="86" y="258">web · admin · api · módulos</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="275" y="210" width="195" height="62" rx="12" fill="var(--bg)"/>
+<rect class="node" x="275" y="210" width="195" height="62" rx="12"/>
+<rect class="bar" x="289" y="225" width="4" height="16" rx="2"/>
+<text class="t" x="301" y="238">Form Requests</text>
+<text class="s" x="301" y="258">reutilizan las rules()</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="490" y="210" width="195" height="62" rx="12" fill="var(--bg)"/>
+<rect class="node" x="490" y="210" width="195" height="62" rx="12"/>
+<rect class="bar" x="504" y="225" width="4" height="16" rx="2"/>
+<text class="t" x="516" y="238">Actions</text>
+<text class="s" x="516" y="258">autorizan · validan · auditan</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="705" y="210" width="195" height="62" rx="12" fill="var(--bg)"/>
+<rect class="node" x="705" y="210" width="195" height="62" rx="12"/>
+<rect class="bar" x="719" y="225" width="4" height="16" rx="2"/>
+<text class="t" x="731" y="238">Policies y permisos</text>
+<text class="s" x="731" y="258">spatie · sin Gate::before</text>
+</g>
+<text class="cap" x="60" y="300">PAQUETES DE DOMINIO</text>
+<g style="--c:var(--slate)">
+<rect x="60" y="312" width="160" height="80" rx="12" fill="var(--bg)"/>
+<rect class="node" x="60" y="312" width="160" height="80" rx="12"/>
+<rect class="bar" x="74" y="327" width="4" height="16" rx="2"/>
+<text class="t mono" x="86" y="340">administration</text>
+<text class="s" x="86" y="360">ajustes · salud</text>
+<text class="s" x="86" y="377">auditoría · plantillas</text>
+</g>
+<g style="--c:var(--laravel)">
+<rect x="230" y="312" width="160" height="80" rx="12" fill="var(--bg)"/>
+<rect class="node" x="230" y="312" width="160" height="80" rx="12"/>
+<rect class="bar" x="244" y="327" width="4" height="16" rx="2"/>
+<text class="t mono" x="256" y="340">identity</text>
+<text class="s" x="256" y="360">código por correo</text>
+<text class="s" x="256" y="377">roles · invitaciones</text>
+</g>
+<g style="--c:var(--ai)">
+<rect x="400" y="312" width="160" height="80" rx="12" fill="var(--bg)"/>
+<rect class="node" x="400" y="312" width="160" height="80" rx="12"/>
+<rect class="bar" x="414" y="327" width="4" height="16" rx="2"/>
+<text class="t mono" x="426" y="340">ai</text>
+<text class="s" x="426" y="360">proveedores · agentes</text>
+<text class="s" x="426" y="377">costos · límites</text>
+</g>
+<g style="--c:var(--pg)">
+<rect x="570" y="312" width="160" height="80" rx="12" fill="var(--bg)"/>
+<rect class="node" x="570" y="312" width="160" height="80" rx="12"/>
+<rect class="bar" x="584" y="327" width="4" height="16" rx="2"/>
+<text class="t mono" x="596" y="340">knowledge</text>
+<text class="s" x="596" y="360">RAG · pgvector</text>
+<text class="s" x="596" y="377">citas · evaluaciones</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="740" y="312" width="160" height="80" rx="12" fill="var(--bg)"/>
+<rect class="node" x="740" y="312" width="160" height="80" rx="12"/>
+<rect class="bar" x="754" y="327" width="4" height="16" rx="2"/>
+<text class="t mono" x="766" y="340">starter-console</text>
+<text class="s" x="766" y="360">doctor · verify</text>
+<text class="s" x="766" y="377">make-module</text>
+</g>
+<text class="cap" x="40" y="446">PROCESOS Y DATOS</text>
+<g style="--c:var(--pg)">
+<rect x="40" y="460" width="250" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="40" y="460" width="250" height="84" rx="12"/>
+<rect class="bar" x="54" y="475" width="4" height="16" rx="2"/>
+<text class="t" x="66" y="488">PostgreSQL 16</text>
+<text class="s" x="66" y="508">datos · sesiones · caché · cola</text>
+<text class="s" x="66" y="525">pgvector para el conocimiento</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="306" y="460" width="196" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="306" y="460" width="196" height="84" rx="12"/>
+<rect class="bar" x="320" y="475" width="4" height="16" rx="2"/>
+<text class="t" x="332" y="488">Worker de cola</text>
+<text class="s" x="332" y="508">mail · default · ingest</text>
+<text class="s" x="332" y="525">sync · maintenance</text>
+</g>
+<g style="--c:var(--ops)">
+<rect x="518" y="460" width="186" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="518" y="460" width="186" height="84" rx="12"/>
+<rect class="bar" x="532" y="475" width="4" height="16" rx="2"/>
+<text class="t" x="544" y="488">Scheduler</text>
+<text class="s" x="544" y="508">mantenimiento IA y RAG</text>
+<text class="s" x="544" y="525">automatizaciones</text>
+</g>
+<g style="--c:var(--slate)">
+<rect x="720" y="460" width="200" height="84" rx="12" fill="var(--bg)"/>
+<rect class="node" x="720" y="460" width="200" height="84" rx="12"/>
+<rect class="bar" x="734" y="475" width="4" height="16" rx="2"/>
+<text class="t" x="746" y="488">Servicios externos</text>
+<text class="s" x="746" y="508">proveedores IA (laravel/ai)</text>
+<text class="s" x="746" y="525">Resend · SMTP · Postmark</text>
+</g>
+<g style="--c:var(--vue)"><circle class="dot" cx="45" cy="582" r="5"/><text class="s" x="56" y="586">Frontend</text></g>
+<g style="--c:var(--laravel)"><circle class="dot" cx="135.8" cy="582" r="5"/><text class="s" x="146.8" y="586">Backend y acceso</text></g>
+<g style="--c:var(--ai)"><circle class="dot" cx="279.4" cy="582" r="5"/><text class="s" x="290.4" y="586">IA</text></g>
+<g style="--c:var(--pg)"><circle class="dot" cx="330.59999999999997" cy="582" r="5"/><text class="s" x="341.59999999999997" y="586">Datos y RAG</text></g>
+<g style="--c:var(--ops)"><circle class="dot" cx="441.19999999999993" cy="582" r="5"/><text class="s" x="452.19999999999993" y="586">Operación</text></g>
+<g style="--c:var(--slate)"><circle class="dot" cx="538.5999999999999" cy="582" r="5"/><text class="s" x="549.5999999999999" y="586">Núcleo e integraciones</text></g>
+</svg>

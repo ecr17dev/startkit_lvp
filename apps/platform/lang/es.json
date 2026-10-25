@@ -2545,5 +2545,7 @@
     "Mail send retried": "Envío de correo reintentado",
     "Welcome email": "Correo de bienvenida",
     "Send time": "Hora de envío",
-    "Users & access": "Usuarios y acceso"
+    "Users & access": "Usuarios y acceso",
+    "Status messages, notifications, empty and loading states.": "Mensajes de estado, notificaciones, estados vacíos y de carga.",
+    "Dialog, drawer, sheet, confirmation, popover and tooltip.": "Diálogo, panel inferior, panel lateral, confirmación, popover y tooltip."
 }
